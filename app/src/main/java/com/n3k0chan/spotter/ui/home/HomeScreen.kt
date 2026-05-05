@@ -13,8 +13,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.Bolt
-import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.MonitorHeart
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
@@ -144,7 +144,7 @@ fun HomeScreen(
 
             Spacer(Modifier.height(16.dp))
             OutlinedButton(onClick = onOpenChat, modifier = Modifier.fillMaxWidth()) {
-                Icon(Icons.Filled.Chat, contentDescription = null)
+                Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
                 Text("Hablar con el asistente")
             }

@@ -13,8 +13,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.MoreVert
@@ -74,7 +74,7 @@ fun WorkoutScreen(
                 title = { Text(state.workout?.workout?.title ?: "Entreno") },
                 actions = {
                     IconButton(onClick = onOpenChat) {
-                        Icon(Icons.Filled.Chat, contentDescription = "Asistente")
+                        Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = "Asistente")
                     }
                 },
             )
