@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Spotter</string>
+
+    <!-- Pestañas / navegación -->
+    <string name="nav_home">Inicio</string>
+    <string name="nav_workout">Entrenar</string>
+    <string name="nav_health">Salud</string>
+    <string name="nav_history">Historial</string>
+    <string name="nav_stats">Stats</string>
+    <string name="nav_settings">Ajustes</string>
+
+    <!-- Home -->
+    <string name="home_start_template">Empezar plantilla</string>
+    <string name="home_start_free">Entreno libre</string>
+    <string name="home_streak">Racha actual</string>
+    <string name="home_days">días</string>
+    <string name="home_no_streak">Sin racha activa</string>
+
+    <!-- Plantillas -->
+    <string name="templates_title">Plantillas</string>
+    <string name="templates_new">Nueva plantilla</string>
+    <string name="templates_empty">Aún no tienes plantillas. Crea una para reutilizar tus rutinas.</string>
+    <string name="template_name_label">Nombre</string>
+    <string name="template_save">Guardar</string>
+    <string name="template_delete">Eliminar plantilla</string>
+    <string name="template_add_exercise">Añadir ejercicio</string>
+
+    <!-- Ejercicios -->
+    <string name="exercises_title">Ejercicios</string>
+    <string name="exercises_new">Nuevo ejercicio</string>
+    <string name="exercises_empty">No tienes ejercicios todavía. Crea el primero.</string>
+    <string name="exercise_name">Nombre</string>
+    <string name="exercise_muscle">Grupo muscular</string>
+
+    <!-- Workout -->
+    <string name="workout_finish">Terminar entreno</string>
+    <string name="workout_add_exercise">Añadir ejercicio</string>
+    <string name="workout_add_set">+ Serie</string>
+    <string name="workout_set">Serie</string>
+    <string name="workout_kg">kg</string>
+    <string name="workout_reps">reps</string>
+    <string name="workout_rest_seconds">Descanso (s)</string>
+    <string name="workout_start_rest">Iniciar descanso</string>
+    <string name="workout_skip_rest">Saltar</string>
+    <string name="workout_rpe">RPE</string>
+    <string name="workout_notes">Notas</string>
+    <string name="workout_done">Hecho</string>
+
+    <!-- Chat -->
+    <string name="chat_title">Asistente</string>
+    <string name="chat_hint">Pregunta lo que necesites…</string>
+    <string name="chat_send">Enviar</string>
+    <string name="chat_no_key">Configura tu API key de Groq en Ajustes para usar el asistente.</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Ajustes</string>
+    <string name="settings_groq_key">API Key de Groq</string>
+    <string name="settings_groq_key_hint">gsk_…</string>
+    <string name="settings_groq_key_saved">Guardada (override sobre BuildConfig)</string>
+    <string name="settings_groq_model">Modelo</string>
+    <string name="settings_clear_key">Borrar API key</string>
+    <string name="settings_default_rest">Descanso por defecto (s)</string>
+    <string name="settings_pre_warning">Aviso a 10s del final</string>
+    <string name="settings_vibrate">Vibrar al terminar</string>
+    <string name="settings_about">Acerca de</string>
+
+    <!-- Drive backup -->
+    <string name="settings_drive_section">Copia en Google Drive</string>
+    <string name="settings_drive_help">La base de datos se guarda en una carpeta privada de la app dentro de tu Drive. No es visible en drive.google.com.</string>
+    <string name="settings_drive_link">Conectar cuenta de Google</string>
+    <string name="settings_drive_unlink">Desconectar cuenta</string>
+    <string name="settings_drive_backup_now">Subir ahora</string>
+    <string name="settings_drive_restore">Restaurar de Drive</string>
+    <string name="settings_drive_auto">Subir tras cada entreno</string>
+
+    <!-- Timer / notificación -->
+    <string name="timer_channel_name">Temporizador de descanso</string>
+    <string name="timer_channel_desc">Notificación persistente con la cuenta atrás del descanso</string>
+    <string name="timer_notification_title">Descanso en curso</string>
+    <string name="timer_notification_finished">Descanso terminado · vuelve a la barra</string>
+    <string name="timer_action_skip">Saltar</string>
+    <string name="timer_action_add_15">+15s</string>
+
+    <!-- Stats -->
+    <string name="stats_title">Estadísticas</string>
+    <string name="stats_total_sessions">Sesiones totales</string>
+    <string name="stats_this_week">Esta semana</string>
+    <string name="stats_current_streak">Racha actual</string>
+    <string name="stats_longest_streak">Racha más larga</string>
+
+    <!-- Historial -->
+    <string name="history_title">Historial</string>
+    <string name="history_empty">Aún no has registrado entrenos.</string>
+
+    <!-- Comunes -->
+    <string name="common_cancel">Cancelar</string>
+    <string name="common_save">Guardar</string>
+    <string name="common_delete">Eliminar</string>
+    <string name="common_back">Atrás</string>
+</resources>

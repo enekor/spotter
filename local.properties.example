@@ -1,0 +1,17 @@
+# Copia este archivo a local.properties y rellena los valores.
+# local.properties NO se sube al repositorio.
+
+# Ruta del SDK de Android. En Linux suele ser:
+sdk.dir=/home/TU_USUARIO/Android/Sdk
+
+# API key de Groq (https://console.groq.com/keys)
+# Si la dejas vacia, la app la pedira en Ajustes la primera vez.
+GROQ_API_KEY=
+
+# --- Firma para release (assembleRelease) ---
+# Si dejas estos campos vacios, el release se firmara con la clave de debug
+# (sirve para probar pero NO para distribuir y NO sirve la SHA-1 que diste a GCP).
+RELEASE_STORE_FILE=spotter-release.keystore
+RELEASE_STORE_PASSWORD=
+RELEASE_KEY_ALIAS=spotter
+RELEASE_KEY_PASSWORD=
