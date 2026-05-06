@@ -1,33 +1,34 @@
 package com.n3k0chan.spotter.ui.templates
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.DragIndicator
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -39,7 +40,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
@@ -47,11 +48,17 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.n3k0chan.spotter.R
 import com.n3k0chan.spotter.data.db.entities.Exercise
 import com.n3k0chan.spotter.data.db.entities.Template
 import com.n3k0chan.spotter.data.db.entities.TemplateExercise
 import com.n3k0chan.spotter.di.ServiceLocator
+import com.n3k0chan.spotter.ui.components.SpotterButton
+import com.n3k0chan.spotter.ui.components.SpotterButtonVariant
+import com.n3k0chan.spotter.ui.components.SpotterCard
+import com.n3k0chan.spotter.ui.components.SpotterIconButton
+import com.n3k0chan.spotter.ui.components.SpotterTopBar
+import com.n3k0chan.spotter.ui.theme.SpotterText
+import com.n3k0chan.spotter.ui.theme.SpotterTheme
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -112,13 +119,11 @@ class TemplateEditorViewModel(initialTemplateId: Long?) : ViewModel() {
     fun updateItem(exerciseId: Long, sets: Int? = null, reps: Int? = null, rest: Int? = null) {
         _state.value = _state.value.copy(
             items = _state.value.items.map {
-                if (it.exerciseId == exerciseId) {
-                    it.copy(
-                        targetSets = sets ?: it.targetSets,
-                        targetReps = reps ?: it.targetReps,
-                        defaultRestSeconds = rest ?: it.defaultRestSeconds,
-                    )
-                } else it
+                if (it.exerciseId == exerciseId) it.copy(
+                    targetSets = sets ?: it.targetSets,
+                    targetReps = reps ?: it.targetReps,
+                    defaultRestSeconds = rest ?: it.defaultRestSeconds,
+                ) else it
             },
         )
     }
@@ -157,7 +162,6 @@ class TemplateEditorViewModel(initialTemplateId: Long?) : ViewModel() {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TemplateEditorScreen(
     templateId: Long?,
@@ -166,102 +170,96 @@ fun TemplateEditorScreen(
 ) {
     val state by vm.state.collectAsStateWithLifecycle()
     val catalog by vm.catalog.collectAsStateWithLifecycle()
+    val c = SpotterTheme.colors
     var showPicker by remember { mutableStateOf(false) }
 
     Scaffold(
+        containerColor = c.bg,
         topBar = {
-            TopAppBar(
-                title = { Text(if (templateId == null) "Nueva plantilla" else "Editar plantilla") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
-                    }
+            SpotterTopBar(
+                title = if (templateId == null) "Nueva plantilla" else "Editar plantilla",
+                leading = { SpotterIconButton(Icons.AutoMirrored.Filled.ArrowBack, onClick = onBack) },
+                trailing = {
+                    SpotterButton(
+                        text = "Guardar",
+                        variant = SpotterButtonVariant.Text,
+                        height = 36.dp,
+                        onClick = { vm.save(onBack) },
+                    )
                 },
             )
         },
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .padding(padding)
-                .fillMaxSize()
-                .padding(16.dp),
+        LazyColumn(
+            modifier = Modifier.padding(padding).fillMaxSize(),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            OutlinedTextField(
-                value = state.name,
-                onValueChange = vm::setName,
-                label = { Text(stringResourceCompat(R.string.template_name_label)) },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Spacer(Modifier.height(12.dp))
-            Text("Ejercicios", style = MaterialTheme.typography.titleLarge)
-            Spacer(Modifier.height(8.dp))
-
-            LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.weight(1f),
-            ) {
-                items(state.items, key = { it.exerciseId }) { item ->
-                    val exercise = catalog.firstOrNull { it.id == item.exerciseId }
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                    ) {
-                        Column(modifier = Modifier.padding(12.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                    exercise?.name ?: "(borrado)",
-                                    fontWeight = FontWeight.SemiBold,
-                                    modifier = Modifier.weight(1f),
-                                )
-                                IconButton(onClick = { vm.removeItem(item.exerciseId) }) {
-                                    Icon(Icons.Filled.Delete, contentDescription = null)
-                                }
-                            }
-                            Spacer(Modifier.height(4.dp))
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                NumberField(
-                                    label = "Sets",
-                                    value = item.targetSets,
-                                    onChange = { vm.updateItem(item.exerciseId, sets = it) },
-                                    modifier = Modifier.weight(1f),
-                                )
-                                NumberField(
-                                    label = "Reps",
-                                    value = item.targetReps,
-                                    onChange = { vm.updateItem(item.exerciseId, reps = it) },
-                                    modifier = Modifier.weight(1f),
-                                )
-                                NumberField(
-                                    label = "Rest s",
-                                    value = item.defaultRestSeconds,
-                                    onChange = { vm.updateItem(item.exerciseId, rest = it) },
-                                    modifier = Modifier.weight(1f),
-                                )
-                            }
-                        }
+            // Name card
+            item {
+                SpotterCard(padding = 16.dp) {
+                    Column {
+                        Text("NOMBRE", style = SpotterText.caps, color = c.textMuted)
+                        Spacer(Modifier.height(4.dp))
+                        OutlinedTextField(
+                            value = state.name,
+                            onValueChange = vm::setName,
+                            placeholder = { Text("Push", style = SpotterText.title2, color = c.textFaint) },
+                            singleLine = true,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedContainerColor = c.surface,
+                                unfocusedContainerColor = c.surface,
+                                focusedBorderColor = c.borderStrong,
+                                unfocusedBorderColor = androidx.compose.ui.graphics.Color.Transparent,
+                                cursorColor = c.primary,
+                                focusedTextColor = c.text,
+                                unfocusedTextColor = c.text,
+                            ),
+                            textStyle = SpotterText.title2,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
                     }
                 }
             }
-
-            OutlinedButton(
-                onClick = { showPicker = true },
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Icon(Icons.Filled.Add, contentDescription = null)
-                Text("  " + stringResourceCompat(R.string.template_add_exercise))
+            item {
+                Text(
+                    "EJERCICIOS · ${state.items.size}",
+                    style = SpotterText.caps,
+                    color = c.textMuted,
+                    modifier = Modifier.padding(start = 4.dp, top = 14.dp, bottom = 4.dp),
+                )
             }
-            Spacer(Modifier.height(8.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(
-                    onClick = { vm.save(onBack) },
-                    modifier = Modifier.weight(1f),
-                ) { Text(stringResourceCompat(R.string.template_save)) }
+            items(state.items, key = { it.exerciseId }) { item ->
+                val exercise = catalog.firstOrNull { it.id == item.exerciseId }
+                ItemCard(
+                    name = exercise?.name ?: "(borrado)",
+                    sets = item.targetSets,
+                    reps = item.targetReps,
+                    rest = item.defaultRestSeconds,
+                    onSetsChange = { vm.updateItem(item.exerciseId, sets = it) },
+                    onRepsChange = { vm.updateItem(item.exerciseId, reps = it) },
+                    onRestChange = { vm.updateItem(item.exerciseId, rest = it) },
+                    onRemove = { vm.removeItem(item.exerciseId) },
+                )
+            }
+            item {
+                Spacer(Modifier.height(4.dp))
+                SpotterButton(
+                    text = "Añadir ejercicio",
+                    leading = Icons.Filled.Add,
+                    variant = SpotterButtonVariant.Outlined,
+                    full = true,
+                    onClick = { showPicker = true },
+                )
                 if (templateId != null) {
-                    OutlinedButton(
+                    Spacer(Modifier.height(8.dp))
+                    SpotterButton(
+                        text = "Eliminar plantilla",
+                        leading = Icons.Filled.Delete,
+                        variant = SpotterButtonVariant.Danger,
+                        full = true,
                         onClick = { vm.delete(onBack) },
-                        modifier = Modifier.weight(1f),
-                    ) { Text(stringResourceCompat(R.string.template_delete)) }
+                    )
                 }
             }
         }
@@ -281,25 +279,83 @@ fun TemplateEditorScreen(
 }
 
 @Composable
-private fun NumberField(
+private fun ItemCard(
+    name: String,
+    sets: Int,
+    reps: Int,
+    rest: Int,
+    onSetsChange: (Int) -> Unit,
+    onRepsChange: (Int) -> Unit,
+    onRestChange: (Int) -> Unit,
+    onRemove: () -> Unit,
+) {
+    val c = SpotterTheme.colors
+    SpotterCard(padding = 14.dp, background = c.surface, border = c.border) {
+        Column {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    Icons.Filled.DragIndicator,
+                    contentDescription = null,
+                    tint = c.textFaint,
+                    modifier = Modifier.size(18.dp),
+                )
+                Spacer(Modifier.size(10.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(name, style = SpotterText.bodyMd, color = c.text)
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        "$sets×$reps · desc. ${rest}s",
+                        style = SpotterText.small.copy(fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace),
+                        color = c.textMuted,
+                    )
+                }
+                IconButton(onClick = onRemove) {
+                    Icon(Icons.Filled.Delete, contentDescription = "Quitar", tint = c.textFaint, modifier = Modifier.size(18.dp))
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                IntField("Sets", sets, onSetsChange, Modifier.weight(1f))
+                IntField("Reps", reps, onRepsChange, Modifier.weight(1f))
+                IntField("Rest s", rest, onRestChange, Modifier.weight(1f))
+            }
+        }
+    }
+}
+
+@Composable
+private fun IntField(
     label: String,
     value: Int,
     onChange: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val c = SpotterTheme.colors
     var text by remember(value) { mutableStateOf(value.toString()) }
     LaunchedEffect(value) { text = value.toString() }
-    OutlinedTextField(
-        value = text,
-        onValueChange = { v ->
-            text = v.filter(Char::isDigit)
-            text.toIntOrNull()?.let(onChange)
-        },
-        label = { Text(label) },
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-        singleLine = true,
-        modifier = modifier,
-    )
+    Column(
+        modifier = modifier
+            .height(56.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(c.surfaceMuted)
+            .border(1.dp, c.border, RoundedCornerShape(12.dp))
+            .padding(horizontal = 12.dp, vertical = 6.dp),
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Text(label, style = SpotterText.small, color = c.textMuted)
+        Spacer(Modifier.height(2.dp))
+        BasicTextField(
+            value = text,
+            onValueChange = {
+                text = it.filter(Char::isDigit)
+                text.toIntOrNull()?.let(onChange)
+            },
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            textStyle = SpotterText.numS.copy(color = c.text),
+            cursorBrush = androidx.compose.ui.graphics.SolidColor(c.primary),
+        )
+    }
 }
 
 @Composable
@@ -309,6 +365,7 @@ private fun TemplatePickerDialog(
     onPick: (Exercise) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val c = SpotterTheme.colors
     var query by remember { mutableStateOf("") }
     var newName by remember { mutableStateOf("") }
     var newMuscle by remember { mutableStateOf("") }
@@ -325,10 +382,10 @@ private fun TemplatePickerDialog(
                         ServiceLocator.exercises.get(id)?.let(onPick)
                     }
                 }
-            }) { Text("Crear y añadir") }
+            }) { Text("Crear y añadir", color = c.primary) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResourceCompat(R.string.common_cancel)) } },
-        title = { Text(stringResourceCompat(R.string.template_add_exercise)) },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar", color = c.textMuted) } },
+        title = { Text("Añadir ejercicio", style = SpotterText.title2) },
         text = {
             Column {
                 OutlinedTextField(
@@ -340,7 +397,7 @@ private fun TemplatePickerDialog(
                 )
                 Spacer(Modifier.height(8.dp))
                 val filtered = catalog.filter { query.isBlank() || it.name.contains(query, ignoreCase = true) }
-                LazyColumn(modifier = Modifier.height(200.dp)) {
+                LazyColumn(modifier = Modifier.height(220.dp)) {
                     items(filtered, key = { it.id }) { ex ->
                         FilterChip(
                             selected = ex.id in already,
@@ -351,18 +408,18 @@ private fun TemplatePickerDialog(
                     }
                 }
                 Spacer(Modifier.height(8.dp))
-                Text("Crear nuevo", style = MaterialTheme.typography.labelLarge)
+                Text("Crear nuevo", style = SpotterText.smallMd, color = c.textMuted)
                 OutlinedTextField(
                     value = newName,
                     onValueChange = { newName = it },
-                    label = { Text(stringResourceCompat(R.string.exercise_name)) },
+                    label = { Text("Nombre") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
                 OutlinedTextField(
                     value = newMuscle,
                     onValueChange = { newMuscle = it },
-                    label = { Text(stringResourceCompat(R.string.exercise_muscle)) },
+                    label = { Text("Grupo muscular") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -370,7 +427,3 @@ private fun TemplatePickerDialog(
         },
     )
 }
-
-@Composable
-private fun stringResourceCompat(@androidx.annotation.StringRes id: Int): String =
-    androidx.compose.ui.res.stringResource(id)

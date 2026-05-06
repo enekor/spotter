@@ -9,7 +9,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.n3k0chan.spotter.ui.chat.ChatScreen
 import com.n3k0chan.spotter.ui.exercises.ExercisesScreen
-import com.n3k0chan.spotter.ui.health.HealthScreen
 import com.n3k0chan.spotter.ui.history.HistoryScreen
 import com.n3k0chan.spotter.ui.home.HomeScreen
 import com.n3k0chan.spotter.ui.settings.SettingsScreen
@@ -37,12 +36,7 @@ fun SpotterNavGraph(
                 onPickTemplate = { navController.navigate(Routes.WorkoutRoot) },
                 onOpenChat = { navController.navigate(Routes.Chat) },
                 onOpenSettings = { navController.navigate(Routes.Settings) },
-                onOpenHealth = { navController.navigate(Routes.Health) },
             )
-        }
-
-        composable(Routes.Health) {
-            HealthScreen()
         }
 
         composable(Routes.WorkoutRoot) {

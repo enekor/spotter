@@ -1,50 +1,49 @@
 package com.n3k0chan.spotter.ui.exercises
 
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.n3k0chan.spotter.R
 import com.n3k0chan.spotter.data.db.entities.Exercise
 import com.n3k0chan.spotter.di.ServiceLocator
+import com.n3k0chan.spotter.ui.components.IconButtonTone
+import com.n3k0chan.spotter.ui.components.SpotterIconButton
+import com.n3k0chan.spotter.ui.components.SpotterTopBar
+import com.n3k0chan.spotter.ui.templates.Fab
+import com.n3k0chan.spotter.ui.theme.SpotterText
+import com.n3k0chan.spotter.ui.theme.SpotterTheme
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
@@ -73,64 +72,61 @@ class ExercisesViewModel : ViewModel() {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ExercisesScreen(
     onBack: () -> Unit,
     vm: ExercisesViewModel = viewModel(factory = ExercisesViewModel.Factory),
 ) {
     val list by vm.list.collectAsStateWithLifecycle()
+    val c = SpotterTheme.colors
     var showCreate by remember { mutableStateOf(false) }
 
     Scaffold(
+        containerColor = c.bg,
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.exercises_title)) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
-                    }
-                },
+            SpotterTopBar(
+                title = "Ejercicios",
+                leading = { SpotterIconButton(Icons.AutoMirrored.Filled.ArrowBack, onClick = onBack) },
+                trailing = { SpotterIconButton(Icons.Filled.MoreVert, tone = IconButtonTone.Muted) },
             )
         },
-        floatingActionButton = {
-            FloatingActionButton(onClick = { showCreate = true }) {
-                Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.exercises_new))
-            }
-        },
     ) { padding ->
-        Column(modifier = Modifier.padding(padding).fillMaxSize().padding(16.dp)) {
+        Box(modifier = Modifier.padding(padding).fillMaxSize()) {
             if (list.isEmpty()) {
                 Text(
-                    stringResource(R.string.exercises_empty),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    "No tienes ejercicios todavía. Crea el primero.",
+                    style = SpotterText.body,
+                    color = c.textMuted,
+                    modifier = Modifier.padding(16.dp),
                 )
             } else {
-                LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(list, key = { it.id }) { ex ->
-                        Card(modifier = Modifier.fillMaxWidth()) {
-                            Row(
-                                modifier = Modifier.padding(12.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(ex.name, fontWeight = FontWeight.SemiBold)
-                                    if (ex.muscleGroup != null) {
-                                        Text(
-                                            ex.muscleGroup,
-                                            style = MaterialTheme.typography.labelLarge,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        )
-                                    }
-                                }
-                                IconButton(onClick = { vm.delete(ex.id) }) {
-                                    Icon(Icons.Filled.Delete, contentDescription = null)
-                                }
+                val sorted = list.sortedBy { it.name.lowercase() }
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 96.dp),
+                ) {
+                    var lastLetter = '?'
+                    sorted.forEach { ex ->
+                        val letter = ex.name.firstOrNull()?.uppercaseChar() ?: '?'
+                        if (letter != lastLetter) {
+                            lastLetter = letter
+                            item(key = "letter-$letter") {
+                                Text(
+                                    letter.toString(),
+                                    style = SpotterText.caps,
+                                    color = c.textMuted,
+                                    modifier = Modifier.padding(start = 4.dp, top = 14.dp, bottom = 6.dp),
+                                )
                             }
+                        }
+                        item(key = ex.id) {
+                            ExerciseRow(ex = ex, onDelete = { vm.delete(ex.id) })
+                            HorizontalDivider(color = c.border, thickness = 1.dp)
                         }
                     }
                 }
             }
+            Fab(onClick = { showCreate = true }, modifier = Modifier.align(Alignment.BottomEnd).padding(20.dp))
         }
     }
 
@@ -139,24 +135,24 @@ fun ExercisesScreen(
         var newMuscle by remember { mutableStateOf("") }
         AlertDialog(
             onDismissRequest = { showCreate = false },
-            title = { Text(stringResource(R.string.exercises_new)) },
+            title = { Text("Nuevo ejercicio", style = SpotterText.title2) },
             confirmButton = {
                 TextButton(onClick = {
                     if (newName.isNotBlank()) {
                         vm.create(newName.trim(), newMuscle.takeIf { it.isNotBlank() })
                         showCreate = false
                     }
-                }) { Text(stringResource(R.string.common_save)) }
+                }) { Text("Guardar", color = c.primary) }
             },
             dismissButton = {
-                TextButton(onClick = { showCreate = false }) { Text(stringResource(R.string.common_cancel)) }
+                TextButton(onClick = { showCreate = false }) { Text("Cancelar", color = c.textMuted) }
             },
             text = {
                 Column {
                     OutlinedTextField(
                         value = newName,
                         onValueChange = { newName = it },
-                        label = { Text(stringResource(R.string.exercise_name)) },
+                        label = { Text("Nombre") },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                     )
@@ -164,12 +160,32 @@ fun ExercisesScreen(
                     OutlinedTextField(
                         value = newMuscle,
                         onValueChange = { newMuscle = it },
-                        label = { Text(stringResource(R.string.exercise_muscle)) },
+                        label = { Text("Grupo muscular") },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }
             },
         )
+    }
+}
+
+@Composable
+private fun ExerciseRow(ex: Exercise, onDelete: () -> Unit) {
+    val c = SpotterTheme.colors
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp, horizontal = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(ex.name, style = SpotterText.bodyMd, color = c.text)
+            if (ex.muscleGroup != null) {
+                Spacer(Modifier.height(2.dp))
+                Text(ex.muscleGroup, style = SpotterText.small, color = c.textMuted)
+            }
+        }
+        IconButton(onClick = onDelete) {
+            Icon(Icons.Filled.Delete, contentDescription = "Borrar", tint = c.textFaint, modifier = Modifier.size(18.dp))
+        }
     }
 }

@@ -4,48 +4,54 @@ import android.app.Activity
 import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Cloud
+import androidx.compose.material.icons.filled.CloudDownload
+import androidx.compose.material.icons.filled.CloudUpload
+import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
@@ -53,12 +59,21 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
-import com.n3k0chan.spotter.R
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.n3k0chan.spotter.backup.DriveBackupManager
 import com.n3k0chan.spotter.backup.PickGoogleAccountContract
 import com.n3k0chan.spotter.data.prefs.AppSettings
 import com.n3k0chan.spotter.data.prefs.SettingsRepository
 import com.n3k0chan.spotter.di.ServiceLocator
+import com.n3k0chan.spotter.ui.components.SpotterButton
+import com.n3k0chan.spotter.ui.components.SpotterButtonVariant
+import com.n3k0chan.spotter.ui.components.SpotterCard
+import com.n3k0chan.spotter.ui.components.SpotterChip
+import com.n3k0chan.spotter.ui.components.SpotterChipTone
+import com.n3k0chan.spotter.ui.components.SpotterIconButton
+import com.n3k0chan.spotter.ui.components.SpotterTopBar
+import com.n3k0chan.spotter.ui.theme.SpotterText
+import com.n3k0chan.spotter.ui.theme.SpotterTheme
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -94,7 +109,6 @@ class SettingsViewModel : ViewModel() {
     fun onAccountPicked(name: String?) {
         if (name.isNullOrBlank()) return
         repo.setDriveAccount(name)
-        // Disparamos un primer backup de prueba para forzar el consent screen
         backupNow()
     }
 
@@ -134,8 +148,6 @@ class SettingsViewModel : ViewModel() {
 
     fun consumedToast() { _toast.value = null }
     fun consumedConsent() { _consentRequest.value = null }
-
-    /** Tras una resolución de consentimiento, reintentar la operación que pidió permiso. */
     fun retryAfterConsent() = backupNow()
 
     companion object {
@@ -148,11 +160,10 @@ class SettingsViewModel : ViewModel() {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     onBack: () -> Unit,
-    vm: SettingsViewModel = androidx.lifecycle.viewmodel.compose.viewModel(factory = SettingsViewModel.Factory),
+    vm: SettingsViewModel = viewModel(factory = SettingsViewModel.Factory),
 ) {
     val state by vm.state.collectAsStateWithLifecycle()
     val busy by vm.busy.collectAsStateWithLifecycle()
@@ -160,6 +171,7 @@ fun SettingsScreen(
     val consentIntent by vm.consentRequest.collectAsStateWithLifecycle()
     val restoreDone by vm.restoreDone.collectAsStateWithLifecycle()
     val ctx = LocalContext.current
+    val c = SpotterTheme.colors
 
     val accountPicker = rememberLauncherForActivityResult(PickGoogleAccountContract()) { name ->
         vm.onAccountPicked(name)
@@ -170,260 +182,326 @@ fun SettingsScreen(
     }
     var confirmRestore by remember { mutableStateOf(false) }
 
-    // Lanza la pantalla de consentimiento cuando Google nos lo pide
-    androidx.compose.runtime.LaunchedEffect(consentIntent) {
+    LaunchedEffect(consentIntent) {
         consentIntent?.let { consentLauncher.launch(it) }
     }
-    androidx.compose.runtime.LaunchedEffect(restoreDone) {
+    LaunchedEffect(restoreDone) {
         if (restoreDone) restartApp(ctx)
-    }
-    androidx.compose.runtime.LaunchedEffect(toast) {
-        // En esta versión solo expongo un AlertDialog si hay mensaje persistente.
-        // Aquí lo limpio inmediatamente para que el usuario vea aparecer/desaparecer.
     }
 
     Scaffold(
+        containerColor = c.bg,
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.settings_title)) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
-                    }
-                },
+            SpotterTopBar(
+                title = "Ajustes",
+                leading = { SpotterIconButton(Icons.AutoMirrored.Filled.ArrowBack, onClick = onBack) },
             )
         },
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .padding(padding)
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+        LazyColumn(
+            modifier = Modifier.padding(padding).fillMaxSize(),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            // ─── API key Groq
-            Column {
-                Text(stringResource(R.string.settings_groq_key), fontWeight = FontWeight.SemiBold)
-                Spacer(Modifier.height(4.dp))
-                ApiKeyField(state) { vm.setApiKey(it) }
-                if (state.isUserOverridingKey) {
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        stringResource(R.string.settings_groq_key_saved),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    OutlinedButton(onClick = { vm.setApiKey("") }) {
-                        Text(stringResource(R.string.settings_clear_key))
+            // ── ASISTENTE
+            item { SectionHeader("ASISTENTE") }
+            item {
+                SpotterCard(padding = 0.dp) {
+                    Column {
+                        ApiKeyRow(state = state, onSave = vm::setApiKey, onClear = { vm.setApiKey("") })
+                        HorizontalDivider(color = c.border, thickness = 1.dp)
+                        ModelRow(selected = state.groqModel, onSelect = vm::setModel)
                     }
                 }
             }
 
-            // ─── Modelo
-            Column {
-                Text(stringResource(R.string.settings_groq_model), fontWeight = FontWeight.SemiBold)
-                Spacer(Modifier.height(4.dp))
-                ModelDropdown(
-                    selected = state.groqModel,
-                    options = SettingsRepository.MODELS,
-                    onSelect = vm::setModel,
-                )
-            }
-
-            // ─── Descanso por defecto
-            Column {
-                Text(stringResource(R.string.settings_default_rest), fontWeight = FontWeight.SemiBold)
-                Spacer(Modifier.height(4.dp))
-                var rest by remember(state.defaultRestSeconds) {
-                    mutableStateOf(state.defaultRestSeconds.toString())
-                }
-                OutlinedTextField(
-                    value = rest,
-                    onValueChange = {
-                        rest = it.filter(Char::isDigit)
-                        rest.toIntOrNull()?.let(vm::setRest)
-                    },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-
-            // ─── Toggles
-            ToggleRow(
-                label = stringResource(R.string.settings_pre_warning),
-                checked = state.preWarning,
-                onChange = vm::setPreWarning,
-            )
-            ToggleRow(
-                label = stringResource(R.string.settings_vibrate),
-                checked = state.vibrate,
-                onChange = vm::setVibrate,
-            )
-
-            HorizontalDivider()
-
-            // ─── Backup en Google Drive
-            Column {
-                Text(stringResource(R.string.settings_drive_section), fontWeight = FontWeight.SemiBold)
-                Spacer(Modifier.height(2.dp))
-                Text(
-                    stringResource(R.string.settings_drive_help),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Spacer(Modifier.height(8.dp))
-
-                if (state.isDriveLinked) {
-                    Text("Cuenta: ${state.driveAccountName}")
-                    state.lastBackupAt?.let { ts ->
-                        Text(
-                            "Última copia: " + DateFormat
-                                .getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT)
-                                .format(Date(ts)),
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            // ── ENTRENO
+            item { SectionHeader("ENTRENO") }
+            item {
+                SpotterCard(padding = 0.dp) {
+                    Column {
+                        IntFieldRow(
+                            label = "Descanso por defecto",
+                            value = state.defaultRestSeconds,
+                            unit = "s",
+                            onChange = vm::setRest,
+                        )
+                        HorizontalDivider(color = c.border, thickness = 1.dp)
+                        ToggleSettingRow(
+                            label = "Aviso a 10s del final",
+                            checked = state.preWarning,
+                            onChange = vm::setPreWarning,
+                        )
+                        HorizontalDivider(color = c.border, thickness = 1.dp)
+                        ToggleSettingRow(
+                            label = "Vibrar al terminar",
+                            checked = state.vibrate,
+                            onChange = vm::setVibrate,
                         )
                     }
-                    Spacer(Modifier.height(8.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(
-                            onClick = { vm.backupNow() },
-                            enabled = !busy,
-                            modifier = Modifier.weight(1f),
-                        ) { Text(stringResource(R.string.settings_drive_backup_now)) }
-                        OutlinedButton(
-                            onClick = { confirmRestore = true },
-                            enabled = !busy,
-                            modifier = Modifier.weight(1f),
-                        ) { Text(stringResource(R.string.settings_drive_restore)) }
-                    }
-                    Spacer(Modifier.height(4.dp))
-                    OutlinedButton(onClick = { vm.unlinkAccount() }, enabled = !busy) {
-                        Text(stringResource(R.string.settings_drive_unlink))
-                    }
-                    Spacer(Modifier.height(8.dp))
-                    ToggleRow(
-                        label = stringResource(R.string.settings_drive_auto),
-                        checked = state.autoBackupAfterWorkout,
-                        onChange = vm::setAutoBackup,
-                    )
-                } else {
-                    Button(
-                        onClick = { accountPicker.launch(Unit) },
-                        enabled = !busy,
-                    ) { Text(stringResource(R.string.settings_drive_link)) }
                 }
             }
 
-            HorizontalDivider()
-            AssistChip(onClick = { /* nada */ }, label = { Text(stringResource(R.string.settings_about)) })
-            Text(
-                "Spotter · privado y local. La API key y la cuenta de Drive se guardan cifradas en este dispositivo.",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            // ── DRIVE
+            item { SectionHeader("COPIA EN GOOGLE DRIVE") }
+            if (state.isDriveLinked) {
+                item {
+                    SpotterCard {
+                        Column {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .clip(RoundedCornerShape(20.dp))
+                                        .background(c.surfaceVariant),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Icon(
+                                        Icons.Filled.Cloud,
+                                        contentDescription = null,
+                                        tint = c.success,
+                                        modifier = Modifier.size(20.dp),
+                                    )
+                                }
+                                Spacer(Modifier.width(10.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(state.driveAccountName ?: "—", style = SpotterText.bodyMd, color = c.text)
+                                    Spacer(Modifier.height(2.dp))
+                                    val subtitle = state.lastBackupAt?.let {
+                                        "Última copia · " + DateFormat
+                                            .getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT)
+                                            .format(Date(it))
+                                    } ?: "Sin copias todavía"
+                                    Text(subtitle, style = SpotterText.small, color = c.textMuted)
+                                }
+                                SpotterChip(text = "OK", tone = SpotterChipTone.Success)
+                            }
+                            Spacer(Modifier.height(14.dp))
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                SpotterButton(
+                                    text = "Subir ahora",
+                                    leading = Icons.Filled.CloudUpload,
+                                    variant = SpotterButtonVariant.Tonal,
+                                    height = 44.dp,
+                                    onClick = vm::backupNow,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                SpotterButton(
+                                    text = "Restaurar",
+                                    leading = Icons.Filled.CloudDownload,
+                                    variant = SpotterButtonVariant.Outlined,
+                                    height = 44.dp,
+                                    onClick = { confirmRestore = true },
+                                    modifier = Modifier.weight(1f),
+                                )
+                            }
+                            Spacer(Modifier.height(8.dp))
+                            SpotterButton(
+                                text = "Desconectar cuenta",
+                                variant = SpotterButtonVariant.Text,
+                                full = true,
+                                height = 44.dp,
+                                onClick = vm::unlinkAccount,
+                            )
+                        }
+                    }
+                }
+                item { Spacer(Modifier.height(2.dp)) }
+                item {
+                    SpotterCard(padding = 0.dp) {
+                        ToggleSettingRow(
+                            label = "Subir tras cada entreno",
+                            checked = state.autoBackupAfterWorkout,
+                            onChange = vm::setAutoBackup,
+                        )
+                    }
+                }
+            } else {
+                item {
+                    SpotterCard {
+                        Column {
+                            Text(
+                                "Conecta una cuenta de Google para guardar la base de datos en una carpeta privada de tu Drive.",
+                                style = SpotterText.body,
+                                color = c.textMuted,
+                            )
+                            Spacer(Modifier.height(12.dp))
+                            SpotterButton(
+                                text = "Conectar cuenta de Google",
+                                full = true,
+                                onClick = { accountPicker.launch(Unit) },
+                                enabled = !busy,
+                            )
+                        }
+                    }
+                }
+            }
+
+            item {
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    "Spotter · privado y local. La API key y la cuenta de Drive se guardan cifradas en este dispositivo.",
+                    style = SpotterText.small,
+                    color = c.textFaint,
+                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),
+                )
+            }
         }
     }
 
-    // Diálogo de confirmación de restore
     if (confirmRestore) {
         AlertDialog(
             onDismissRequest = { confirmRestore = false },
-            title = { Text(stringResource(R.string.settings_drive_restore)) },
+            title = { Text("Restaurar de Drive", style = SpotterText.title2) },
             text = {
                 Text(
                     "Esto sobrescribirá los datos del dispositivo con la copia más reciente de Drive. " +
-                        "La app se reiniciará al terminar.\n\n¿Continuar?",
+                        "La app se reiniciará al terminar.",
+                    style = SpotterText.body,
                 )
             },
             confirmButton = {
                 TextButton(onClick = {
                     confirmRestore = false
                     vm.restoreNow()
-                }) { Text(stringResource(R.string.settings_drive_restore)) }
+                }) { Text("Restaurar", color = c.primary) }
             },
             dismissButton = {
-                TextButton(onClick = { confirmRestore = false }) { Text(stringResource(R.string.common_cancel)) }
+                TextButton(onClick = { confirmRestore = false }) { Text("Cancelar", color = c.textMuted) }
             },
         )
     }
 
-    // Mensajes (toasts simples como diálogo modal)
     toast?.let {
         AlertDialog(
             onDismissRequest = { vm.consumedToast() },
-            confirmButton = { TextButton(onClick = { vm.consumedToast() }) { Text("OK") } },
-            text = { Text(it) },
+            confirmButton = { TextButton(onClick = { vm.consumedToast() }) { Text("OK", color = c.primary) } },
+            text = { Text(it, style = SpotterText.body) },
         )
     }
 }
 
-private fun restartApp(context: android.content.Context) {
-    val pm = context.packageManager
-    val launchIntent = pm.getLaunchIntentForPackage(context.packageName) ?: return
-    launchIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK)
-    context.startActivity(launchIntent)
-    android.os.Process.killProcess(android.os.Process.myPid())
+@Composable
+private fun SectionHeader(text: String) {
+    val c = SpotterTheme.colors
+    Text(
+        text,
+        style = SpotterText.caps,
+        color = c.textMuted,
+        modifier = Modifier.padding(start = 6.dp, top = 14.dp, bottom = 6.dp),
+    )
 }
 
 @Composable
-private fun ApiKeyField(state: AppSettings, onSave: (String) -> Unit) {
+private fun ApiKeyRow(state: AppSettings, onSave: (String) -> Unit, onClear: () -> Unit) {
+    val c = SpotterTheme.colors
+    var showField by remember { mutableStateOf(false) }
     var value by remember { mutableStateOf("") }
-    val placeholder = if (state.hasApiKey) "•••••••• (configurada)" else "gsk_…"
-    Column {
-        OutlinedTextField(
-            value = value,
-            onValueChange = { value = it },
-            placeholder = { Text(placeholder) },
-            singleLine = true,
-            visualTransformation = PasswordVisualTransformation(),
-            modifier = Modifier.fillMaxWidth(),
-        )
-        Spacer(Modifier.height(6.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedButton(
-                onClick = {
-                    if (value.isNotBlank()) {
-                        onSave(value.trim())
-                        value = ""
-                    }
-                },
-                enabled = value.isNotBlank(),
-            ) { Text("Guardar key") }
+
+    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text("API key de Groq", style = SpotterText.bodyMd, color = c.text)
+                if (state.hasApiKey) {
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        if (state.isUserOverridingKey) "Configurada (override sobre BuildConfig)"
+                        else "Cargada desde BuildConfig",
+                        style = SpotterText.small, color = c.textMuted,
+                    )
+                }
+            }
+            if (state.hasApiKey) {
+                Text(
+                    "•••••• ${state.groqApiKey.takeLast(4)}",
+                    style = SpotterText.numS,
+                    color = c.textMuted,
+                )
+                Spacer(Modifier.width(8.dp))
+            }
+            Icon(
+                Icons.Filled.Visibility,
+                contentDescription = null,
+                tint = c.textFaint,
+                modifier = Modifier.size(16.dp).clickable { showField = !showField },
+            )
+        }
+        if (showField) {
+            Spacer(Modifier.height(10.dp))
+            OutlinedTextField(
+                value = value,
+                onValueChange = { value = it },
+                placeholder = { Text("gsk_…", color = c.textFaint) },
+                singleLine = true,
+                visualTransformation = PasswordVisualTransformation(),
+                modifier = Modifier.fillMaxWidth(),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = c.surfaceMuted,
+                    unfocusedContainerColor = c.surfaceMuted,
+                    focusedBorderColor = c.borderStrong,
+                    unfocusedBorderColor = c.border,
+                    cursorColor = c.primary,
+                    focusedTextColor = c.text,
+                    unfocusedTextColor = c.text,
+                ),
+                shape = RoundedCornerShape(12.dp),
+                textStyle = SpotterText.body,
+            )
+            Spacer(Modifier.height(8.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                SpotterButton(
+                    text = "Guardar",
+                    height = 40.dp,
+                    onClick = {
+                        if (value.isNotBlank()) {
+                            onSave(value.trim())
+                            value = ""
+                            showField = false
+                        }
+                    },
+                )
+                if (state.isUserOverridingKey) {
+                    SpotterButton(
+                        text = "Borrar",
+                        variant = SpotterButtonVariant.Outlined,
+                        height = 40.dp,
+                        onClick = onClear,
+                    )
+                }
+            }
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ModelDropdown(
-    selected: String,
-    options: List<String>,
-    onSelect: (String) -> Unit,
-) {
+private fun ModelRow(selected: String, onSelect: (String) -> Unit) {
+    val c = SpotterTheme.colors
     var expanded by remember { mutableStateOf(false) }
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { expanded = it },
-    ) {
-        OutlinedTextField(
-            value = selected,
-            onValueChange = {},
-            readOnly = true,
-            singleLine = true,
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+    Box {
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .menuAnchor(),
-        )
-        androidx.compose.material3.ExposedDropdownMenu(
+                .clickable { expanded = true }
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text("Modelo", style = SpotterText.bodyMd, color = c.text)
+                Spacer(Modifier.height(2.dp))
+                Text(selected, style = SpotterText.small, color = c.textMuted)
+            }
+            Icon(
+                Icons.Filled.ArrowDropDown,
+                contentDescription = null,
+                tint = c.textFaint,
+                modifier = Modifier.size(20.dp),
+            )
+        }
+        DropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
         ) {
-            options.forEach { model ->
+            SettingsRepository.MODELS.forEach { model ->
                 DropdownMenuItem(
                     text = { Text(model) },
                     onClick = {
@@ -437,12 +515,62 @@ private fun ModelDropdown(
 }
 
 @Composable
-private fun ToggleRow(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
+private fun IntFieldRow(label: String, value: Int, unit: String, onChange: (Int) -> Unit) {
+    val c = SpotterTheme.colors
+    var text by remember(value) { mutableStateOf(value.toString()) }
+    LaunchedEffect(value) { text = value.toString() }
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(label, modifier = Modifier.weight(1f))
-        Switch(checked = checked, onCheckedChange = onChange)
+        Text(label, style = SpotterText.bodyMd, color = c.text, modifier = Modifier.weight(1f))
+        BasicTextField(
+            value = text,
+            onValueChange = {
+                text = it.filter(Char::isDigit)
+                text.toIntOrNull()?.let(onChange)
+            },
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            textStyle = SpotterText.numS.copy(color = c.text, textAlign = androidx.compose.ui.text.style.TextAlign.End),
+            cursorBrush = androidx.compose.ui.graphics.SolidColor(c.primary),
+            modifier = Modifier.width(60.dp),
+        )
+        Spacer(Modifier.width(4.dp))
+        Text(unit, style = SpotterText.small, color = c.textMuted)
     }
+}
+
+@Composable
+private fun ToggleSettingRow(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
+    val c = SpotterTheme.colors
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(label, style = SpotterText.bodyMd, color = c.text, modifier = Modifier.weight(1f))
+        Switch(
+            checked = checked,
+            onCheckedChange = onChange,
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = Color.White,
+                checkedTrackColor = c.primary,
+                uncheckedThumbColor = Color.White,
+                uncheckedTrackColor = c.borderStrong,
+                uncheckedBorderColor = Color.Transparent,
+            ),
+        )
+    }
+}
+
+private fun restartApp(context: android.content.Context) {
+    val pm = context.packageManager
+    val launchIntent = pm.getLaunchIntentForPackage(context.packageName) ?: return
+    launchIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK)
+    context.startActivity(launchIntent)
+    android.os.Process.killProcess(android.os.Process.myPid())
 }

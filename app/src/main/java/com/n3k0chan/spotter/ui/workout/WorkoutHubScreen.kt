@@ -2,35 +2,41 @@ package com.n3k0chan.spotter.ui.workout
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.FitnessCenter
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.n3k0chan.spotter.R
 import com.n3k0chan.spotter.data.db.entities.TemplateWithExercises
 import com.n3k0chan.spotter.di.ServiceLocator
+import com.n3k0chan.spotter.ui.components.SpotterButton
+import com.n3k0chan.spotter.ui.components.SpotterButtonVariant
+import com.n3k0chan.spotter.ui.components.SpotterCard
+import com.n3k0chan.spotter.ui.components.SpotterTopBar
+import com.n3k0chan.spotter.ui.theme.SpotterText
+import com.n3k0chan.spotter.ui.theme.SpotterTheme
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
@@ -40,7 +46,7 @@ class WorkoutHubViewModel : ViewModel() {
     private val templates = ServiceLocator.templates
     private val workouts = ServiceLocator.workouts
 
-    val templates_: StateFlow<List<TemplateWithExercises>> = templates.observeAll().stateIn(
+    val templatesList: StateFlow<List<TemplateWithExercises>> = templates.observeAll().stateIn(
         viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList(),
     )
 
@@ -69,7 +75,6 @@ class WorkoutHubViewModel : ViewModel() {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WorkoutHubScreen(
     onStartFreeWorkout: (Long) -> Unit,
@@ -78,64 +83,96 @@ fun WorkoutHubScreen(
     onOpenExercises: () -> Unit,
     vm: WorkoutHubViewModel = viewModel(factory = WorkoutHubViewModel.Factory),
 ) {
-    val templates by vm.templates_.collectAsStateWithLifecycle()
+    val templates by vm.templatesList.collectAsStateWithLifecycle()
+    val c = SpotterTheme.colors
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text(stringResource(R.string.nav_workout)) }) },
+        containerColor = c.bg,
+        topBar = { SpotterTopBar(title = "Entrenar") },
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .padding(padding)
-                .fillMaxSize()
-                .padding(16.dp),
+        LazyColumn(
+            modifier = Modifier.padding(padding).fillMaxSize(),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Button(
-                onClick = { vm.startFree(onStartFreeWorkout) },
-                modifier = Modifier.fillMaxWidth(),
-            ) { Text(stringResource(R.string.home_start_free)) }
-
-            Spacer(Modifier.height(8.dp))
-
-            OutlinedButton(
-                onClick = onOpenTemplates,
-                modifier = Modifier.fillMaxWidth(),
-            ) { Text("Gestionar plantillas") }
-
-            Spacer(Modifier.height(8.dp))
-
-            OutlinedButton(
-                onClick = onOpenExercises,
-                modifier = Modifier.fillMaxWidth(),
-            ) { Text("Gestionar ejercicios") }
-
-            Spacer(Modifier.height(24.dp))
-            Text(stringResource(R.string.templates_title), style = MaterialTheme.typography.titleLarge)
-            Spacer(Modifier.height(8.dp))
-
-            if (templates.isEmpty()) {
-                Text(
-                    stringResource(R.string.templates_empty),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+            item {
+                SpotterButton(
+                    text = "Entreno libre",
+                    leading = Icons.Filled.PlayArrow,
+                    full = true,
+                    onClick = { vm.startFree(onStartFreeWorkout) },
                 )
-            } else {
-                LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(templates, key = { it.template.id }) { tpl ->
-                        Card(
-                            onClick = { vm.startFromTemplate(tpl.template.id, onStartFromTemplate) },
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            Column(modifier = Modifier.padding(12.dp)) {
-                                Text(tpl.template.name, fontWeight = FontWeight.SemiBold)
-                                Text(
-                                    "${tpl.items.size} ejercicios",
-                                    style = MaterialTheme.typography.labelLarge,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                        }
-                    }
+            }
+            item {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    SpotterButton(
+                        text = "Plantillas",
+                        variant = SpotterButtonVariant.Outlined,
+                        onClick = onOpenTemplates,
+                        modifier = Modifier.weight(1f),
+                    )
+                    SpotterButton(
+                        text = "Ejercicios",
+                        variant = SpotterButtonVariant.Outlined,
+                        onClick = onOpenExercises,
+                        modifier = Modifier.weight(1f),
+                    )
                 }
             }
+            item {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    "PLANTILLAS",
+                    style = SpotterText.caps,
+                    color = c.textMuted,
+                    modifier = Modifier.padding(start = 4.dp, top = 6.dp, bottom = 4.dp),
+                )
+            }
+            if (templates.isEmpty()) {
+                item {
+                    Text(
+                        "Aún no tienes plantillas. Crea una para reutilizar tus rutinas.",
+                        style = SpotterText.body,
+                        color = c.textMuted,
+                        modifier = Modifier.padding(4.dp),
+                    )
+                }
+            } else {
+                items(templates, key = { it.template.id }) { tpl ->
+                    TemplateRowCard(
+                        name = tpl.template.name,
+                        count = tpl.items.size,
+                        onClick = { vm.startFromTemplate(tpl.template.id, onStartFromTemplate) },
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TemplateRowCard(name: String, count: Int, onClick: () -> Unit) {
+    val c = SpotterTheme.colors
+    SpotterCard(onClick = onClick) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                Icons.Filled.FitnessCenter,
+                contentDescription = null,
+                tint = c.textMuted,
+                modifier = Modifier.size(20.dp),
+            )
+            Spacer(Modifier.size(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(name, style = SpotterText.title3, color = c.text)
+                Spacer(Modifier.size(2.dp))
+                Text("$count ejercicios", style = SpotterText.small, color = c.textMuted)
+            }
+            Icon(
+                Icons.AutoMirrored.Filled.ArrowForward,
+                contentDescription = null,
+                tint = c.textFaint,
+                modifier = Modifier.size(18.dp),
+            )
         }
     }
 }

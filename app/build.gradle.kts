@@ -141,9 +141,6 @@ dependencies {
         exclude(group = "org.apache.httpcomponents")
     }
 
-    // Health Connect (solo lectura)
-    implementation(libs.health.connect.client)
-
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

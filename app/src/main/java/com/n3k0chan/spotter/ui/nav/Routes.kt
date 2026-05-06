@@ -6,7 +6,6 @@ import com.n3k0chan.spotter.R
 enum class TopLevelRoute(val route: String, @StringRes val labelRes: Int) {
     Home("home", R.string.nav_home),
     Workout("workout_root", R.string.nav_workout),
-    Health("health", R.string.nav_health),
     History("history", R.string.nav_history),
     Stats("stats", R.string.nav_stats),
 }
@@ -30,5 +29,4 @@ object Routes {
     const val History = "history"
     const val Stats = "stats"
     const val Settings = "settings"
-    const val Health = "health"
 }

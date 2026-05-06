@@ -1,38 +1,47 @@
 package com.n3k0chan.spotter.ui.templates
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material3.Card
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.n3k0chan.spotter.R
 import com.n3k0chan.spotter.data.db.entities.TemplateWithExercises
 import com.n3k0chan.spotter.di.ServiceLocator
+import com.n3k0chan.spotter.ui.components.IconButtonTone
+import com.n3k0chan.spotter.ui.components.SpotterCard
+import com.n3k0chan.spotter.ui.components.SpotterIconButton
+import com.n3k0chan.spotter.ui.components.SpotterTopBar
+import com.n3k0chan.spotter.ui.theme.SpotterText
+import com.n3k0chan.spotter.ui.theme.SpotterTheme
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
@@ -53,7 +62,6 @@ class TemplatesViewModel : ViewModel() {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TemplatesScreen(
     onCreateNew: () -> Unit,
@@ -62,45 +70,82 @@ fun TemplatesScreen(
     vm: TemplatesViewModel = viewModel(factory = TemplatesViewModel.Factory),
 ) {
     val list by vm.templates.collectAsStateWithLifecycle()
+    val c = SpotterTheme.colors
+
     Scaffold(
+        containerColor = c.bg,
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.templates_title)) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
-                    }
-                },
+            SpotterTopBar(
+                title = "Plantillas",
+                leading = { SpotterIconButton(Icons.AutoMirrored.Filled.ArrowBack, onClick = onBack) },
+                trailing = { SpotterIconButton(Icons.Filled.MoreVert, tone = IconButtonTone.Muted) },
             )
         },
-        floatingActionButton = {
-            FloatingActionButton(onClick = onCreateNew) {
-                Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.templates_new))
-            }
-        },
     ) { padding ->
-        Column(modifier = Modifier.padding(padding).fillMaxSize().padding(16.dp)) {
+        Box(modifier = Modifier.padding(padding).fillMaxSize()) {
             if (list.isEmpty()) {
-                Text(stringResource(R.string.templates_empty), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    "Aún no tienes plantillas.",
+                    style = SpotterText.body,
+                    color = c.textMuted,
+                    modifier = Modifier.padding(16.dp),
+                )
             } else {
-                LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 96.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
                     items(list, key = { it.template.id }) { tpl ->
-                        Card(
-                            onClick = { onEdit(tpl.template.id) },
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            Column(modifier = Modifier.padding(12.dp)) {
-                                Text(tpl.template.name, fontWeight = FontWeight.SemiBold)
-                                Text(
-                                    "${tpl.items.size} ejercicios",
-                                    style = MaterialTheme.typography.labelLarge,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                        }
+                        TemplateCard(tpl, onClick = { onEdit(tpl.template.id) })
                     }
                 }
             }
+            Fab(onClick = onCreateNew, modifier = Modifier.align(Alignment.BottomEnd).padding(20.dp))
         }
+    }
+}
+
+@Composable
+private fun TemplateCard(tpl: TemplateWithExercises, onClick: () -> Unit) {
+    val c = SpotterTheme.colors
+    SpotterCard(onClick = onClick) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(tpl.template.name, style = SpotterText.title3, color = c.text)
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    "${tpl.items.size} ejercicios",
+                    style = SpotterText.small,
+                    color = c.textMuted,
+                )
+            }
+            Icon(
+                Icons.AutoMirrored.Filled.ArrowForward,
+                contentDescription = null,
+                tint = c.textFaint,
+                modifier = Modifier.size(18.dp),
+            )
+        }
+    }
+}
+
+@Composable
+internal fun Fab(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val c = SpotterTheme.colors
+    Box(
+        modifier = modifier
+            .size(56.dp)
+            .clip(RoundedCornerShape(20.dp))
+            .background(c.primary)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            Icons.Filled.Add,
+            contentDescription = "Nuevo",
+            tint = c.onPrimary,
+            modifier = Modifier.size(26.dp),
+        )
     }
 }

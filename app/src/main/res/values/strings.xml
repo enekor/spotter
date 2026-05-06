@@ -5,7 +5,6 @@
     <!-- Pestañas / navegación -->
     <string name="nav_home">Inicio</string>
     <string name="nav_workout">Entrenar</string>
-    <string name="nav_health">Salud</string>
     <string name="nav_history">Historial</string>
     <string name="nav_stats">Stats</string>
     <string name="nav_settings">Ajustes</string>

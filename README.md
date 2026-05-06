@@ -4,7 +4,8 @@ App Android privada para entrenar en el gimnasio: tracking de pesos, repeticione
 
 ## Stack
 
-- Kotlin + Jetpack Compose (Material 3, dynamic color)
+- Kotlin + Jetpack Compose (Material 3, paleta fija slate + naranja, sin dynamic color)
+- Tipografía Inter/Geist-style (numéricos en monospace para datos)
 - Room (SQLite) — todo local, sin cuentas
 - EncryptedSharedPreferences para la API key
 - Foreground Service para el temporizador de descanso
@@ -20,22 +21,6 @@ App Android privada para entrenar en el gimnasio: tracking de pesos, repeticione
    (necesitas tener Gradle instalado de sistema, o lanzarlo desde Android Studio: *File → Sync Project with Gradle Files*).
 3. Copia `local.properties.example` a `local.properties` y rellena `sdk.dir`. Si quieres, pega ahí tu `GROQ_API_KEY`.
 4. Ejecuta sobre dispositivo o emulador (minSdk 29).
-
-## Health Connect (solo lectura)
-
-La app lee de Health Connect, **nunca escribe**. Métricas:
-- Pasos · Distancia · Calorías activas (del día)
-- Frecuencia cardíaca media (día) · FC en reposo
-- Sueño (sesión más larga entre las 18:00 de ayer y las 12:00 de hoy)
-- Peso · % grasa (último valor de los últimos 30 días)
-
-### En el dispositivo
-- Android 14+: Health Connect está integrado en el sistema, no hace falta instalar nada.
-- Android 13 y anteriores: la pantalla "Salud" detecta que falta y ofrece un botón para instalarlo desde Play Store (paquete `com.google.android.apps.healthdata`).
-- En la pantalla "Salud" pulsa "Conceder permisos de lectura" y acepta los 8 scopes en la UI de Health Connect. La app solo pide permisos `health.READ_*`.
-
-### En el chat
-Hay un chip toggle encima del input — "Adjuntar datos de Health Connect". Si lo activas, en el **siguiente** mensaje se inyectan tus métricas del día como contexto para Groq, y se desactiva (one-shot). Si no lo activas, la IA no recibe nada de Health Connect.
 
 ## Backup en Google Drive
 

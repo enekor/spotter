@@ -7,8 +7,6 @@ import com.n3k0chan.spotter.ai.GroqClient
 import com.n3k0chan.spotter.ai.Prompts
 import com.n3k0chan.spotter.data.db.entities.TemplateWithExercises
 import com.n3k0chan.spotter.di.ServiceLocator
-import com.n3k0chan.spotter.health.HealthConnectRepository
-import com.n3k0chan.spotter.health.HealthSnapshot
 import com.n3k0chan.spotter.motivation.MotivationalMessages
 import com.n3k0chan.spotter.util.StreakCalculator
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -37,23 +35,8 @@ class HomeViewModel : ViewModel() {
     private val _greeting = MutableStateFlow<String?>(null)
     val greeting: StateFlow<String?> = _greeting.asStateFlow()
 
-    private val _healthSummary = MutableStateFlow<HealthSnapshot?>(null)
-    val healthSummary: StateFlow<HealthSnapshot?> = _healthSummary.asStateFlow()
-
     init {
         viewModelScope.launch { loadGreeting() }
-        viewModelScope.launch { loadHealthSummary() }
-    }
-
-    private suspend fun loadHealthSummary() {
-        val health = ServiceLocator.health
-        if (health.availability() != HealthConnectRepository.Availability.Available) return
-        if (!health.hasAllPermissions()) return
-        runCatching { health.readToday() }.onSuccess { _healthSummary.value = it }
-    }
-
-    fun refreshHealthSummary() {
-        viewModelScope.launch { loadHealthSummary() }
     }
 
     private suspend fun loadGreeting() {
