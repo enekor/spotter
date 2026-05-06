@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Abdomen: outline del torso con divisiones tipo six-pack -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#000000"
+        android:fillType="evenOdd"
+        android:pathData="M5,3 L19,3 L19,21 L5,21 Z M6.5,4.5 L11.25,4.5 L11.25,8 L6.5,8 Z M12.75,4.5 L17.5,4.5 L17.5,8 L12.75,8 Z M6.5,9.5 L11.25,9.5 L11.25,13 L6.5,13 Z M12.75,9.5 L17.5,9.5 L17.5,13 L12.75,13 Z M6.5,14.5 L11.25,14.5 L11.25,18 L6.5,18 Z M12.75,14.5 L17.5,14.5 L17.5,18 L12.75,18 Z" />
+</vector>

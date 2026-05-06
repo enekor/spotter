@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Pecho: dos pectorales como rectángulos redondeados unidos por el centro -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#000000"
+        android:pathData="M3.5,7 C3.5,5.34 4.84,4 6.5,4 L11,4 C11.55,4 12,4.45 12,5 L12,15 C12,16.66 10.66,18 9,18 L7.5,18 C5.01,18 3,15.99 3,13.5 L3,10 C3,9.45 3.22,8.95 3.5,8.5 Z M12.5,5 C12.5,4.45 12.95,4 13.5,4 L17.5,4 C19.16,4 20.5,5.34 20.5,7 L20.5,8.5 C20.78,8.95 21,9.45 21,10 L21,13.5 C21,15.99 18.99,18 16.5,18 L15,18 C13.34,18 12,16.66 12,15 L12.5,5 Z" />
+</vector>
