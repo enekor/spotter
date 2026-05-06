@@ -49,6 +49,8 @@ import com.n3k0chan.spotter.ai.GroqClient
 import com.n3k0chan.spotter.ai.GroqMessage
 import com.n3k0chan.spotter.ai.Prompts
 import com.n3k0chan.spotter.data.db.entities.WorkoutWithSets
+import com.n3k0chan.spotter.data.db.entities.profile
+import com.n3k0chan.spotter.data.measurement.formatShort
 import com.n3k0chan.spotter.di.ServiceLocator
 import com.n3k0chan.spotter.ui.components.IconButtonTone
 import kotlinx.coroutines.flow.first
@@ -149,12 +151,9 @@ class ChatViewModel : ViewModel() {
         appendLine()
         val byExercise = w.sets.groupBy { it.exercise.name }
         byExercise.entries.take(8).forEach { (name, sets) ->
+            val profile = sets.firstOrNull()?.exercise?.profile ?: return@forEach
             append("  ").append(name).append(": ")
-            append(sets.joinToString(", ") {
-                val kg = if (it.set.weightKg % 1.0 == 0.0) it.set.weightKg.toInt().toString()
-                else "%.1f".format(it.set.weightKg)
-                "${kg}×${it.set.reps}"
-            })
+            append(sets.joinToString(", ") { it.set.formatShort(profile) })
             appendLine()
         }
         if (!w.workout.notes.isNullOrBlank()) {

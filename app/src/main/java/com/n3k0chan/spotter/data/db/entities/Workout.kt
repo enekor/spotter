@@ -16,6 +16,12 @@ data class Workout(
     val notes: String? = null,
 )
 
+/**
+ * Una serie/registro de un ejercicio dentro de un entreno.
+ * Todos los campos métricos son nullables porque cada perfil de
+ * medida solo usa los relevantes (peso×reps, distancia+tiempo, etc.).
+ * Ver [com.n3k0chan.spotter.data.measurement.MeasurementProfile].
+ */
 @Entity(
     tableName = "workout_sets",
     foreignKeys = [
@@ -40,8 +46,14 @@ data class WorkoutSet(
     val exerciseId: Long,
     val orderIndex: Int,
     val setNumber: Int,
-    val weightKg: Double,
-    val reps: Int,
+    // Campos métricos (todos opcionales, según el perfil del ejercicio)
+    val weightKg: Double? = null,
+    val reps: Int? = null,
+    val durationSeconds: Int? = null,
+    val distanceMeters: Double? = null,
+    val resistanceLevel: Int? = null,
+    val inclinePercent: Double? = null,
+    // Comunes
     val restSeconds: Int? = null,
     val timeUnderTensionSeconds: Int? = null,
     val rpe: Int? = null,

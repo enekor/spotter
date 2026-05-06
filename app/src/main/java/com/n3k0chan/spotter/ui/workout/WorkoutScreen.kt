@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -57,6 +58,11 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.n3k0chan.spotter.data.db.entities.Exercise
+import com.n3k0chan.spotter.data.db.entities.profile
+import com.n3k0chan.spotter.data.measurement.MeasurementField
+import com.n3k0chan.spotter.data.measurement.MeasurementProfile
+import com.n3k0chan.spotter.data.measurement.formatForProfile
+import com.n3k0chan.spotter.data.repository.SetInput
 import com.n3k0chan.spotter.di.ServiceLocator
 import com.n3k0chan.spotter.timer.RestTimerController
 import com.n3k0chan.spotter.timer.RestTimerService
@@ -179,7 +185,7 @@ fun WorkoutScreen(
                             state.suggestionForExerciseId == exerciseId && !state.suggestionLoading
                         },
                         suggestionLoading = state.suggestionLoading && state.suggestionForExerciseId == exerciseId,
-                        onAddSet = { weight, reps, rest -> vm.addSet(exerciseId, weight, reps, rest) },
+                        onAddSet = { input -> vm.addSet(exerciseId, input) },
                         onDeleteSet = { vm.deleteSet(it) },
                         onRequestSuggestion = { vm.fetchSuggestion(exerciseId, exercise.name) },
                         onClearSuggestion = { vm.clearSuggestion() },
@@ -226,7 +232,7 @@ private fun ExerciseCard(
     vibrate: Boolean,
     suggestion: String?,
     suggestionLoading: Boolean,
-    onAddSet: (Double, Int, Int?) -> Unit,
+    onAddSet: (com.n3k0chan.spotter.data.repository.SetInput) -> Unit,
     onDeleteSet: (Long) -> Unit,
     onRequestSuggestion: () -> Unit,
     onClearSuggestion: () -> Unit,
@@ -234,11 +240,17 @@ private fun ExerciseCard(
 ) {
     val c = SpotterTheme.colors
     val ctx = LocalContext.current
+    val profile = exercise.profile
+    val fields = profile.fields
 
-    // Estado del formulario inline (cerrado por defecto)
+    // Estado del formulario inline (cerrado por defecto), un campo por cada métrica posible
     var formOpen by remember { mutableStateOf(false) }
     var weightStr by remember { mutableStateOf("") }
     var repsStr by remember { mutableStateOf("") }
+    var durationStr by remember { mutableStateOf("") }
+    var distanceStr by remember { mutableStateOf("") }
+    var resistanceStr by remember { mutableStateOf("") }
+    var inclineStr by remember { mutableStateOf("") }
     var restStr by remember { mutableStateOf(defaultRest.toString()) }
 
     // Estado del menú kebab
@@ -312,7 +324,7 @@ private fun ExerciseCard(
                 SuggestionCard(text = suggestion, onDismiss = onClearSuggestion)
             }
 
-            // ── Sets ya completados
+            // ── Sets ya completados (formato según perfil)
             if (sets.isNotEmpty()) {
                 Spacer(Modifier.height(12.dp))
                 sets.forEachIndexed { i, s ->
@@ -328,15 +340,12 @@ private fun ExerciseCard(
                             color = c.textMuted,
                             modifier = Modifier.width(64.dp),
                         )
-                        Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.Bottom) {
-                            Text(formatWeight(s.weightKg), style = SpotterText.numS, color = c.text)
-                            Spacer(Modifier.width(2.dp))
-                            Text("kg", style = SpotterText.small, color = c.textMuted)
-                            Text(" × ", style = SpotterText.small, color = c.textFaint)
-                            Text("${s.reps}", style = SpotterText.numS, color = c.text)
-                            Spacer(Modifier.width(2.dp))
-                            Text("reps", style = SpotterText.small, color = c.textMuted)
-                        }
+                        Text(
+                            text = s.formatForProfile(profile),
+                            style = SpotterText.numS,
+                            color = c.text,
+                            modifier = Modifier.weight(1f),
+                        )
                         Icon(
                             Icons.Filled.CheckCircle,
                             contentDescription = null,
@@ -363,34 +372,18 @@ private fun ExerciseCard(
 
             Spacer(Modifier.height(12.dp))
 
-            // ── Footer: o botón "+" o formulario expandido
+            // ── Footer: o botón "+" o formulario dinámico (campos según perfil)
             if (formOpen) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    NumericField(
-                        label = "Peso",
-                        suffix = "kg",
-                        value = weightStr,
-                        onValueChange = { weightStr = it.filter { ch -> ch.isDigit() || ch == '.' || ch == ',' } },
-                        keyboardType = KeyboardType.Decimal,
-                        modifier = Modifier.weight(1f),
-                    )
-                    NumericField(
-                        label = "Reps",
-                        suffix = null,
-                        value = repsStr,
-                        onValueChange = { repsStr = it.filter(Char::isDigit) },
-                        keyboardType = KeyboardType.Number,
-                        modifier = Modifier.weight(1f),
-                    )
-                    NumericField(
-                        label = "Desc.",
-                        suffix = "s",
-                        value = restStr,
-                        onValueChange = { restStr = it.filter(Char::isDigit) },
-                        keyboardType = KeyboardType.Number,
-                        modifier = Modifier.weight(1f),
-                    )
-                }
+                MeasurementFormFields(
+                    fields = fields,
+                    weightStr = weightStr, onWeightChange = { weightStr = sanitizeDecimal(it) },
+                    repsStr = repsStr, onRepsChange = { repsStr = it.filter(Char::isDigit) },
+                    durationStr = durationStr, onDurationChange = { durationStr = it.filter(Char::isDigit) },
+                    distanceStr = distanceStr, onDistanceChange = { distanceStr = sanitizeDecimal(it) },
+                    resistanceStr = resistanceStr, onResistanceChange = { resistanceStr = it.filter(Char::isDigit) },
+                    inclineStr = inclineStr, onInclineChange = { inclineStr = sanitizeDecimal(it) },
+                    restStr = restStr, onRestChange = { restStr = it.filter(Char::isDigit) },
+                )
                 Spacer(Modifier.height(10.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     SpotterButton(
@@ -399,16 +392,21 @@ private fun ExerciseCard(
                         variant = if (active) SpotterButtonVariant.Filled else SpotterButtonVariant.Tonal,
                         modifier = Modifier.weight(1f),
                         onClick = {
-                            val w = weightStr.replace(',', '.').toDoubleOrNull()
-                            val r = repsStr.toIntOrNull()
-                            val rest = restStr.toIntOrNull()
-                            if (w != null && r != null) {
-                                onAddSet(w, r, rest)
-                                if (rest != null && rest > 0) {
-                                    RestTimerService.start(ctx, rest, preWarning, vibrate)
+                            val input = buildSetInput(
+                                fields = fields,
+                                weightStr = weightStr, repsStr = repsStr,
+                                durationStr = durationStr, distanceStr = distanceStr,
+                                resistanceStr = resistanceStr, inclineStr = inclineStr,
+                                restStr = restStr,
+                            )
+                            if (input != null) {
+                                onAddSet(input)
+                                if (input.restSeconds != null && input.restSeconds > 0) {
+                                    RestTimerService.start(ctx, input.restSeconds, preWarning, vibrate)
                                 }
-                                // Mantén peso/desc, vacía reps para meter otra serie con un toque
+                                // Conservamos peso/duración/etc., vaciamos solo lo que cambia entre series
                                 repsStr = ""
+                                if (profile == MeasurementProfile.Duration) durationStr = ""
                             }
                         },
                     )
@@ -703,3 +701,122 @@ private fun FinishWorkoutDialog(
 
 private fun formatWeight(value: Double): String =
     if (value % 1.0 == 0.0) value.toInt().toString() else "%.1f".format(value)
+
+/* ─── Form dinámico según perfil ─── */
+
+@Composable
+private fun MeasurementFormFields(
+    fields: List<MeasurementField>,
+    weightStr: String, onWeightChange: (String) -> Unit,
+    repsStr: String, onRepsChange: (String) -> Unit,
+    durationStr: String, onDurationChange: (String) -> Unit,
+    distanceStr: String, onDistanceChange: (String) -> Unit,
+    resistanceStr: String, onResistanceChange: (String) -> Unit,
+    inclineStr: String, onInclineChange: (String) -> Unit,
+    restStr: String, onRestChange: (String) -> Unit,
+) {
+    // Renderiza los campos del perfil + el de descanso siempre.
+    // Si hay 4+ campos, los reparte en dos filas para no apretarlos.
+    val items = buildList<@Composable RowScope.() -> Unit> {
+        if (MeasurementField.Weight in fields) add {
+            NumericField(
+                label = "Peso", suffix = "kg",
+                value = weightStr, onValueChange = onWeightChange,
+                keyboardType = KeyboardType.Decimal,
+                modifier = Modifier.weight(1f),
+            )
+        }
+        if (MeasurementField.Reps in fields) add {
+            NumericField(
+                label = "Reps", suffix = null,
+                value = repsStr, onValueChange = onRepsChange,
+                keyboardType = KeyboardType.Number,
+                modifier = Modifier.weight(1f),
+            )
+        }
+        if (MeasurementField.Duration in fields) add {
+            NumericField(
+                label = "Tiempo", suffix = "s",
+                value = durationStr, onValueChange = onDurationChange,
+                keyboardType = KeyboardType.Number,
+                modifier = Modifier.weight(1f),
+            )
+        }
+        if (MeasurementField.Distance in fields) add {
+            NumericField(
+                label = "Distancia", suffix = "m",
+                value = distanceStr, onValueChange = onDistanceChange,
+                keyboardType = KeyboardType.Decimal,
+                modifier = Modifier.weight(1f),
+            )
+        }
+        if (MeasurementField.Resistance in fields) add {
+            NumericField(
+                label = "Nivel", suffix = null,
+                value = resistanceStr, onValueChange = onResistanceChange,
+                keyboardType = KeyboardType.Number,
+                modifier = Modifier.weight(1f),
+            )
+        }
+        if (MeasurementField.Incline in fields) add {
+            NumericField(
+                label = "Inclin.", suffix = "%",
+                value = inclineStr, onValueChange = onInclineChange,
+                keyboardType = KeyboardType.Decimal,
+                modifier = Modifier.weight(1f),
+            )
+        }
+        // Descanso siempre presente (incluso en cardio: tiempo de pausa entre intervalos)
+        add {
+            NumericField(
+                label = "Desc.", suffix = "s",
+                value = restStr, onValueChange = onRestChange,
+                keyboardType = KeyboardType.Number,
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+    // 1-3 campos -> una sola fila. 4+ -> partir en dos filas.
+    val perRow = if (items.size <= 3) items.size else (items.size + 1) / 2
+    items.chunked(perRow).forEachIndexed { rowIdx, row ->
+        if (rowIdx > 0) Spacer(Modifier.height(8.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            row.forEach { it() }
+        }
+    }
+}
+
+private fun buildSetInput(
+    fields: List<MeasurementField>,
+    weightStr: String,
+    repsStr: String,
+    durationStr: String,
+    distanceStr: String,
+    resistanceStr: String,
+    inclineStr: String,
+    restStr: String,
+): SetInput? {
+    val weight = if (MeasurementField.Weight in fields) weightStr.replace(',', '.').toDoubleOrNull() else null
+    val reps = if (MeasurementField.Reps in fields) repsStr.toIntOrNull() else null
+    val duration = if (MeasurementField.Duration in fields) durationStr.toIntOrNull() else null
+    val distance = if (MeasurementField.Distance in fields) distanceStr.replace(',', '.').toDoubleOrNull() else null
+    val resistance = if (MeasurementField.Resistance in fields) resistanceStr.toIntOrNull() else null
+    val incline = if (MeasurementField.Incline in fields) inclineStr.replace(',', '.').toDoubleOrNull() else null
+
+    // Validación: al menos un campo del perfil debe estar relleno.
+    val anyFilled = listOf(weight, reps, duration, distance, resistance, incline).any { it != null }
+    if (!anyFilled) return null
+
+    return SetInput(
+        weightKg = weight,
+        reps = reps,
+        durationSeconds = duration,
+        distanceMeters = distance,
+        resistanceLevel = resistance,
+        inclinePercent = incline,
+        restSeconds = restStr.toIntOrNull(),
+    )
+}
+
+private fun sanitizeDecimal(input: String): String =
+    input.filter { ch -> ch.isDigit() || ch == '.' || ch == ',' }

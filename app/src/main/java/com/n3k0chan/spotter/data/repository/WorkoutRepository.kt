@@ -6,6 +6,21 @@ import com.n3k0chan.spotter.data.db.entities.WorkoutSet
 import com.n3k0chan.spotter.data.db.entities.WorkoutWithSets
 import kotlinx.coroutines.flow.Flow
 
+/**
+ * Datos de entrada para registrar una serie. Solo los campos relevantes
+ * según el perfil del ejercicio se rellenan; el resto van como null.
+ */
+data class SetInput(
+    val weightKg: Double? = null,
+    val reps: Int? = null,
+    val durationSeconds: Int? = null,
+    val distanceMeters: Double? = null,
+    val resistanceLevel: Int? = null,
+    val inclinePercent: Double? = null,
+    val restSeconds: Int? = null,
+    val rpe: Int? = null,
+)
+
 class WorkoutRepository(private val dao: WorkoutDao) {
 
     fun observeAll(): Flow<List<WorkoutWithSets>> = dao.observeAll()
@@ -34,7 +49,30 @@ class WorkoutRepository(private val dao: WorkoutDao) {
 
     suspend fun update(workout: Workout) = dao.updateWorkout(workout)
 
-    suspend fun addSet(set: WorkoutSet): Long = dao.insertSet(set)
+    /** Crea una serie a partir de un [SetInput] genérico. */
+    suspend fun addSet(
+        workoutId: Long,
+        exerciseId: Long,
+        orderIndex: Int,
+        setNumber: Int,
+        input: SetInput,
+    ): Long = dao.insertSet(
+        WorkoutSet(
+            workoutId = workoutId,
+            exerciseId = exerciseId,
+            orderIndex = orderIndex,
+            setNumber = setNumber,
+            weightKg = input.weightKg,
+            reps = input.reps,
+            durationSeconds = input.durationSeconds,
+            distanceMeters = input.distanceMeters,
+            resistanceLevel = input.resistanceLevel,
+            inclinePercent = input.inclinePercent,
+            restSeconds = input.restSeconds,
+            rpe = input.rpe,
+        ),
+    )
+
     suspend fun updateSet(set: WorkoutSet) = dao.updateSet(set)
     suspend fun deleteSet(id: Long) = dao.deleteSet(id)
     suspend fun delete(id: Long) = dao.deleteWorkout(id)

@@ -8,6 +8,7 @@ import com.n3k0chan.spotter.ai.Prompts
 import com.n3k0chan.spotter.data.db.entities.Exercise
 import com.n3k0chan.spotter.data.db.entities.WorkoutSet
 import com.n3k0chan.spotter.data.db.entities.WorkoutWithSets
+import com.n3k0chan.spotter.data.repository.SetInput
 import com.n3k0chan.spotter.di.ServiceLocator
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -90,21 +91,17 @@ class WorkoutViewModel(private val workoutId: Long) : ViewModel() {
         }
     }
 
-    fun addSet(exerciseId: Long, weightKg: Double, reps: Int, restSeconds: Int?) {
+    fun addSet(exerciseId: Long, input: SetInput) {
         viewModelScope.launch {
             val current = _state.value.workout ?: return@launch
             val nextSetNumber = current.sets.count { it.set.exerciseId == exerciseId } + 1
             val orderIndex = _state.value.orderedExerciseIds.indexOf(exerciseId).coerceAtLeast(0)
             workouts.addSet(
-                WorkoutSet(
-                    workoutId = workoutId,
-                    exerciseId = exerciseId,
-                    orderIndex = orderIndex,
-                    setNumber = nextSetNumber,
-                    weightKg = weightKg,
-                    reps = reps,
-                    restSeconds = restSeconds,
-                ),
+                workoutId = workoutId,
+                exerciseId = exerciseId,
+                orderIndex = orderIndex,
+                setNumber = nextSetNumber,
+                input = input,
             )
             reload()
         }
@@ -143,6 +140,10 @@ class WorkoutViewModel(private val workoutId: Long) : ViewModel() {
                     suggestion = null,
                 )
             }
+            val exercise = ServiceLocator.exercises.get(exerciseId)
+            val profile = exercise?.let {
+                com.n3k0chan.spotter.data.measurement.MeasurementProfile.fromNameOrDefault(it.measurementProfile)
+            } ?: com.n3k0chan.spotter.data.measurement.MeasurementProfile.Default
             val recent = workouts.recentSetsFor(exerciseId, limit = 10)
             val current = _state.value.workout?.sets
                 ?.filter { it.set.exerciseId == exerciseId }
@@ -152,7 +153,7 @@ class WorkoutViewModel(private val workoutId: Long) : ViewModel() {
                 GroqClient.chat(
                     apiKey = cfg.groqApiKey,
                     model = cfg.groqModel,
-                    messages = Prompts.nextSetSuggestion(exerciseName, recent, current),
+                    messages = Prompts.nextSetSuggestion(exerciseName, profile, recent, current),
                     temperature = 0.4,
                 )
             }.onSuccess { res ->

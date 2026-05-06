@@ -36,6 +36,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.n3k0chan.spotter.data.db.entities.WorkoutWithSets
+import com.n3k0chan.spotter.data.db.entities.profile
+import com.n3k0chan.spotter.data.measurement.formatShort
 import com.n3k0chan.spotter.di.ServiceLocator
 import com.n3k0chan.spotter.ui.components.IconButtonTone
 import com.n3k0chan.spotter.ui.components.SpotterCard
@@ -123,10 +125,11 @@ private fun SessionCard(w: WorkoutWithSets, df: DateFormat) {
             HorizontalDivider(color = c.border, thickness = 1.dp)
             Spacer(Modifier.height(8.dp))
             byExercise.entries.take(4).forEach { (name, sets) ->
+                val profile = sets.firstOrNull()?.exercise?.profile
                 Text(
-                    text = "· $name · " + sets.joinToString(", ") {
-                        "${formatWeight(it.set.weightKg)}×${it.set.reps}"
-                    },
+                    text = "· $name · " + if (profile != null) {
+                        sets.joinToString(", ") { it.set.formatShort(profile) }
+                    } else "—",
                     style = SpotterText.small.copy(fontFamily = FontFamily.Monospace),
                     color = c.textMuted,
                     modifier = Modifier.padding(vertical = 3.dp),
@@ -164,5 +167,3 @@ private fun SessionCard(w: WorkoutWithSets, df: DateFormat) {
     }
 }
 
-private fun formatWeight(value: Double): String =
-    if (value % 1.0 == 0.0) value.toInt().toString() else "%.1f".format(value)

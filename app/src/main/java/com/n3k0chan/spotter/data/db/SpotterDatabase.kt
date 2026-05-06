@@ -21,7 +21,7 @@ import com.n3k0chan.spotter.data.db.entities.WorkoutSet
         Workout::class,
         WorkoutSet::class,
     ],
-    version = 1,
+    version = 2,
     exportSchema = false,
 )
 abstract class SpotterDatabase : RoomDatabase() {
@@ -37,7 +37,14 @@ abstract class SpotterDatabase : RoomDatabase() {
                 context.applicationContext,
                 SpotterDatabase::class.java,
                 "spotter.db",
-            ).build().also { instance = it }
+            )
+                // Como aún estamos en alpha personal, ante un cambio de schema
+                // tiramos la BD local en lugar de escribir migraciones manuales.
+                // Si quieres preservar datos al evolucionar el schema, sustituye esto
+                // por addMigrations(...).
+                .fallbackToDestructiveMigration()
+                .build()
+                .also { instance = it }
         }
 
         /**

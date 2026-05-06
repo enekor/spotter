@@ -2,6 +2,9 @@ package com.n3k0chan.spotter.ai
 
 import com.n3k0chan.spotter.data.db.entities.WorkoutSet
 import com.n3k0chan.spotter.data.db.entities.WorkoutWithSets
+import com.n3k0chan.spotter.data.db.entities.profile
+import com.n3k0chan.spotter.data.measurement.MeasurementProfile
+import com.n3k0chan.spotter.data.measurement.formatShort
 
 object Prompts {
 
@@ -14,7 +17,8 @@ object Prompts {
         Reglas:
         - Sin frases cursis, sin emojis innecesarios, sin "tú puedes".
         - Si no estás seguro, dilo en una línea.
-        - Cuando sugieras pesos, basa tu razonamiento en los datos del historial proporcionados.
+        - Cuando sugieras pesos/tiempos, basa tu razonamiento en los datos del historial proporcionados.
+        - Los ejercicios pueden medirse de varias formas: peso×reps, solo reps, duración, distancia+tiempo, cardio en máquina (tiempo+distancia+resistencia), etc. Adáptate a lo que veas en los datos.
         - No reemplazas a un médico. Si el usuario menciona dolor agudo, recomienda parar y consultar.
         - Respuestas muy cortas por defecto (1-3 frases) salvo que se pida detalle.
     """.trimIndent()
@@ -39,14 +43,16 @@ object Prompts {
         val sb = StringBuilder()
         sb.append("Sesión recién terminada (\"${workout.workout.title}\"):\n")
         workout.sets.groupBy { it.exercise.name }.forEach { (name, sets) ->
-            sb.append("- $name: ")
-            sb.append(sets.joinToString(", ") { "${it.set.weightKg}kg×${it.set.reps}" })
+            val profile = sets.firstOrNull()?.exercise?.profile ?: return@forEach
+            sb.append("- $name [").append(profile.display).append("]: ")
+            sb.append(sets.joinToString(", ") { it.set.formatShort(profile) })
             sb.append("\n")
         }
         if (previousSimilar.isNotEmpty()) {
-            sb.append("\nReferencia de sesiones anteriores (mismo entreno):\n")
+            sb.append("\nReferencia de sesiones anteriores:\n")
             previousSimilar.take(8).forEach {
-                sb.append("- ${it.weightKg}kg×${it.reps}\n")
+                // Este formato es mejor approx que crudo: usamos numérico simple ya que no llega el exercise asociado
+                sb.append("- ").append(formatRawSet(it)).append("\n")
             }
         }
         return listOf(
@@ -61,21 +67,37 @@ object Prompts {
 
     fun nextSetSuggestion(
         exerciseName: String,
+        profile: MeasurementProfile,
         recentHistory: List<WorkoutSet>,
         currentSets: List<WorkoutSet>,
     ): List<GroqMessage> {
         val sb = StringBuilder()
         sb.append("Ejercicio: $exerciseName\n")
+        sb.append("Tipo de medida: ").append(profile.display).append("\n")
         sb.append("Series ya hechas hoy: ")
-        sb.append(if (currentSets.isEmpty()) "ninguna" else currentSets.joinToString(", ") { "${it.weightKg}kg×${it.reps}" })
+        sb.append(
+            if (currentSets.isEmpty()) "ninguna"
+            else currentSets.joinToString(", ") { it.formatShort(profile) },
+        )
         sb.append("\nHistorial reciente del ejercicio (más reciente primero):\n")
-        recentHistory.take(8).forEach { sb.append("- ${it.weightKg}kg×${it.reps}\n") }
+        recentHistory.take(8).forEach { sb.append("- ").append(it.formatShort(profile)).append("\n") }
+
+        // Adaptamos el formato esperado a la naturaleza del ejercicio
+        val expectedFormat = when (profile) {
+            MeasurementProfile.WeightReps -> "<peso>kg x <reps> · <razón breve>"
+            MeasurementProfile.Reps -> "<reps> reps · <razón breve>"
+            MeasurementProfile.Duration -> "<segundos>s · <razón breve>"
+            MeasurementProfile.DistanceTime -> "<distancia>m en <tiempo> · <razón breve>"
+            MeasurementProfile.CardioMachine -> "<tiempo> a nivel <n> (~<distancia>m) · <razón breve>"
+            MeasurementProfile.TreadmillIncline -> "<tiempo> a <inclinación>% (~<distancia>m) · <razón breve>"
+            MeasurementProfile.WeightDuration -> "<peso>kg durante <tiempo> · <razón breve>"
+        }
         return listOf(
             GroqMessage("system", systemTrainer),
             GroqMessage(
                 role = "user",
-                content = sb.toString() + "\nSugiere peso y reps para la SIGUIENTE serie. " +
-                    "Responde EXACTAMENTE en formato: <peso>kg x <reps> · <razón breve>. Nada más.",
+                content = sb.toString() + "\nSugiere los valores para la SIGUIENTE serie. " +
+                    "Responde EXACTAMENTE en formato: $expectedFormat. Nada más.",
             ),
         )
     }
@@ -86,4 +108,21 @@ object Prompts {
             addAll(history)
             add(GroqMessage("user", userInput))
         }
+
+    /**
+     * Formato fallback cuando solo tenemos un WorkoutSet pelado (sin acceso al
+     * exercise/profile). Mostramos los campos no nulos con un símbolo.
+     */
+    private fun formatRawSet(s: WorkoutSet): String {
+        val parts = mutableListOf<String>()
+        s.weightKg?.let { parts += "${if (it % 1.0 == 0.0) it.toInt() else "%.1f".format(it)}kg" }
+        s.reps?.let { parts += "${it} reps" }
+        s.distanceMeters?.let {
+            parts += if (it >= 1000) "%.2fkm".format(it / 1000) else "${it.toInt()}m"
+        }
+        s.durationSeconds?.let { parts += "%d:%02d".format(it / 60, it % 60) }
+        s.resistanceLevel?.let { parts += "n${it}" }
+        s.inclinePercent?.let { parts += "${if (it % 1.0 == 0.0) it.toInt() else "%.1f".format(it)}%" }
+        return parts.joinToString(" · ").ifEmpty { "—" }
+    }
 }

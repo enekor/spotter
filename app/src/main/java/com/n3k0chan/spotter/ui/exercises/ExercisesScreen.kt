@@ -1,5 +1,7 @@
 package com.n3k0chan.spotter.ui.exercises
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -37,6 +39,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.n3k0chan.spotter.data.db.entities.Exercise
+import com.n3k0chan.spotter.data.measurement.MeasurementProfile
 import com.n3k0chan.spotter.di.ServiceLocator
 import com.n3k0chan.spotter.ui.components.IconButtonTone
 import com.n3k0chan.spotter.ui.components.MuscleGroup
@@ -56,8 +59,8 @@ class ExercisesViewModel : ViewModel() {
         viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList(),
     )
 
-    fun create(name: String, muscle: String?) {
-        viewModelScope.launch { ServiceLocator.exercises.create(name, muscle) }
+    fun create(name: String, muscle: String?, profile: MeasurementProfile) {
+        viewModelScope.launch { ServiceLocator.exercises.create(name, muscle, profile) }
     }
 
     fun delete(id: Long) {
@@ -135,13 +138,14 @@ fun ExercisesScreen(
     if (showCreate) {
         var newName by remember { mutableStateOf("") }
         var newMuscle by remember { mutableStateOf("") }
+        var newProfile by remember { mutableStateOf(MeasurementProfile.Default) }
         AlertDialog(
             onDismissRequest = { showCreate = false },
             title = { Text("Nuevo ejercicio", style = SpotterText.title2) },
             confirmButton = {
                 TextButton(onClick = {
                     if (newName.isNotBlank()) {
-                        vm.create(newName.trim(), newMuscle.takeIf { it.isNotBlank() })
+                        vm.create(newName.trim(), newMuscle.takeIf { it.isNotBlank() }, newProfile)
                         showCreate = false
                     }
                 }) { Text("Guardar", color = c.primary) }
@@ -166,9 +170,63 @@ fun ExercisesScreen(
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                     )
+                    Spacer(Modifier.height(12.dp))
+                    Text("Cómo se mide", style = SpotterText.smallMd, color = c.textMuted)
+                    Spacer(Modifier.height(4.dp))
+                    ProfileDropdown(selected = newProfile, onSelect = { newProfile = it })
                 }
             },
         )
+    }
+}
+
+@Composable
+private fun ProfileDropdown(
+    selected: MeasurementProfile,
+    onSelect: (MeasurementProfile) -> Unit,
+) {
+    val c = SpotterTheme.colors
+    var expanded by remember { mutableStateOf(false) }
+    Box {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(c.surfaceMuted, androidx.compose.foundation.shape.RoundedCornerShape(12.dp))
+                .clickable { expanded = true }
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(selected.display, style = SpotterText.bodyMd, color = c.text)
+                Spacer(Modifier.height(2.dp))
+                Text(selected.description, style = SpotterText.small, color = c.textMuted)
+            }
+            Icon(
+                androidx.compose.material.icons.Icons.Filled.ArrowDropDown,
+                contentDescription = null,
+                tint = c.textFaint,
+                modifier = Modifier.size(20.dp),
+            )
+        }
+        androidx.compose.material3.DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+        ) {
+            MeasurementProfile.entries.forEach { p ->
+                androidx.compose.material3.DropdownMenuItem(
+                    text = {
+                        Column {
+                            Text(p.display, style = SpotterText.bodyMd, color = c.text)
+                            Text(p.description, style = SpotterText.small, color = c.textMuted)
+                        }
+                    },
+                    onClick = {
+                        onSelect(p)
+                        expanded = false
+                    },
+                )
+            }
+        }
     }
 }
 
