@@ -23,7 +23,7 @@ playServicesAuth = "21.3.0"
 googleApiClient = "2.7.0"
 googleApiServicesDrive = "v3-rev20240914-2.0.0"
 googleHttpClient = "1.45.0"
-healthConnect = "1.1.0-alpha07"
+healthConnect = "1.1.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }

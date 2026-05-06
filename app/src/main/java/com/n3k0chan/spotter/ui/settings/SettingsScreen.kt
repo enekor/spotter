@@ -20,8 +20,10 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -223,15 +225,11 @@ fun SettingsScreen(
             Column {
                 Text(stringResource(R.string.settings_groq_model), fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.height(4.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    SettingsRepository.MODELS.forEach { model ->
-                        FilterChip(
-                            selected = state.groqModel == model,
-                            onClick = { vm.setModel(model) },
-                            label = { Text(model) },
-                        )
-                    }
-                }
+                ModelDropdown(
+                    selected = state.groqModel,
+                    options = SettingsRepository.MODELS,
+                    onSelect = vm::setModel,
+                )
             }
 
             // ─── Descanso por defecto
@@ -395,6 +393,45 @@ private fun ApiKeyField(state: AppSettings, onSave: (String) -> Unit) {
                 },
                 enabled = value.isNotBlank(),
             ) { Text("Guardar key") }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ModelDropdown(
+    selected: String,
+    options: List<String>,
+    onSelect: (String) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = it },
+    ) {
+        OutlinedTextField(
+            value = selected,
+            onValueChange = {},
+            readOnly = true,
+            singleLine = true,
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .menuAnchor(),
+        )
+        androidx.compose.material3.ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+        ) {
+            options.forEach { model ->
+                DropdownMenuItem(
+                    text = { Text(model) },
+                    onClick = {
+                        onSelect(model)
+                        expanded = false
+                    },
+                )
+            }
         }
     }
 }
