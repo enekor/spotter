@@ -39,6 +39,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.n3k0chan.spotter.data.db.entities.Exercise
 import com.n3k0chan.spotter.di.ServiceLocator
 import com.n3k0chan.spotter.ui.components.IconButtonTone
+import com.n3k0chan.spotter.ui.components.MuscleGroup
+import com.n3k0chan.spotter.ui.components.MuscleGroupAvatar
 import com.n3k0chan.spotter.ui.components.SpotterIconButton
 import com.n3k0chan.spotter.ui.components.SpotterTopBar
 import com.n3k0chan.spotter.ui.templates.Fab
@@ -173,10 +175,13 @@ fun ExercisesScreen(
 @Composable
 private fun ExerciseRow(ex: Exercise, onDelete: () -> Unit) {
     val c = SpotterTheme.colors
+    val group = MuscleGroup.from(ex.muscleGroup)
     Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp, horizontal = 4.dp),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp, horizontal = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        MuscleGroupAvatar(group = group, size = 36.dp, iconSize = 18.dp)
+        Spacer(Modifier.size(12.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(ex.name, style = SpotterText.bodyMd, color = c.text)
             if (ex.muscleGroup != null) {

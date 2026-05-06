@@ -2,6 +2,7 @@ package com.n3k0chan.spotter.ui.templates
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -20,10 +21,10 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DragIndicator
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
@@ -52,6 +53,8 @@ import com.n3k0chan.spotter.data.db.entities.Exercise
 import com.n3k0chan.spotter.data.db.entities.Template
 import com.n3k0chan.spotter.data.db.entities.TemplateExercise
 import com.n3k0chan.spotter.di.ServiceLocator
+import com.n3k0chan.spotter.ui.components.MuscleGroup
+import com.n3k0chan.spotter.ui.components.MuscleGroupAvatar
 import com.n3k0chan.spotter.ui.components.SpotterButton
 import com.n3k0chan.spotter.ui.components.SpotterButtonVariant
 import com.n3k0chan.spotter.ui.components.SpotterCard
@@ -233,6 +236,7 @@ fun TemplateEditorScreen(
                 val exercise = catalog.firstOrNull { it.id == item.exerciseId }
                 ItemCard(
                     name = exercise?.name ?: "(borrado)",
+                    group = MuscleGroup.from(exercise?.muscleGroup),
                     sets = item.targetSets,
                     reps = item.targetReps,
                     rest = item.defaultRestSeconds,
@@ -281,6 +285,7 @@ fun TemplateEditorScreen(
 @Composable
 private fun ItemCard(
     name: String,
+    group: MuscleGroup,
     sets: Int,
     reps: Int,
     rest: Int,
@@ -299,6 +304,8 @@ private fun ItemCard(
                     tint = c.textFaint,
                     modifier = Modifier.size(18.dp),
                 )
+                Spacer(Modifier.size(8.dp))
+                MuscleGroupAvatar(group = group, size = 32.dp, iconSize = 16.dp)
                 Spacer(Modifier.size(10.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(name, style = SpotterText.bodyMd, color = c.text)
@@ -397,14 +404,9 @@ private fun TemplatePickerDialog(
                 )
                 Spacer(Modifier.height(8.dp))
                 val filtered = catalog.filter { query.isBlank() || it.name.contains(query, ignoreCase = true) }
-                LazyColumn(modifier = Modifier.height(220.dp)) {
+                LazyColumn(modifier = Modifier.height(260.dp)) {
                     items(filtered, key = { it.id }) { ex ->
-                        FilterChip(
-                            selected = ex.id in already,
-                            onClick = { onPick(ex) },
-                            label = { Text(ex.name + (ex.muscleGroup?.let { " · $it" } ?: "")) },
-                            modifier = Modifier.padding(vertical = 2.dp),
-                        )
+                        PickerRow(exercise = ex, selected = ex.id in already, onClick = { onPick(ex) })
                     }
                 }
                 Spacer(Modifier.height(8.dp))
@@ -426,4 +428,28 @@ private fun TemplatePickerDialog(
             }
         },
     )
+}
+
+@Composable
+private fun PickerRow(exercise: Exercise, selected: Boolean, onClick: () -> Unit) {
+    val c = SpotterTheme.colors
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        MuscleGroupAvatar(group = MuscleGroup.from(exercise.muscleGroup), size = 32.dp, iconSize = 16.dp)
+        Spacer(Modifier.size(10.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(exercise.name, style = SpotterText.bodyMd, color = c.text)
+            if (exercise.muscleGroup != null) {
+                Text(exercise.muscleGroup, style = SpotterText.small, color = c.textMuted)
+            }
+        }
+        if (selected) {
+            Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = c.primary, modifier = Modifier.size(18.dp))
+        }
+    }
 }

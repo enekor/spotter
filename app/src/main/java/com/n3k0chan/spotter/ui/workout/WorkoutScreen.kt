@@ -59,6 +59,8 @@ import com.n3k0chan.spotter.di.ServiceLocator
 import com.n3k0chan.spotter.timer.RestTimerController
 import com.n3k0chan.spotter.timer.RestTimerService
 import com.n3k0chan.spotter.ui.components.IconButtonTone
+import com.n3k0chan.spotter.ui.components.MuscleGroup
+import com.n3k0chan.spotter.ui.components.MuscleGroupAvatar
 import com.n3k0chan.spotter.ui.components.SpotterButton
 import com.n3k0chan.spotter.ui.components.SpotterButtonVariant
 import com.n3k0chan.spotter.ui.components.SpotterCard
@@ -243,8 +245,14 @@ private fun ExerciseCard(
         border = if (active) c.primary else c.border,
     ) {
         Column {
-            // Header con nombre + grupo + ring (si activo)
+            // Header con avatar de grupo + nombre + ring (si activo)
             Row(verticalAlignment = Alignment.Top) {
+                MuscleGroupAvatar(
+                    group = MuscleGroup.from(exercise.muscleGroup),
+                    size = 36.dp,
+                    iconSize = 18.dp,
+                )
+                Spacer(Modifier.width(10.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(exercise.name, style = SpotterText.title3, color = c.text)
                     if (exercise.muscleGroup != null) {
@@ -520,13 +528,12 @@ private fun ExercisePickerDialog(
                 val filtered = catalog.filter {
                     query.isBlank() || it.name.contains(query, ignoreCase = true)
                 }
-                LazyColumn(modifier = Modifier.height(220.dp)) {
+                LazyColumn(modifier = Modifier.height(260.dp)) {
                     items(filtered, key = { it.id }) { ex ->
-                        FilterChip(
+                        PickerRow(
+                            exercise = ex,
                             selected = ex.id in already,
                             onClick = { onPick(ex) },
-                            label = { Text(ex.name + (ex.muscleGroup?.let { " · $it" } ?: "")) },
-                            modifier = Modifier.padding(vertical = 2.dp),
                         )
                     }
                 }
@@ -549,6 +556,34 @@ private fun ExercisePickerDialog(
             }
         },
     )
+}
+
+@Composable
+private fun PickerRow(
+    exercise: Exercise,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    val c = SpotterTheme.colors
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        MuscleGroupAvatar(group = MuscleGroup.from(exercise.muscleGroup), size = 32.dp, iconSize = 16.dp)
+        Spacer(Modifier.width(10.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(exercise.name, style = SpotterText.bodyMd, color = c.text)
+            if (exercise.muscleGroup != null) {
+                Text(exercise.muscleGroup, style = SpotterText.small, color = c.textMuted)
+            }
+        }
+        if (selected) {
+            Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = c.primary, modifier = Modifier.size(18.dp))
+        }
+    }
 }
 
 @Composable
