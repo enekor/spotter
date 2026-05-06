@@ -27,6 +27,8 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -232,9 +234,16 @@ private fun ExerciseCard(
 ) {
     val c = SpotterTheme.colors
     val ctx = LocalContext.current
+
+    // Estado del formulario inline (cerrado por defecto)
+    var formOpen by remember { mutableStateOf(false) }
     var weightStr by remember { mutableStateOf("") }
     var repsStr by remember { mutableStateOf("") }
     var restStr by remember { mutableStateOf(defaultRest.toString()) }
+
+    // Estado del menú kebab
+    var menuOpen by remember { mutableStateOf(false) }
+    var confirmRemove by remember { mutableStateOf(false) }
 
     val timerState by RestTimerController.state.collectAsStateWithLifecycle()
     val showRing = active && timerState.isRunning
@@ -245,7 +254,7 @@ private fun ExerciseCard(
         border = if (active) c.primary else c.border,
     ) {
         Column {
-            // Header con avatar de grupo + nombre + ring (si activo)
+            // ── Header: avatar + nombre + ring (si activo) + kebab
             Row(verticalAlignment = Alignment.Top) {
                 MuscleGroupAvatar(
                     group = MuscleGroup.from(exercise.muscleGroup),
@@ -268,12 +277,33 @@ private fun ExerciseCard(
                     )
                     Spacer(Modifier.width(8.dp))
                 }
-                IconButton(onClick = onRemove) {
-                    Icon(Icons.Filled.MoreVert, contentDescription = null, tint = c.textFaint)
+                Box {
+                    IconButton(onClick = { menuOpen = true }) {
+                        Icon(Icons.Filled.MoreVert, contentDescription = "Opciones", tint = c.textFaint)
+                    }
+                    DropdownMenu(
+                        expanded = menuOpen,
+                        onDismissRequest = { menuOpen = false },
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Sugerencia IA") },
+                            onClick = {
+                                menuOpen = false
+                                onRequestSuggestion()
+                            },
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Quitar del entreno", color = c.danger) },
+                            onClick = {
+                                menuOpen = false
+                                confirmRemove = true
+                            },
+                        )
+                    }
                 }
             }
 
-            // Sugerencia IA
+            // ── Sugerencia IA
             if (suggestionLoading) {
                 Spacer(Modifier.height(8.dp))
                 SuggestionCard(text = "Pensando…", onDismiss = null)
@@ -282,7 +312,7 @@ private fun ExerciseCard(
                 SuggestionCard(text = suggestion, onDismiss = onClearSuggestion)
             }
 
-            // Sets ya hechos
+            // ── Sets ya completados
             if (sets.isNotEmpty()) {
                 Spacer(Modifier.height(12.dp))
                 sets.forEachIndexed { i, s ->
@@ -333,54 +363,94 @@ private fun ExerciseCard(
 
             Spacer(Modifier.height(12.dp))
 
-            // Inputs row con TextField inline (editables)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                NumericField(
-                    label = "Peso",
-                    suffix = "kg",
-                    value = weightStr,
-                    onValueChange = { weightStr = it.filter { ch -> ch.isDigit() || ch == '.' || ch == ',' } },
-                    keyboardType = KeyboardType.Decimal,
-                    modifier = Modifier.weight(1f),
-                )
-                NumericField(
-                    label = "Reps",
-                    suffix = null,
-                    value = repsStr,
-                    onValueChange = { repsStr = it.filter(Char::isDigit) },
-                    keyboardType = KeyboardType.Number,
-                    modifier = Modifier.weight(1f),
-                )
-                NumericField(
-                    label = "Desc.",
-                    suffix = "s",
-                    value = restStr,
-                    onValueChange = { restStr = it.filter(Char::isDigit) },
-                    keyboardType = KeyboardType.Number,
-                    modifier = Modifier.weight(1f),
+            // ── Footer: o botón "+" o formulario expandido
+            if (formOpen) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    NumericField(
+                        label = "Peso",
+                        suffix = "kg",
+                        value = weightStr,
+                        onValueChange = { weightStr = it.filter { ch -> ch.isDigit() || ch == '.' || ch == ',' } },
+                        keyboardType = KeyboardType.Decimal,
+                        modifier = Modifier.weight(1f),
+                    )
+                    NumericField(
+                        label = "Reps",
+                        suffix = null,
+                        value = repsStr,
+                        onValueChange = { repsStr = it.filter(Char::isDigit) },
+                        keyboardType = KeyboardType.Number,
+                        modifier = Modifier.weight(1f),
+                    )
+                    NumericField(
+                        label = "Desc.",
+                        suffix = "s",
+                        value = restStr,
+                        onValueChange = { restStr = it.filter(Char::isDigit) },
+                        keyboardType = KeyboardType.Number,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+                Spacer(Modifier.height(10.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    SpotterButton(
+                        text = "Hecho · serie ${sets.size + 1}",
+                        leading = Icons.Filled.Check,
+                        variant = if (active) SpotterButtonVariant.Filled else SpotterButtonVariant.Tonal,
+                        modifier = Modifier.weight(1f),
+                        onClick = {
+                            val w = weightStr.replace(',', '.').toDoubleOrNull()
+                            val r = repsStr.toIntOrNull()
+                            val rest = restStr.toIntOrNull()
+                            if (w != null && r != null) {
+                                onAddSet(w, r, rest)
+                                if (rest != null && rest > 0) {
+                                    RestTimerService.start(ctx, rest, preWarning, vibrate)
+                                }
+                                // Mantén peso/desc, vacía reps para meter otra serie con un toque
+                                repsStr = ""
+                            }
+                        },
+                    )
+                    SpotterButton(
+                        text = "Cerrar",
+                        variant = SpotterButtonVariant.Outlined,
+                        onClick = { formOpen = false },
+                    )
+                }
+            } else {
+                SpotterButton(
+                    text = if (sets.isEmpty()) "Añadir primera serie" else "Añadir serie",
+                    leading = Icons.Filled.Add,
+                    variant = SpotterButtonVariant.Tonal,
+                    full = true,
+                    onClick = { formOpen = true },
                 )
             }
-
-            Spacer(Modifier.height(10.dp))
-            SpotterButton(
-                text = "Hecho · serie ${sets.size + 1}",
-                leading = Icons.Filled.Check,
-                variant = if (active) SpotterButtonVariant.Filled else SpotterButtonVariant.Tonal,
-                full = true,
-                onClick = {
-                    val w = weightStr.replace(',', '.').toDoubleOrNull()
-                    val r = repsStr.toIntOrNull()
-                    val rest = restStr.toIntOrNull()
-                    if (w != null && r != null) {
-                        onAddSet(w, r, rest)
-                        if (rest != null && rest > 0) {
-                            RestTimerService.start(ctx, rest, preWarning, vibrate)
-                        }
-                        repsStr = ""
-                    }
-                },
-            )
         }
+    }
+
+    if (confirmRemove) {
+        AlertDialog(
+            onDismissRequest = { confirmRemove = false },
+            title = { Text("Quitar del entreno", style = SpotterText.title2) },
+            text = {
+                Text(
+                    "¿Quitar \"${exercise.name}\" de esta sesión? Se borrarán también las series " +
+                        "que hayas registrado para este ejercicio en este entreno.",
+                    style = SpotterText.body,
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmRemove = false
+                    onRemove()
+                }) { Text("Quitar", color = c.danger) }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmRemove = false }) { Text("Cancelar", color = c.textMuted) }
+            },
+        )
     }
 }
 

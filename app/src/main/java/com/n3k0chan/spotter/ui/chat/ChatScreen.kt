@@ -48,8 +48,12 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.n3k0chan.spotter.ai.GroqClient
 import com.n3k0chan.spotter.ai.GroqMessage
 import com.n3k0chan.spotter.ai.Prompts
+import com.n3k0chan.spotter.data.db.entities.WorkoutWithSets
 import com.n3k0chan.spotter.di.ServiceLocator
 import com.n3k0chan.spotter.ui.components.IconButtonTone
+import kotlinx.coroutines.flow.first
+import java.text.DateFormat
+import java.util.Date
 import com.n3k0chan.spotter.ui.components.SpotterCard
 import com.n3k0chan.spotter.ui.components.SpotterIconButton
 import com.n3k0chan.spotter.ui.components.SpotterTopBar
@@ -65,6 +69,7 @@ data class ChatTurn(val role: String, val content: String)
 class ChatViewModel : ViewModel() {
 
     private val settings = ServiceLocator.settings
+    private val workouts = ServiceLocator.workouts
 
     private val _messages = MutableStateFlow<List<ChatTurn>>(emptyList())
     val messages: StateFlow<List<ChatTurn>> = _messages.asStateFlow()
@@ -72,7 +77,13 @@ class ChatViewModel : ViewModel() {
     private val _sending = MutableStateFlow(false)
     val sending: StateFlow<Boolean> = _sending.asStateFlow()
 
+    /** Cuando está activo, en el SIGUIENTE envío adjuntamos el historial de entrenos. */
+    private val _attachHistory = MutableStateFlow(false)
+    val attachHistory: StateFlow<Boolean> = _attachHistory.asStateFlow()
+
     fun hasKey(): Boolean = settings.state.value.hasApiKey
+
+    fun toggleAttachHistory() { _attachHistory.value = !_attachHistory.value }
 
     fun send(input: String) {
         val text = input.trim()
@@ -82,14 +93,21 @@ class ChatViewModel : ViewModel() {
 
         _messages.value = _messages.value + ChatTurn("user", text)
         _sending.value = true
+        val attachHistoryNow = _attachHistory.value
+        // Toggle one-shot: se desactiva tras el envío
+        if (attachHistoryNow) _attachHistory.value = false
 
         viewModelScope.launch {
             val history = _messages.value.dropLast(1).map { GroqMessage(it.role, it.content) }
+            val finalUserText = if (attachHistoryNow) {
+                val context = runCatching { buildHistoryContext() }.getOrDefault("")
+                if (context.isNotBlank()) "$text\n\n$context" else text
+            } else text
             runCatching {
                 GroqClient.chat(
                     apiKey = cfg.groqApiKey,
                     model = cfg.groqModel,
-                    messages = Prompts.chatTurn(history, text),
+                    messages = Prompts.chatTurn(history, finalUserText),
                     temperature = 0.6,
                 )
             }.onSuccess { reply ->
@@ -101,6 +119,46 @@ class ChatViewModel : ViewModel() {
                 )
             }
             _sending.value = false
+        }
+    }
+
+    /**
+     * Construye un resumen de las últimas N sesiones terminadas para inyectar
+     * como contexto al asistente.
+     */
+    private suspend fun buildHistoryContext(limit: Int = 10): String {
+        val sessions = workouts.observeAll().first()
+            .filter { it.workout.finishedAt != null }
+            .take(limit)
+        if (sessions.isEmpty()) return ""
+        val df = DateFormat.getDateInstance(DateFormat.SHORT)
+        return buildString {
+            appendLine("[Historial reciente — últimas ${sessions.size} sesiones, más reciente primero]")
+            sessions.forEach { w -> appendSession(w, df) }
+        }.trimEnd()
+    }
+
+    private fun StringBuilder.appendSession(w: WorkoutWithSets, df: DateFormat) {
+        val durationMin = w.workout.finishedAt
+            ?.let { (it - w.workout.startedAt) / 60_000 }
+            ?.toInt()
+        append("- ").append(df.format(Date(w.workout.startedAt)))
+        append(" · ").append(w.workout.title)
+        if (durationMin != null) append(" (${durationMin} min)")
+        if (w.workout.rpe != null) append(" · RPE ${w.workout.rpe}")
+        appendLine()
+        val byExercise = w.sets.groupBy { it.exercise.name }
+        byExercise.entries.take(8).forEach { (name, sets) ->
+            append("  ").append(name).append(": ")
+            append(sets.joinToString(", ") {
+                val kg = if (it.set.weightKg % 1.0 == 0.0) it.set.weightKg.toInt().toString()
+                else "%.1f".format(it.set.weightKg)
+                "${kg}×${it.set.reps}"
+            })
+            appendLine()
+        }
+        if (!w.workout.notes.isNullOrBlank()) {
+            appendLine("  notas: ${w.workout.notes}")
         }
     }
 
@@ -121,6 +179,7 @@ fun ChatScreen(
 ) {
     val messages by vm.messages.collectAsStateWithLifecycle()
     val sending by vm.sending.collectAsStateWithLifecycle()
+    val attachHistory by vm.attachHistory.collectAsStateWithLifecycle()
     val c = SpotterTheme.colors
     var input by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
@@ -151,6 +210,11 @@ fun ChatScreen(
                 Column(
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
                 ) {
+                    AttachHistoryChip(
+                        selected = attachHistory,
+                        onClick = { vm.toggleAttachHistory() },
+                    )
+                    Spacer(Modifier.height(10.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         OutlinedTextField(
                             value = input,
@@ -252,6 +316,49 @@ private fun Bubble(turn: ChatTurn) {
                 turn.content,
                 style = SpotterText.body,
                 color = if (isUser) c.onPrimary else c.text,
+            )
+        }
+    }
+}
+
+@Composable
+private fun AttachHistoryChip(selected: Boolean, onClick: () -> Unit) {
+    val c = SpotterTheme.colors
+    Row(
+        modifier = Modifier
+            .height(32.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .background(if (selected) c.primarySoft else c.surfaceMuted)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            painter = androidx.compose.ui.res.painterResource(id = com.n3k0chan.spotter.R.drawable.ic_muscle_other),
+            contentDescription = null,
+            tint = if (selected) c.primarySoftText else c.textMuted,
+            modifier = Modifier.size(14.dp),
+        )
+        Spacer(Modifier.width(6.dp))
+        Text(
+            "Compartir historial de entrenamiento",
+            style = SpotterText.smallMd,
+            color = if (selected) c.primarySoftText else c.textMuted,
+        )
+        Spacer(Modifier.width(8.dp))
+        Box(
+            modifier = Modifier
+                .size(width = 28.dp, height = 16.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(if (selected) c.primary else c.borderStrong),
+        ) {
+            Box(
+                modifier = Modifier
+                    .padding(2.dp)
+                    .size(12.dp)
+                    .align(if (selected) Alignment.CenterEnd else Alignment.CenterStart)
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(androidx.compose.ui.graphics.Color.White),
             )
         }
     }
