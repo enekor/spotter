@@ -2,6 +2,7 @@ package com.n3k0chan.spotter.ui.history
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -18,13 +19,20 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Notes
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -49,6 +57,7 @@ import com.n3k0chan.spotter.ui.theme.SpotterTheme
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import java.text.DateFormat
 import java.util.Date
 
@@ -56,6 +65,11 @@ class HistoryViewModel : ViewModel() {
     val list: StateFlow<List<WorkoutWithSets>> = ServiceLocator.workouts.observeAll().stateIn(
         viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList(),
     )
+
+    fun delete(id: Long) {
+        viewModelScope.launch { ServiceLocator.workouts.delete(id) }
+    }
+
     companion object {
         val Factory = object : ViewModelProvider.Factory {
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -91,29 +105,56 @@ fun HistoryScreen(vm: HistoryViewModel = viewModel(factory = HistoryViewModel.Fa
                 contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                items(list, key = { it.workout.id }) { w -> SessionCard(w, df) }
+                items(list, key = { it.workout.id }) { w ->
+                    SessionCard(
+                        w = w,
+                        df = df,
+                        onDelete = { vm.delete(w.workout.id) },
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-private fun SessionCard(w: WorkoutWithSets, df: DateFormat) {
+private fun SessionCard(w: WorkoutWithSets, df: DateFormat, onDelete: () -> Unit) {
     val c = SpotterTheme.colors
     val byExercise = w.sets.groupBy { it.exercise.name }
     val durationMin = w.workout.finishedAt
         ?.let { (it - w.workout.startedAt) / 60_000 }
         ?.toInt()
+    var menuOpen by remember { mutableStateOf(false) }
+    var confirmDelete by remember { mutableStateOf(false) }
 
     SpotterCard {
         Column {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(w.workout.title, style = SpotterText.title3, color = c.text, modifier = Modifier.weight(1f))
-                Text(
-                    df.format(Date(w.workout.startedAt)),
-                    style = SpotterText.small,
-                    color = c.textMuted,
-                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(w.workout.title, style = SpotterText.title3, color = c.text)
+                    Text(
+                        df.format(Date(w.workout.startedAt)),
+                        style = SpotterText.small,
+                        color = c.textMuted,
+                    )
+                }
+                Box {
+                    IconButton(onClick = { menuOpen = true }) {
+                        Icon(Icons.Filled.MoreVert, contentDescription = "Opciones", tint = c.textFaint)
+                    }
+                    DropdownMenu(
+                        expanded = menuOpen,
+                        onDismissRequest = { menuOpen = false },
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Borrar entreno", color = c.danger) },
+                            onClick = {
+                                menuOpen = false
+                                confirmDelete = true
+                            },
+                        )
+                    }
+                }
             }
             Spacer(Modifier.height(10.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -164,6 +205,29 @@ private fun SessionCard(w: WorkoutWithSets, df: DateFormat) {
                 }
             }
         }
+    }
+
+    if (confirmDelete) {
+        AlertDialog(
+            onDismissRequest = { confirmDelete = false },
+            title = { Text("Borrar entreno", style = SpotterText.title2) },
+            text = {
+                Text(
+                    "Se eliminará el entreno \"${w.workout.title}\" del ${df.format(Date(w.workout.startedAt))} " +
+                        "junto con todas sus series. Esta acción no se puede deshacer.",
+                    style = SpotterText.body,
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmDelete = false
+                    onDelete()
+                }) { Text("Borrar", color = c.danger) }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmDelete = false }) { Text("Cancelar", color = c.textMuted) }
+            },
+        )
     }
 }
 

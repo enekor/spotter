@@ -22,6 +22,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
@@ -30,7 +31,6 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -197,9 +197,9 @@ fun WorkoutScreen(
     }
 
     if (showPicker) {
-        ExercisePickerDialog(
+        com.n3k0chan.spotter.ui.components.ExercisePickerSheet(
             catalog = catalog,
-            already = state.orderedExerciseIds.toSet(),
+            alreadyAdded = state.orderedExerciseIds.toSet(),
             onPick = {
                 vm.addExerciseToSession(it.id)
                 showPicker = false
@@ -556,105 +556,6 @@ private fun NumericField(
 }
 
 @Composable
-private fun ExercisePickerDialog(
-    catalog: List<Exercise>,
-    already: Set<Long>,
-    onPick: (Exercise) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    val c = SpotterTheme.colors
-    var query by remember { mutableStateOf("") }
-    var newName by remember { mutableStateOf("") }
-    var newMuscle by remember { mutableStateOf("") }
-    val scope = androidx.compose.runtime.rememberCoroutineScope()
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        confirmButton = {
-            TextButton(onClick = {
-                val name = newName.trim()
-                if (name.isNotBlank()) {
-                    scope.launch {
-                        val id = ServiceLocator.exercises.create(name, newMuscle.takeIf { it.isNotBlank() })
-                        ServiceLocator.exercises.get(id)?.let(onPick)
-                    }
-                }
-            }) { Text("Crear y añadir", color = c.primary) }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar", color = c.textMuted) } },
-        title = { Text("Añadir ejercicio", style = SpotterText.title2, color = c.text) },
-        text = {
-            Column {
-                OutlinedTextField(
-                    value = query,
-                    onValueChange = { query = it },
-                    label = { Text("Buscar") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                Spacer(Modifier.height(8.dp))
-                val filtered = catalog.filter {
-                    query.isBlank() || it.name.contains(query, ignoreCase = true)
-                }
-                LazyColumn(modifier = Modifier.height(260.dp)) {
-                    items(filtered, key = { it.id }) { ex ->
-                        PickerRow(
-                            exercise = ex,
-                            selected = ex.id in already,
-                            onClick = { onPick(ex) },
-                        )
-                    }
-                }
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = c.border)
-                Text("Crear nuevo", style = SpotterText.smallMd, color = c.textMuted)
-                OutlinedTextField(
-                    value = newName,
-                    onValueChange = { newName = it },
-                    label = { Text("Nombre") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                OutlinedTextField(
-                    value = newMuscle,
-                    onValueChange = { newMuscle = it },
-                    label = { Text("Grupo muscular") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-        },
-    )
-}
-
-@Composable
-private fun PickerRow(
-    exercise: Exercise,
-    selected: Boolean,
-    onClick: () -> Unit,
-) {
-    val c = SpotterTheme.colors
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        MuscleGroupAvatar(group = MuscleGroup.from(exercise.muscleGroup), size = 32.dp, iconSize = 16.dp)
-        Spacer(Modifier.width(10.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(exercise.name, style = SpotterText.bodyMd, color = c.text)
-            if (exercise.muscleGroup != null) {
-                Text(exercise.muscleGroup, style = SpotterText.small, color = c.textMuted)
-            }
-        }
-        if (selected) {
-            Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = c.primary, modifier = Modifier.size(18.dp))
-        }
-    }
-}
-
-@Composable
 private fun FinishWorkoutDialog(
     initialNotes: String,
     initialRpe: Int?,
@@ -677,15 +578,7 @@ private fun FinishWorkoutDialog(
             Column {
                 Text("RPE (1-10)", style = SpotterText.smallMd, color = c.textMuted)
                 Spacer(Modifier.height(6.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    (1..10).forEach { v ->
-                        FilterChip(
-                            selected = rpe == v,
-                            onClick = { rpe = if (rpe == v) null else v },
-                            label = { Text(v.toString()) },
-                        )
-                    }
-                }
+                RpeDropdown(selected = rpe, onSelect = { rpe = it })
                 Spacer(Modifier.height(12.dp))
                 OutlinedTextField(
                     value = notes,
@@ -697,6 +590,70 @@ private fun FinishWorkoutDialog(
             }
         },
     )
+}
+
+@Composable
+private fun RpeDropdown(selected: Int?, onSelect: (Int?) -> Unit) {
+    val c = SpotterTheme.colors
+    var expanded by remember { mutableStateOf(false) }
+    val rpeLabel: (Int) -> String = { v ->
+        val tag = when (v) {
+            in 1..3 -> "muy fácil"
+            in 4..5 -> "fácil"
+            6 -> "moderado"
+            7 -> "exigente"
+            8 -> "duro"
+            9 -> "muy duro"
+            10 -> "máximo"
+            else -> ""
+        }
+        "RPE $v · $tag"
+    }
+    Box {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .background(c.surfaceMuted)
+                .clickable { expanded = true }
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = selected?.let(rpeLabel) ?: "Sin valorar",
+                style = SpotterText.bodyMd,
+                color = if (selected == null) c.textMuted else c.text,
+                modifier = Modifier.weight(1f),
+            )
+            Icon(
+                Icons.Filled.ArrowDropDown,
+                contentDescription = null,
+                tint = c.textFaint,
+                modifier = Modifier.size(20.dp),
+            )
+        }
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+        ) {
+            DropdownMenuItem(
+                text = { Text("Sin valorar", color = c.textMuted) },
+                onClick = {
+                    onSelect(null)
+                    expanded = false
+                },
+            )
+            (1..10).forEach { v ->
+                DropdownMenuItem(
+                    text = { Text(rpeLabel(v)) },
+                    onClick = {
+                        onSelect(v)
+                        expanded = false
+                    },
+                )
+            }
+        }
+    }
 }
 
 private fun formatWeight(value: Double): String =

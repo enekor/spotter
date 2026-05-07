@@ -64,6 +64,7 @@ import com.n3k0chan.spotter.ui.theme.SpotterTheme
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 data class ChatTurn(val role: String, val content: String)
@@ -72,6 +73,14 @@ class ChatViewModel : ViewModel() {
 
     private val settings = ServiceLocator.settings
     private val workouts = ServiceLocator.workouts
+    private val exercisesRepo = ServiceLocator.exercises
+
+    val catalog: StateFlow<List<com.n3k0chan.spotter.data.db.entities.Exercise>> =
+        exercisesRepo.observeAll().stateIn(
+            viewModelScope,
+            kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5_000),
+            emptyList(),
+        )
 
     private val _messages = MutableStateFlow<List<ChatTurn>>(emptyList())
     val messages: StateFlow<List<ChatTurn>> = _messages.asStateFlow()
@@ -83,9 +92,19 @@ class ChatViewModel : ViewModel() {
     private val _attachHistory = MutableStateFlow(false)
     val attachHistory: StateFlow<Boolean> = _attachHistory.asStateFlow()
 
+    /**
+     * Cuando está activo, en el SIGUIENTE envío adjuntamos el catálogo de ejercicios
+     * (nombre + grupo + tipo de medida, SIN series). Útil para preguntar qué
+     * ejercicio del catálogo encaja con una máquina del gimnasio.
+     */
+    private val _attachCatalog = MutableStateFlow(false)
+    val attachCatalog: StateFlow<Boolean> = _attachCatalog.asStateFlow()
+
     fun hasKey(): Boolean = settings.state.value.hasApiKey
 
     fun toggleAttachHistory() { _attachHistory.value = !_attachHistory.value }
+
+    fun toggleAttachCatalog() { _attachCatalog.value = !_attachCatalog.value }
 
     fun send(input: String) {
         val text = input.trim()
@@ -96,15 +115,22 @@ class ChatViewModel : ViewModel() {
         _messages.value = _messages.value + ChatTurn("user", text)
         _sending.value = true
         val attachHistoryNow = _attachHistory.value
-        // Toggle one-shot: se desactiva tras el envío
+        val attachCatalogNow = _attachCatalog.value
+        // Toggles one-shot: se desactivan tras el envío
         if (attachHistoryNow) _attachHistory.value = false
+        if (attachCatalogNow) _attachCatalog.value = false
 
         viewModelScope.launch {
             val history = _messages.value.dropLast(1).map { GroqMessage(it.role, it.content) }
-            val finalUserText = if (attachHistoryNow) {
-                val context = runCatching { buildHistoryContext() }.getOrDefault("")
-                if (context.isNotBlank()) "$text\n\n$context" else text
-            } else text
+            val parts = mutableListOf(text)
+            if (attachHistoryNow) {
+                runCatching { buildHistoryContext() }.getOrNull()?.takeIf { it.isNotBlank() }?.let { parts += it }
+            }
+            if (attachCatalogNow) {
+                runCatching { buildCatalogContext() }.getOrNull()
+                    ?.takeIf { it.isNotBlank() }?.let { parts += it }
+            }
+            val finalUserText = parts.joinToString("\n\n")
             runCatching {
                 GroqClient.chat(
                     apiKey = cfg.groqApiKey,
@@ -125,17 +151,46 @@ class ChatViewModel : ViewModel() {
     }
 
     /**
-     * Construye un resumen de las últimas N sesiones terminadas para inyectar
-     * como contexto al asistente.
+     * Construye un bloque con el catálogo entero de ejercicios disponibles
+     * (nombre + grupo + tipo de medida). Sirve para preguntar al chat qué
+     * ejercicio encaja con una máquina o aparato del gimnasio. NO incluye
+     * historial ni series — solo metadata del catálogo.
      */
-    private suspend fun buildHistoryContext(limit: Int = 10): String {
+    private suspend fun buildCatalogContext(): String {
+        val all = catalog.value.takeIf { it.isNotEmpty() }
+            ?: runCatching { exercisesRepo.observeAll().first() }.getOrNull().orEmpty()
+        if (all.isEmpty()) return ""
+        return buildString {
+            appendLine("[Catálogo de ejercicios disponibles · ${all.size} ejercicios]")
+            // Agrupar por grupo muscular para que el asistente pueda navegar mejor
+            all.groupBy { it.muscleGroup ?: "Otro" }
+                .toSortedMap()
+                .forEach { (group, list) ->
+                    appendLine("· $group:")
+                    list.sortedBy { it.name.lowercase() }.forEach { ex ->
+                        val profile = com.n3k0chan.spotter.data.measurement.MeasurementProfile
+                            .fromNameOrDefault(ex.measurementProfile)
+                        appendLine("  - ${ex.name} (${profile.display})")
+                    }
+                }
+        }.trimEnd()
+    }
+
+    /**
+     * Construye un resumen de las sesiones terminadas dentro de la ventana
+     * configurada en Ajustes (semana / mes / año / todo) para inyectar como
+     * contexto al asistente.
+     */
+    private suspend fun buildHistoryContext(): String {
+        val window = settings.state.value.chatHistoryWindow
+        val cutoff = window.cutoffMillis()
         val sessions = workouts.observeAll().first()
             .filter { it.workout.finishedAt != null }
-            .take(limit)
+            .filter { cutoff == null || it.workout.startedAt >= cutoff }
         if (sessions.isEmpty()) return ""
         val df = DateFormat.getDateInstance(DateFormat.SHORT)
         return buildString {
-            appendLine("[Historial reciente — últimas ${sessions.size} sesiones, más reciente primero]")
+            appendLine("[Historial · ${window.display} · ${sessions.size} sesiones, más reciente primero]")
             sessions.forEach { w -> appendSession(w, df) }
         }.trimEnd()
     }
@@ -179,6 +234,7 @@ fun ChatScreen(
     val messages by vm.messages.collectAsStateWithLifecycle()
     val sending by vm.sending.collectAsStateWithLifecycle()
     val attachHistory by vm.attachHistory.collectAsStateWithLifecycle()
+    val attachCatalog by vm.attachCatalog.collectAsStateWithLifecycle()
     val c = SpotterTheme.colors
     var input by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
@@ -209,10 +265,19 @@ fun ChatScreen(
                 Column(
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
                 ) {
-                    AttachHistoryChip(
-                        selected = attachHistory,
-                        onClick = { vm.toggleAttachHistory() },
-                    )
+                    androidx.compose.foundation.layout.FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        AttachHistoryChip(
+                            selected = attachHistory,
+                            onClick = { vm.toggleAttachHistory() },
+                        )
+                        AttachCatalogChip(
+                            selected = attachCatalog,
+                            onClick = { vm.toggleAttachCatalog() },
+                        )
+                    }
                     Spacer(Modifier.height(10.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         OutlinedTextField(
@@ -290,6 +355,7 @@ fun ChatScreen(
             }
         }
     }
+
 }
 
 @Composable
@@ -315,6 +381,51 @@ private fun Bubble(turn: ChatTurn) {
                 turn.content,
                 style = SpotterText.body,
                 color = if (isUser) c.onPrimary else c.text,
+            )
+        }
+    }
+}
+
+@Composable
+private fun AttachCatalogChip(selected: Boolean, onClick: () -> Unit) {
+    val c = SpotterTheme.colors
+    Row(
+        modifier = Modifier
+            .height(32.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .background(if (selected) c.primarySoft else c.surfaceMuted)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            painter = androidx.compose.ui.res.painterResource(
+                id = com.n3k0chan.spotter.R.drawable.ic_muscle_other,
+            ),
+            contentDescription = null,
+            tint = if (selected) c.primarySoftText else c.textMuted,
+            modifier = Modifier.size(14.dp),
+        )
+        Spacer(Modifier.width(6.dp))
+        Text(
+            "Mis ejercicios",
+            style = SpotterText.smallMd,
+            color = if (selected) c.primarySoftText else c.textMuted,
+        )
+        Spacer(Modifier.width(8.dp))
+        Box(
+            modifier = Modifier
+                .size(width = 28.dp, height = 16.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(if (selected) c.primary else c.borderStrong),
+        ) {
+            Box(
+                modifier = Modifier
+                    .padding(2.dp)
+                    .size(12.dp)
+                    .align(if (selected) Alignment.CenterEnd else Alignment.CenterStart)
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(androidx.compose.ui.graphics.Color.White),
             )
         }
     }

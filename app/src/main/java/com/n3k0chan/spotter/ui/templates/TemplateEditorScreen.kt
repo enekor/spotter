@@ -270,9 +270,9 @@ fun TemplateEditorScreen(
     }
 
     if (showPicker) {
-        TemplatePickerDialog(
+        com.n3k0chan.spotter.ui.components.ExercisePickerSheet(
             catalog = catalog,
-            already = state.items.map { it.exerciseId }.toSet(),
+            alreadyAdded = state.items.map { it.exerciseId }.toSet(),
             onPick = {
                 vm.addItem(it.id)
                 showPicker = false
@@ -365,91 +365,3 @@ private fun IntField(
     }
 }
 
-@Composable
-private fun TemplatePickerDialog(
-    catalog: List<Exercise>,
-    already: Set<Long>,
-    onPick: (Exercise) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    val c = SpotterTheme.colors
-    var query by remember { mutableStateOf("") }
-    var newName by remember { mutableStateOf("") }
-    var newMuscle by remember { mutableStateOf("") }
-    val scope = rememberCoroutineScope()
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        confirmButton = {
-            TextButton(onClick = {
-                val name = newName.trim()
-                if (name.isNotBlank()) {
-                    scope.launch {
-                        val id = ServiceLocator.exercises.create(name, newMuscle.takeIf { it.isNotBlank() })
-                        ServiceLocator.exercises.get(id)?.let(onPick)
-                    }
-                }
-            }) { Text("Crear y añadir", color = c.primary) }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar", color = c.textMuted) } },
-        title = { Text("Añadir ejercicio", style = SpotterText.title2) },
-        text = {
-            Column {
-                OutlinedTextField(
-                    value = query,
-                    onValueChange = { query = it },
-                    label = { Text("Buscar") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                Spacer(Modifier.height(8.dp))
-                val filtered = catalog.filter { query.isBlank() || it.name.contains(query, ignoreCase = true) }
-                LazyColumn(modifier = Modifier.height(260.dp)) {
-                    items(filtered, key = { it.id }) { ex ->
-                        PickerRow(exercise = ex, selected = ex.id in already, onClick = { onPick(ex) })
-                    }
-                }
-                Spacer(Modifier.height(8.dp))
-                Text("Crear nuevo", style = SpotterText.smallMd, color = c.textMuted)
-                OutlinedTextField(
-                    value = newName,
-                    onValueChange = { newName = it },
-                    label = { Text("Nombre") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                OutlinedTextField(
-                    value = newMuscle,
-                    onValueChange = { newMuscle = it },
-                    label = { Text("Grupo muscular") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-        },
-    )
-}
-
-@Composable
-private fun PickerRow(exercise: Exercise, selected: Boolean, onClick: () -> Unit) {
-    val c = SpotterTheme.colors
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        MuscleGroupAvatar(group = MuscleGroup.from(exercise.muscleGroup), size = 32.dp, iconSize = 16.dp)
-        Spacer(Modifier.size(10.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(exercise.name, style = SpotterText.bodyMd, color = c.text)
-            if (exercise.muscleGroup != null) {
-                Text(exercise.muscleGroup, style = SpotterText.small, color = c.textMuted)
-            }
-        }
-        if (selected) {
-            Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = c.primary, modifier = Modifier.size(18.dp))
-        }
-    }
-}

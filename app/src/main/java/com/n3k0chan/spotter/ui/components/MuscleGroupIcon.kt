@@ -2,11 +2,24 @@ package com.n3k0chan.spotter.ui.components
 
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -15,12 +28,12 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.n3k0chan.spotter.R
+import com.n3k0chan.spotter.ui.theme.SpotterText
 import com.n3k0chan.spotter.ui.theme.SpotterTheme
 
 /**
  * Categorías canónicas que reconoce el helper.
  * Cada una tiene un drawable específico en res/drawable/ic_muscle_*.xml.
- * Los iconos son monocromos: el `tint` del Icon se aplica sobre el path.
  */
 enum class MuscleGroup(
     val display: String,
@@ -35,11 +48,6 @@ enum class MuscleGroup(
     Otro("Otro", R.drawable.ic_muscle_other);
 
     companion object {
-        /**
-         * Mapea texto libre del usuario a una categoría. Acepta variantes en español
-         * comunes (bíceps/tríceps → Brazo, hombro → Pecho, femoral/cuádriceps/gemelo → Pierna,
-         * core → Abdomen, etc.).
-         */
         fun from(raw: String?): MuscleGroup {
             val s = raw?.trim()?.lowercase()
                 ?.replace(Regex("[áàä]"), "a")
@@ -68,7 +76,7 @@ enum class MuscleGroup(
     }
 }
 
-/** "Avatar" cuadrado redondeado con el icono del grupo, estilo lo del Home. */
+/** "Avatar" cuadrado redondeado con el icono del grupo. */
 @Composable
 fun MuscleGroupAvatar(
     group: MuscleGroup,
@@ -95,7 +103,6 @@ fun MuscleGroupAvatar(
     }
 }
 
-/** Atajo: directamente desde texto libre. */
 @Composable
 fun MuscleGroupAvatar(
     rawGroup: String?,
@@ -109,4 +116,64 @@ fun MuscleGroupAvatar(
         size = size,
         iconSize = iconSize,
     )
+}
+
+/**
+ * Selector tipo dropdown con icono visible. Cerrado: muestra avatar + nombre.
+ * Abierto: lista los 7 grupos canónicos con icono. Evita escribir mal y
+ * garantiza que siempre acabamos con un valor que tiene icono asignado.
+ */
+@Composable
+fun MuscleGroupPicker(
+    selected: MuscleGroup,
+    onSelect: (MuscleGroup) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val c = SpotterTheme.colors
+    var expanded by remember { mutableStateOf(false) }
+    Box(modifier = modifier) {
+        Row(
+            modifier = Modifier
+                .clip(RoundedCornerShape(12.dp))
+                .background(c.surfaceMuted)
+                .clickable { expanded = true }
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            MuscleGroupAvatar(group = selected, size = 32.dp, iconSize = 18.dp)
+            Spacer(Modifier.size(10.dp))
+            Text(
+                text = selected.display,
+                style = SpotterText.bodyMd,
+                color = c.text,
+                modifier = Modifier.weight(1f),
+            )
+            Icon(
+                imageVector = Icons.Filled.ArrowDropDown,
+                contentDescription = null,
+                tint = c.textFaint,
+                modifier = Modifier.size(20.dp),
+            )
+        }
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+        ) {
+            MuscleGroup.entries.forEach { g ->
+                DropdownMenuItem(
+                    text = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            MuscleGroupAvatar(group = g, size = 28.dp, iconSize = 16.dp)
+                            Spacer(Modifier.size(10.dp))
+                            Text(g.display)
+                        }
+                    },
+                    onClick = {
+                        onSelect(g)
+                        expanded = false
+                    },
+                )
+            }
+        }
+    }
 }

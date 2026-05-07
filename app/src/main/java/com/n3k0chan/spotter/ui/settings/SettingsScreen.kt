@@ -63,6 +63,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.n3k0chan.spotter.backup.DriveBackupManager
 import com.n3k0chan.spotter.backup.PickGoogleAccountContract
 import com.n3k0chan.spotter.data.prefs.AppSettings
+import com.n3k0chan.spotter.data.prefs.ChatHistoryWindow
 import com.n3k0chan.spotter.data.prefs.SettingsRepository
 import com.n3k0chan.spotter.di.ServiceLocator
 import com.n3k0chan.spotter.ui.components.SpotterButton
@@ -105,6 +106,7 @@ class SettingsViewModel : ViewModel() {
     fun setPreWarning(value: Boolean) = repo.setPreWarning(value)
     fun setVibrate(value: Boolean) = repo.setVibrate(value)
     fun setAutoBackup(value: Boolean) = repo.setAutoBackup(value)
+    fun setChatHistoryWindow(value: ChatHistoryWindow) = repo.setChatHistoryWindow(value)
 
     fun onAccountPicked(name: String?) {
         if (name.isNullOrBlank()) return
@@ -211,6 +213,24 @@ fun SettingsScreen(
                         ApiKeyRow(state = state, onSave = vm::setApiKey, onClear = { vm.setApiKey("") })
                         HorizontalDivider(color = c.border, thickness = 1.dp)
                         ModelRow(selected = state.groqModel, onSelect = vm::setModel)
+                    }
+                }
+            }
+            item {
+                SpotterCard {
+                    Column {
+                        Text("Historial al compartir con el chat", style = SpotterText.bodyMd, color = c.text)
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            "Cuánto historial se envía cuando activas \"Compartir historial\" en el chat.",
+                            style = SpotterText.small,
+                            color = c.textMuted,
+                        )
+                        Spacer(Modifier.height(12.dp))
+                        ChatHistoryWindowSelector(
+                            selected = state.chatHistoryWindow,
+                            onSelect = vm::setChatHistoryWindow,
+                        )
                     }
                 }
             }
@@ -540,6 +560,41 @@ private fun IntFieldRow(label: String, value: Int, unit: String, onChange: (Int)
         )
         Spacer(Modifier.width(4.dp))
         Text(unit, style = SpotterText.small, color = c.textMuted)
+    }
+}
+
+@Composable
+private fun ChatHistoryWindowSelector(
+    selected: ChatHistoryWindow,
+    onSelect: (ChatHistoryWindow) -> Unit,
+) {
+    val c = SpotterTheme.colors
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(c.surfaceMuted)
+            .padding(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        ChatHistoryWindow.entries.forEach { w ->
+            val isSelected = selected == w
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(if (isSelected) c.primary else Color.Transparent)
+                    .clickable { onSelect(w) }
+                    .padding(vertical = 8.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    w.display,
+                    style = SpotterText.smallMd,
+                    color = if (isSelected) c.onPrimary else c.textMuted,
+                )
+            }
+        }
     }
 }
 

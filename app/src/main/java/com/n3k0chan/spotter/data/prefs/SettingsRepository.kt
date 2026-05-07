@@ -41,6 +41,9 @@ class SettingsRepository(context: Context) {
             driveAccountName = prefs.getString(KEY_DRIVE_ACCOUNT, null)?.takeIf { it.isNotBlank() },
             autoBackupAfterWorkout = prefs.getBoolean(KEY_AUTO_BACKUP, true),
             lastBackupAt = prefs.getLong(KEY_LAST_BACKUP, 0L).takeIf { it > 0 },
+            chatHistoryWindow = ChatHistoryWindow.fromName(
+                prefs.getString(KEY_CHAT_HISTORY_WINDOW, ChatHistoryWindow.Month.name),
+            ),
         )
     }
 
@@ -88,6 +91,11 @@ class SettingsRepository(context: Context) {
         _state.value = load()
     }
 
+    fun setChatHistoryWindow(window: ChatHistoryWindow) {
+        prefs.edit().putString(KEY_CHAT_HISTORY_WINDOW, window.name).apply()
+        _state.value = load()
+    }
+
     companion object {
         private const val FILE = "spotter_secure_prefs"
         private const val KEY_GROQ_API = "groq_api_key"
@@ -98,6 +106,7 @@ class SettingsRepository(context: Context) {
         private const val KEY_DRIVE_ACCOUNT = "drive_account"
         private const val KEY_AUTO_BACKUP = "auto_backup"
         private const val KEY_LAST_BACKUP = "last_backup_at"
+        private const val KEY_CHAT_HISTORY_WINDOW = "chat_history_window"
         const val DEFAULT_MODEL = "llama-3.3-70b-versatile"
         val MODELS = listOf(
             "llama-3.3-70b-versatile",
@@ -117,7 +126,29 @@ data class AppSettings(
     val driveAccountName: String? = null,
     val autoBackupAfterWorkout: Boolean = true,
     val lastBackupAt: Long? = null,
+    val chatHistoryWindow: ChatHistoryWindow = ChatHistoryWindow.Month,
 ) {
     val hasApiKey: Boolean get() = groqApiKey.isNotBlank()
     val isDriveLinked: Boolean get() = !driveAccountName.isNullOrBlank()
+}
+
+/** Cuánto historial enviar al chat al usar "Compartir historial". */
+enum class ChatHistoryWindow(val display: String) {
+    Week("1 semana"),
+    Month("1 mes"),
+    Year("1 año"),
+    All("Todo");
+
+    /** Devuelve el timestamp mínimo (ms) para filtrar sesiones. null = sin límite. */
+    fun cutoffMillis(now: Long = System.currentTimeMillis()): Long? = when (this) {
+        Week -> now - 7L * 24 * 60 * 60 * 1000
+        Month -> now - 30L * 24 * 60 * 60 * 1000
+        Year -> now - 365L * 24 * 60 * 60 * 1000
+        All -> null
+    }
+
+    companion object {
+        fun fromName(value: String?): ChatHistoryWindow =
+            entries.firstOrNull { it.name == value } ?: Month
+    }
 }
