@@ -56,6 +56,7 @@ import com.n3k0chan.spotter.ui.theme.SpotterText
 import com.n3k0chan.spotter.ui.theme.SpotterTheme
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.text.DateFormat
@@ -66,8 +67,41 @@ class HistoryViewModel : ViewModel() {
         viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList(),
     )
 
+    private val _toast = kotlinx.coroutines.flow.MutableStateFlow<String?>(null)
+    val toast: StateFlow<String?> = _toast.asStateFlow()
+
+    fun consumedToast() { _toast.value = null }
+
     fun delete(id: Long) {
         viewModelScope.launch { ServiceLocator.workouts.delete(id) }
+    }
+
+    /**
+     * Crea una plantilla a partir de una sesión existente. Toma los ejercicios
+     * usados (en su orden de aparición) y genera una plantilla con valores
+     * razonables: sets = cuántos hizo en la sesión, reps/rest tomados del
+     * primer set del ejercicio.
+     */
+    fun saveAsTemplate(session: WorkoutWithSets, name: String) {
+        if (name.isBlank()) return
+        viewModelScope.launch {
+            val byExercise = session.sets
+                .sortedBy { it.set.orderIndex }
+                .groupBy { it.set.exerciseId }
+            val items = byExercise.entries.mapIndexed { idx, (exId, sets) ->
+                val first = sets.first().set
+                com.n3k0chan.spotter.data.db.entities.TemplateExercise(
+                    templateId = 0,
+                    exerciseId = exId,
+                    orderIndex = idx,
+                    targetSets = sets.size.coerceAtLeast(1),
+                    targetReps = first.reps ?: 8,
+                    defaultRestSeconds = first.restSeconds ?: 90,
+                )
+            }
+            ServiceLocator.templates.create(name.trim(), items)
+            _toast.value = "Plantilla \"${name.trim()}\" creada"
+        }
     }
 
     companion object {
@@ -83,6 +117,7 @@ class HistoryViewModel : ViewModel() {
 @Composable
 fun HistoryScreen(vm: HistoryViewModel = viewModel(factory = HistoryViewModel.Factory)) {
     val list by vm.list.collectAsStateWithLifecycle()
+    val toast by vm.toast.collectAsStateWithLifecycle()
     val c = SpotterTheme.colors
     val df = remember { DateFormat.getDateInstance(DateFormat.MEDIUM) }
 
@@ -110,15 +145,30 @@ fun HistoryScreen(vm: HistoryViewModel = viewModel(factory = HistoryViewModel.Fa
                         w = w,
                         df = df,
                         onDelete = { vm.delete(w.workout.id) },
+                        onSaveAsTemplate = { name -> vm.saveAsTemplate(w, name) },
                     )
                 }
             }
+        }
+        toast?.let {
+            AlertDialog(
+                onDismissRequest = { vm.consumedToast() },
+                confirmButton = {
+                    TextButton(onClick = { vm.consumedToast() }) { Text("OK", color = c.primary) }
+                },
+                text = { Text(it, style = SpotterText.body) },
+            )
         }
     }
 }
 
 @Composable
-private fun SessionCard(w: WorkoutWithSets, df: DateFormat, onDelete: () -> Unit) {
+private fun SessionCard(
+    w: WorkoutWithSets,
+    df: DateFormat,
+    onDelete: () -> Unit,
+    onSaveAsTemplate: (String) -> Unit,
+) {
     val c = SpotterTheme.colors
     val byExercise = w.sets.groupBy { it.exercise.name }
     val durationMin = w.workout.finishedAt
@@ -126,6 +176,7 @@ private fun SessionCard(w: WorkoutWithSets, df: DateFormat, onDelete: () -> Unit
         ?.toInt()
     var menuOpen by remember { mutableStateOf(false) }
     var confirmDelete by remember { mutableStateOf(false) }
+    var saveTemplate by remember { mutableStateOf(false) }
 
     SpotterCard {
         Column {
@@ -146,6 +197,13 @@ private fun SessionCard(w: WorkoutWithSets, df: DateFormat, onDelete: () -> Unit
                         expanded = menuOpen,
                         onDismissRequest = { menuOpen = false },
                     ) {
+                        DropdownMenuItem(
+                            text = { Text("Convertir en plantilla") },
+                            onClick = {
+                                menuOpen = false
+                                saveTemplate = true
+                            },
+                        )
                         DropdownMenuItem(
                             text = { Text("Borrar entreno", color = c.danger) },
                             onClick = {
@@ -205,6 +263,43 @@ private fun SessionCard(w: WorkoutWithSets, df: DateFormat, onDelete: () -> Unit
                 }
             }
         }
+    }
+
+    if (saveTemplate) {
+        var name by remember { mutableStateOf(w.workout.title) }
+        AlertDialog(
+            onDismissRequest = { saveTemplate = false },
+            title = { Text("Crear plantilla", style = SpotterText.title2) },
+            text = {
+                Column {
+                    Text(
+                        "Toma los ${w.sets.groupBy { it.exercise.name }.size} ejercicios de esta sesión y crea una plantilla reutilizable.",
+                        style = SpotterText.body,
+                        color = c.textMuted,
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    androidx.compose.material3.OutlinedTextField(
+                        value = name,
+                        onValueChange = { name = it },
+                        label = { Text("Nombre") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = name.isNotBlank(),
+                    onClick = {
+                        saveTemplate = false
+                        onSaveAsTemplate(name)
+                    },
+                ) { Text("Crear", color = c.primary) }
+            },
+            dismissButton = {
+                TextButton(onClick = { saveTemplate = false }) { Text("Cancelar", color = c.textMuted) }
+            },
+        )
     }
 
     if (confirmDelete) {

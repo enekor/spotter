@@ -1,9 +1,11 @@
 package com.n3k0chan.spotter.util
 
+import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.temporal.ChronoUnit
+import java.time.temporal.TemporalAdjusters
 
 object StreakCalculator {
 
@@ -51,6 +53,40 @@ object StreakCalculator {
         val last = startTimes.toLocalDates().maxOrNull() ?: return null
         return ChronoUnit.DAYS.between(last, today).toInt()
     }
+
+    /**
+     * Cuenta semanas consecutivas (de lunes a domingo) con al menos un entreno,
+     * terminando en la semana actual. Tolera 1 semana sin entrenar antes de
+     * romper la racha. Útil cuando entrenas 2-4 veces por semana sin importar
+     * qué día concreto.
+     */
+    fun currentWeeks(startTimes: List<Long>, today: LocalDate = LocalDate.now()): Int {
+        if (startTimes.isEmpty()) return 0
+        val mondays = startTimes.toLocalDates()
+            .map { it.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)) }
+            .toSortedSet()
+            .reversed()
+        val thisMonday = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+        val mostRecentMonday = mondays.first()
+        val weeksBack = ChronoUnit.WEEKS.between(mostRecentMonday, thisMonday)
+        if (weeksBack > 1) return 0
+        var cursor = if (mostRecentMonday == thisMonday) thisMonday else thisMonday.minusWeeks(1)
+        var streak = 0
+        for (week in mondays) {
+            when {
+                week == cursor -> {
+                    streak += 1
+                    cursor = cursor.minusWeeks(1)
+                }
+                week.isBefore(cursor) -> break
+            }
+        }
+        return streak
+    }
+
+    /** Número total de días distintos con al menos un entreno terminado. */
+    fun totalDaysTrained(startTimes: List<Long>): Int =
+        startTimes.toLocalDates().toSet().size
 
     private fun List<Long>.toLocalDates(): List<LocalDate> =
         map { Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate() }

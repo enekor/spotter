@@ -77,7 +77,7 @@ object SeedExercises {
         if (existing.isNotEmpty()) return 0
         var inserted = 0
         all.forEach { seed ->
-            runCatching { repo.create(seed.name, seed.group, seed.profile) }
+            runCatching { repo.create(seed.name, seed.group, seed.profile, isUserCreated = false) }
                 .onSuccess { inserted++ }
         }
         return inserted

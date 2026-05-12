@@ -213,6 +213,21 @@ fun SettingsScreen(
                         ApiKeyRow(state = state, onSave = vm::setApiKey, onClear = { vm.setApiKey("") })
                         HorizontalDivider(color = c.border, thickness = 1.dp)
                         ModelRow(selected = state.groqModel, onSelect = vm::setModel)
+                        HorizontalDivider(color = c.border, thickness = 1.dp)
+                        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
+                            Text("Historial al chat", style = SpotterText.bodyMd, color = c.text)
+                            Spacer(Modifier.height(2.dp))
+                            Text(
+                                "Cuánto historial se envía al activar el toggle",
+                                style = SpotterText.small,
+                                color = c.textMuted,
+                            )
+                            Spacer(Modifier.height(10.dp))
+                            ChatHistoryWindowSelector(
+                                selected = state.chatHistoryWindow,
+                                onSelect = vm::setChatHistoryWindow,
+                            )
+                        }
                     }
                 }
             }

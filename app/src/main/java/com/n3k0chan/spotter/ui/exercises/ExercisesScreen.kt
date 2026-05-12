@@ -137,7 +137,7 @@ fun ExercisesScreen(
 
     if (showCreate) {
         var newName by remember { mutableStateOf("") }
-        var newMuscle by remember { mutableStateOf("") }
+        var newGroup by remember { mutableStateOf(MuscleGroup.Otro) }
         var newProfile by remember { mutableStateOf(MeasurementProfile.Default) }
         AlertDialog(
             onDismissRequest = { showCreate = false },
@@ -145,7 +145,7 @@ fun ExercisesScreen(
             confirmButton = {
                 TextButton(onClick = {
                     if (newName.isNotBlank()) {
-                        vm.create(newName.trim(), newMuscle.takeIf { it.isNotBlank() }, newProfile)
+                        vm.create(newName.trim(), newGroup.display, newProfile)
                         showCreate = false
                     }
                 }) { Text("Guardar", color = c.primary) }
@@ -162,12 +162,12 @@ fun ExercisesScreen(
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                     )
-                    Spacer(Modifier.height(8.dp))
-                    OutlinedTextField(
-                        value = newMuscle,
-                        onValueChange = { newMuscle = it },
-                        label = { Text("Grupo muscular") },
-                        singleLine = true,
+                    Spacer(Modifier.height(12.dp))
+                    Text("Grupo muscular", style = SpotterText.smallMd, color = c.textMuted)
+                    Spacer(Modifier.height(4.dp))
+                    com.n3k0chan.spotter.ui.components.MuscleGroupPicker(
+                        selected = newGroup,
+                        onSelect = { newGroup = it },
                         modifier = Modifier.fillMaxWidth(),
                     )
                     Spacer(Modifier.height(12.dp))
@@ -241,7 +241,18 @@ private fun ExerciseRow(ex: Exercise, onDelete: () -> Unit) {
         MuscleGroupAvatar(group = group, size = 36.dp, iconSize = 18.dp)
         Spacer(Modifier.size(12.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text(ex.name, style = SpotterText.bodyMd, color = c.text)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    ex.name,
+                    style = SpotterText.bodyMd,
+                    color = c.text,
+                    modifier = Modifier.weight(1f, fill = false),
+                )
+                if (ex.isUserCreated) {
+                    Spacer(Modifier.width(6.dp))
+                    com.n3k0chan.spotter.ui.components.UserCreatedBadge()
+                }
+            }
             if (ex.muscleGroup != null) {
                 Spacer(Modifier.height(2.dp))
                 Text(ex.muscleGroup, style = SpotterText.small, color = c.textMuted)

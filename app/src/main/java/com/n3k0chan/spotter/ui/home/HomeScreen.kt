@@ -51,7 +51,8 @@ fun HomeScreen(
     onOpenSettings: () -> Unit,
     vm: HomeViewModel = viewModel(factory = HomeViewModel.Factory),
 ) {
-    val streak by vm.streak.collectAsStateWithLifecycle()
+    val weeks by vm.weeksStreak.collectAsStateWithLifecycle()
+    val totalDays by vm.totalDays.collectAsStateWithLifecycle()
     val greeting by vm.greeting.collectAsStateWithLifecycle()
     val templates by vm.templatesList.collectAsStateWithLifecycle()
     val c = SpotterTheme.colors
@@ -79,7 +80,7 @@ fun HomeScreen(
                 .padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            StreakCard(streak = streak, motivational = greeting)
+            StreakCard(weeksStreak = weeks, totalDays = totalDays, motivational = greeting)
 
             SpotterButton(
                 text = "Entreno libre",
@@ -118,24 +119,24 @@ fun HomeScreen(
 }
 
 @Composable
-private fun StreakCard(streak: Int, motivational: String?) {
+private fun StreakCard(weeksStreak: Int, totalDays: Int, motivational: String?) {
     val c = SpotterTheme.colors
     SpotterCard(padding = 20.dp) {
         Column {
             Text("Buenos días", style = SpotterText.small, color = c.textMuted)
-            Spacer(Modifier.height(4.dp))
-            Row(verticalAlignment = Alignment.Bottom) {
-                Text(
-                    text = if (streak > 0) "$streak" else "0",
-                    style = SpotterText.numL.copy(fontSize = 56.sp),
-                    color = c.text,
+            Spacer(Modifier.height(8.dp))
+            Row(verticalAlignment = Alignment.Top) {
+                StatColumn(
+                    value = "$weeksStreak",
+                    label = if (weeksStreak == 1) "semana seguida" else "semanas seguidas",
+                    accent = true,
+                    modifier = Modifier.weight(1f),
                 )
-                Spacer(Modifier.width(10.dp))
-                Text(
-                    text = if (streak == 1) "día seguido entrenando" else "días seguidos entrenando",
-                    style = SpotterText.body,
-                    color = c.textMuted,
-                    modifier = Modifier.padding(bottom = 6.dp),
+                StatColumn(
+                    value = "$totalDays",
+                    label = if (totalDays == 1) "día total" else "días totales",
+                    accent = false,
+                    modifier = Modifier.weight(1f),
                 )
             }
             Spacer(Modifier.height(8.dp))
@@ -148,7 +149,7 @@ private fun StreakCard(streak: Int, motivational: String?) {
                 )
                 Spacer(Modifier.width(6.dp))
                 Text(
-                    if (streak > 0) "Racha activa" else "Sin racha",
+                    if (weeksStreak > 0) "Racha activa" else "Sin racha esta semana",
                     style = SpotterText.smallMd,
                     color = c.primary,
                 )
@@ -160,6 +161,20 @@ private fun StreakCard(streak: Int, motivational: String?) {
                 Text(motivational, style = SpotterText.body, color = c.textMuted)
             }
         }
+    }
+}
+
+@Composable
+private fun StatColumn(value: String, label: String, accent: Boolean, modifier: Modifier = Modifier) {
+    val c = SpotterTheme.colors
+    Column(modifier = modifier) {
+        Text(
+            text = value,
+            style = SpotterText.numL.copy(fontSize = 44.sp),
+            color = if (accent) c.text else c.textMuted,
+        )
+        Spacer(Modifier.height(2.dp))
+        Text(label, style = SpotterText.small, color = c.textMuted)
     }
 }
 

@@ -86,8 +86,11 @@ class RestTimerService : Service() {
                     finishedAt = System.currentTimeMillis(),
                 )
             }
-            getSystemService(NotificationManager::class.java)
-                .notify(NOTIF_ID, buildNotification(total, 0, finished = true))
+            val mgr = getSystemService(NotificationManager::class.java)
+            // Quita la notificación de cuenta atrás y postea la de "terminado"
+            // en otro id/canal — así Android dispara el sonido del canal DONE.
+            mgr.cancel(NOTIF_ID)
+            mgr.notify(NOTIF_DONE_ID, buildNotification(total, 0, finished = true))
             stopForegroundOnly()
         }
     }
@@ -160,17 +163,41 @@ class RestTimerService : Service() {
 
     private fun ensureChannel() {
         val mgr = getSystemService(NotificationManager::class.java)
-        if (mgr.getNotificationChannel(CHANNEL_ID) != null) return
-        val channel = NotificationChannel(
-            CHANNEL_ID,
-            getString(R.string.timer_channel_name),
-            NotificationManager.IMPORTANCE_LOW,
-        ).apply {
-            description = getString(R.string.timer_channel_desc)
-            enableVibration(false)
-            setShowBadge(false)
+        // Canal silencioso para la cuenta atrás (foreground)
+        if (mgr.getNotificationChannel(CHANNEL_ID) == null) {
+            val progress = NotificationChannel(
+                CHANNEL_ID,
+                getString(R.string.timer_channel_name),
+                NotificationManager.IMPORTANCE_LOW,
+            ).apply {
+                description = getString(R.string.timer_channel_desc)
+                enableVibration(false)
+                setShowBadge(false)
+                setSound(null, null)
+            }
+            mgr.createNotificationChannel(progress)
         }
-        mgr.createNotificationChannel(channel)
+        // Canal con sonido + vibración para el aviso de fin de descanso
+        if (mgr.getNotificationChannel(CHANNEL_DONE_ID) == null) {
+            val attrs = android.media.AudioAttributes.Builder()
+                .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .setUsage(android.media.AudioAttributes.USAGE_NOTIFICATION_EVENT)
+                .build()
+            val sound = android.media.RingtoneManager
+                .getDefaultUri(android.media.RingtoneManager.TYPE_NOTIFICATION)
+            val done = NotificationChannel(
+                CHANNEL_DONE_ID,
+                getString(R.string.timer_channel_done_name),
+                NotificationManager.IMPORTANCE_DEFAULT,
+            ).apply {
+                description = getString(R.string.timer_channel_done_desc)
+                enableVibration(true)
+                vibrationPattern = longArrayOf(0, 200, 100, 200, 100, 400)
+                setShowBadge(false)
+                setSound(sound, attrs)
+            }
+            mgr.createNotificationChannel(done)
+        }
     }
 
     private fun buildNotification(total: Int, remaining: Int, finished: Boolean): Notification {
@@ -193,15 +220,16 @@ class RestTimerService : Service() {
                     else getString(R.string.timer_notification_title)
         val text = if (finished) "" else "${formatMmSs(remaining)} / ${formatMmSs(total)}"
 
-        val builder = NotificationCompat.Builder(this, CHANNEL_ID)
+        val channel = if (finished) CHANNEL_DONE_ID else CHANNEL_ID
+        val builder = NotificationCompat.Builder(this, channel)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setContentTitle(title)
             .setContentText(text)
             .setContentIntent(openAppPi)
-            .setOnlyAlertOnce(true)
+            .setOnlyAlertOnce(!finished)
             .setOngoing(!finished)
             .setShowWhen(false)
-            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setPriority(if (finished) NotificationCompat.PRIORITY_DEFAULT else NotificationCompat.PRIORITY_LOW)
             .setCategory(NotificationCompat.CATEGORY_PROGRESS)
 
         if (!finished) {
@@ -225,7 +253,9 @@ class RestTimerService : Service() {
 
     companion object {
         const val CHANNEL_ID = "rest_timer"
+        const val CHANNEL_DONE_ID = "rest_timer_done"
         const val NOTIF_ID = 4242
+        const val NOTIF_DONE_ID = 4243
 
         const val ACTION_START = "com.n3k0chan.spotter.timer.START"
         const val ACTION_SKIP = "com.n3k0chan.spotter.timer.SKIP"

@@ -257,6 +257,25 @@ private fun ExerciseCard(
     var menuOpen by remember { mutableStateOf(false) }
     var confirmRemove by remember { mutableStateOf(false) }
 
+    // Cargamos el mejor set histórico una vez por ejercicio y lo usamos para
+    // prellenar el form la primera vez que se abre.
+    var bestPrefilled by remember(exercise.id) { mutableStateOf(false) }
+    androidx.compose.runtime.LaunchedEffect(exercise.id, formOpen) {
+        if (formOpen && !bestPrefilled && sets.isEmpty()) {
+            val best = ServiceLocator.workouts.bestSetFor(exercise.id, profile)
+            if (best != null) {
+                best.weightKg?.let { weightStr = if (it % 1.0 == 0.0) it.toInt().toString() else "%.1f".format(it) }
+                best.reps?.let { repsStr = it.toString() }
+                best.durationSeconds?.let { durationStr = it.toString() }
+                best.distanceMeters?.let { distanceStr = if (it % 1.0 == 0.0) it.toInt().toString() else "%.1f".format(it) }
+                best.resistanceLevel?.let { resistanceStr = it.toString() }
+                best.inclinePercent?.let { inclineStr = if (it % 1.0 == 0.0) it.toInt().toString() else "%.1f".format(it) }
+                best.restSeconds?.let { restStr = it.toString() }
+            }
+            bestPrefilled = true
+        }
+    }
+
     val timerState by RestTimerController.state.collectAsStateWithLifecycle()
     val showRing = active && timerState.isRunning
 

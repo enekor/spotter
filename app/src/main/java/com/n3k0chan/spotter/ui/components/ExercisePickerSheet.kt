@@ -227,7 +227,13 @@ private fun ExerciseListRow(ex: Exercise, selected: Boolean, onClick: () -> Unit
         MuscleGroupAvatar(group = MuscleGroup.from(ex.muscleGroup), size = 36.dp, iconSize = 18.dp)
         Spacer(Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text(ex.name, style = SpotterText.bodyMd, color = c.text)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(ex.name, style = SpotterText.bodyMd, color = c.text, modifier = Modifier.weight(1f, fill = false))
+                if (ex.isUserCreated) {
+                    Spacer(Modifier.width(6.dp))
+                    UserCreatedBadge()
+                }
+            }
             Spacer(Modifier.height(2.dp))
             Text(
                 buildString {
@@ -346,6 +352,24 @@ private fun CreateView(
             },
         )
         Spacer(Modifier.height(24.dp))
+    }
+}
+
+/** Badge pequeño para indicar que el ejercicio lo creó el usuario. */
+@Composable
+fun UserCreatedBadge() {
+    val c = SpotterTheme.colors
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(4.dp))
+            .background(c.primarySoft)
+            .padding(horizontal = 6.dp, vertical = 2.dp),
+    ) {
+        Text(
+            "Tuyo",
+            style = SpotterText.caps.copy(fontSize = androidx.compose.ui.unit.TextUnit(9f, androidx.compose.ui.unit.TextUnitType.Sp)),
+            color = c.primarySoftText,
+        )
     }
 }
 

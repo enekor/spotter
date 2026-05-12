@@ -21,7 +21,7 @@ import com.n3k0chan.spotter.data.db.entities.WorkoutSet
         Workout::class,
         WorkoutSet::class,
     ],
-    version = 2,
+    version = 3,
     exportSchema = false,
 )
 abstract class SpotterDatabase : RoomDatabase() {

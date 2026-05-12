@@ -76,6 +76,8 @@
     <!-- Timer / notificación -->
     <string name="timer_channel_name">Temporizador de descanso</string>
     <string name="timer_channel_desc">Notificación persistente con la cuenta atrás del descanso</string>
+    <string name="timer_channel_done_name">Fin de descanso</string>
+    <string name="timer_channel_done_desc">Sonido y vibración cuando termina el descanso entre series</string>
     <string name="timer_notification_title">Descanso en curso</string>
     <string name="timer_notification_finished">Descanso terminado · vuelve a la barra</string>
     <string name="timer_action_skip">Saltar</string>

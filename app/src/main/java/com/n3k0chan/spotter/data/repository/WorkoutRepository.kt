@@ -80,6 +80,34 @@ class WorkoutRepository(private val dao: WorkoutDao) {
     suspend fun recentSetsFor(exerciseId: Long, limit: Int = 10): List<WorkoutSet> =
         dao.getRecentSetsForExercise(exerciseId, limit)
 
+    /**
+     * Devuelve el "mejor" set histórico del ejercicio según su perfil:
+     * - Con peso: el de mayor peso (a igualdad, más reps/duración).
+     * - Solo reps: el de más reps.
+     * - Solo duración: el de mayor duración.
+     * - Distancia+tiempo / cardio máquina: el de mayor distancia.
+     * Sirve para prellenar el form al añadir una serie con tu PR como referencia.
+     */
+    suspend fun bestSetFor(
+        exerciseId: Long,
+        profile: com.n3k0chan.spotter.data.measurement.MeasurementProfile,
+    ): WorkoutSet? {
+        val all = dao.getRecentSetsForExercise(exerciseId, 500)
+        if (all.isEmpty()) return null
+        val fields = profile.fields
+        return when {
+            com.n3k0chan.spotter.data.measurement.MeasurementField.Weight in fields ->
+                all.maxWithOrNull(compareBy({ it.weightKg ?: 0.0 }, { it.reps ?: 0 }, { it.durationSeconds ?: 0 }))
+            com.n3k0chan.spotter.data.measurement.MeasurementField.Distance in fields ->
+                all.maxByOrNull { it.distanceMeters ?: 0.0 }
+            com.n3k0chan.spotter.data.measurement.MeasurementField.Duration in fields ->
+                all.maxByOrNull { it.durationSeconds ?: 0 }
+            com.n3k0chan.spotter.data.measurement.MeasurementField.Reps in fields ->
+                all.maxByOrNull { it.reps ?: 0 }
+            else -> all.firstOrNull()
+        }
+    }
+
     fun observeFinishedStartTimes(): Flow<List<Long>> = dao.observeFinishedStartTimes()
     fun observeFinishedCount(): Flow<Int> = dao.observeFinishedCount()
     fun observeFinishedCountSince(sinceEpochMillis: Long): Flow<Int> =

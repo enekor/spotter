@@ -13,11 +13,13 @@ class ExerciseRepository(private val dao: ExerciseDao) {
         name: String,
         muscleGroup: String?,
         profile: MeasurementProfile = MeasurementProfile.Default,
+        isUserCreated: Boolean = true,
     ): Long = dao.insert(
         Exercise(
             name = name.trim(),
             muscleGroup = muscleGroup?.trim()?.takeIf { it.isNotEmpty() },
             measurementProfile = profile.name,
+            isUserCreated = isUserCreated,
         ),
     )
 
