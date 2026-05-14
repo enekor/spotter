@@ -8,6 +8,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="com.nothing.ketchum.permission.ENABLE" />
 
     <application
         android:name=".SpotterApp"
@@ -20,6 +21,10 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Spotter"
         tools:targetApi="34">
+
+        <meta-data
+            android:name="NothingKey"
+            android:value="test" />
 
         <activity
             android:name=".MainActivity"

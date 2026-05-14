@@ -17,6 +17,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import com.n3k0chan.spotter.MainActivity
 import com.n3k0chan.spotter.R
+import com.n3k0chan.spotter.glyph.GlyphController
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -30,11 +31,16 @@ class RestTimerService : Service() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private var tickerJob: Job? = null
 
+    private lateinit var glyphController: GlyphController
+    private var glyphReady = false
+
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onCreate() {
         super.onCreate()
         ensureChannel()
+        glyphController = GlyphController(applicationContext)
+        glyphController.init { glyphReady = true }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -68,17 +74,21 @@ class RestTimerService : Service() {
         }
         startForegroundCompat(buildNotification(total, total, finished = false))
 
+        updateGlyphProgress(total.toFloat() / total)
+
         tickerJob = scope.launch {
             var remaining = total
             while (remaining > 0) {
                 delay(1000)
                 remaining -= 1
                 RestTimerController.update { it.copy(remainingSeconds = remaining) }
+                updateGlyphProgress(remaining.toFloat() / total)
                 if (preWarn && remaining == 10) buzz(short = true)
                 getSystemService(NotificationManager::class.java)
                     .notify(NOTIF_ID, buildNotification(total, remaining, finished = false))
             }
             if (vibrate) buzz(short = false)
+            glyphTurnOff()
             RestTimerController.update {
                 it.copy(
                     isRunning = false,
@@ -109,6 +119,7 @@ class RestTimerService : Service() {
     private fun stopAndClear(silent: Boolean) {
         tickerJob?.cancel()
         tickerJob = null
+        glyphTurnOff()
         RestTimerController.update { RestTimerController.State() }
         stopForegroundCompat(removeNotification = true)
         stopSelf()
@@ -159,6 +170,23 @@ class RestTimerService : Service() {
             VibrationEffect.createWaveform(longArrayOf(0, 200, 100, 200, 100, 400), -1)
         }
         vibrator.vibrate(effect)
+    }
+
+    private fun updateGlyphProgress(progress: Float) {
+        if (!glyphReady) return
+        try {
+            val glyphProgress = (progress * 100).toInt().coerceIn(0, 100)
+            glyphController.showProgress(glyphProgress, reverse = true)
+        } catch (_: Exception) {
+        }
+    }
+
+    private fun glyphTurnOff() {
+        if (!glyphReady) return
+        try {
+            glyphController.turnOff()
+        } catch (_: Exception) {
+        }
     }
 
     private fun ensureChannel() {
@@ -247,6 +275,8 @@ class RestTimerService : Service() {
     }
 
     override fun onDestroy() {
+        glyphController.release()
+        glyphReady = false
         scope.cancel()
         super.onDestroy()
     }
