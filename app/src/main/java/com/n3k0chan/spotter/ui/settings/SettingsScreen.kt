@@ -25,9 +25,11 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.CloudUpload
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
@@ -165,6 +167,7 @@ class SettingsViewModel : ViewModel() {
 @Composable
 fun SettingsScreen(
     onBack: () -> Unit,
+    onOpenHealth: () -> Unit = {},
     vm: SettingsViewModel = viewModel(factory = SettingsViewModel.Factory),
 ) {
     val state by vm.state.collectAsStateWithLifecycle()
@@ -368,6 +371,40 @@ fun SettingsScreen(
                                 enabled = !busy,
                             )
                         }
+                    }
+                }
+            }
+
+            // ── SALUD
+            item { SectionHeader("SALUD") }
+            item {
+                SpotterCard(onClick = onOpenHealth) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            Icons.Filled.Favorite,
+                            contentDescription = null,
+                            tint = c.primary,
+                            modifier = Modifier.size(20.dp),
+                        )
+                        Spacer(Modifier.width(12.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Health Connect", style = SpotterText.bodyMd, color = c.text)
+                            Spacer(Modifier.height(2.dp))
+                            Text(
+                                "Pasos, calorías, sueño y más desde tus dispositivos",
+                                style = SpotterText.small,
+                                color = c.textMuted,
+                            )
+                        }
+                        Icon(
+                            Icons.Filled.ChevronRight,
+                            contentDescription = null,
+                            tint = c.textFaint,
+                            modifier = Modifier.size(20.dp),
+                        )
                     }
                 }
             }

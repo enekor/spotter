@@ -3,6 +3,7 @@ package com.n3k0chan.spotter.di
 import android.content.Context
 import com.n3k0chan.spotter.backup.DriveBackupManager
 import com.n3k0chan.spotter.data.db.SpotterDatabase
+import com.n3k0chan.spotter.data.health.HealthConnectManager
 import com.n3k0chan.spotter.data.prefs.SettingsRepository
 import com.n3k0chan.spotter.data.repository.ExerciseRepository
 import com.n3k0chan.spotter.data.repository.TemplateRepository
@@ -26,6 +27,8 @@ object ServiceLocator {
         private set
     lateinit var driveBackup: DriveBackupManager
         private set
+    lateinit var healthConnect: HealthConnectManager
+        private set
 
     fun init(context: Context) {
         if (initialized) return
@@ -38,6 +41,7 @@ object ServiceLocator {
             templates = TemplateRepository(db.templateDao())
             workouts = WorkoutRepository(db.workoutDao())
             driveBackup = DriveBackupManager(app, settings)
+            healthConnect = HealthConnectManager(app)
             initialized = true
         }
     }

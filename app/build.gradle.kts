@@ -128,6 +128,9 @@ dependencies {
     implementation(libs.okhttp)
     implementation(libs.okhttp.logging)
 
+    // Health Connect (solo lectura)
+    implementation(libs.androidx.health.connect)
+
     // Google Sign-In + Drive (appDataFolder)
     implementation(libs.play.services.auth)
     implementation(libs.google.api.client.android) {

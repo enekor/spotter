@@ -8,6 +8,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.n3k0chan.spotter.ui.chat.ChatScreen
+import com.n3k0chan.spotter.ui.health.HealthScreen
 import com.n3k0chan.spotter.ui.exercises.ExercisesScreen
 import com.n3k0chan.spotter.ui.history.HistoryScreen
 import com.n3k0chan.spotter.ui.home.HomeScreen
@@ -96,7 +97,14 @@ fun SpotterNavGraph(
         }
 
         composable(Routes.Settings) {
-            SettingsScreen(onBack = { navController.popBackStack() })
+            SettingsScreen(
+                onBack = { navController.popBackStack() },
+                onOpenHealth = { navController.navigate(Routes.Health) },
+            )
+        }
+
+        composable(Routes.Health) {
+            HealthScreen(onBack = { navController.popBackStack() })
         }
     }
 }
