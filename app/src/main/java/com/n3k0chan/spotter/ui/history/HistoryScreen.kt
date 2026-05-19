@@ -1,9 +1,15 @@
 package com.n3k0chan.spotter.ui.history
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -12,10 +18,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Notes
 import androidx.compose.material.icons.filled.Warning
@@ -36,18 +45,20 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.n3k0chan.spotter.data.db.entities.Exercise
+import com.n3k0chan.spotter.data.db.entities.WorkoutSetWithExercise
 import com.n3k0chan.spotter.data.db.entities.WorkoutWithSets
 import com.n3k0chan.spotter.data.db.entities.profile
 import com.n3k0chan.spotter.data.measurement.formatShort
 import com.n3k0chan.spotter.di.ServiceLocator
 import com.n3k0chan.spotter.ui.components.IconButtonTone
+import com.n3k0chan.spotter.ui.components.MuscleGroupAvatar
 import com.n3k0chan.spotter.ui.components.SpotterCard
 import com.n3k0chan.spotter.ui.components.SpotterChip
 import com.n3k0chan.spotter.ui.components.SpotterIconButton
@@ -162,6 +173,8 @@ fun HistoryScreen(vm: HistoryViewModel = viewModel(factory = HistoryViewModel.Fa
     }
 }
 
+private const val COLLAPSED_EXERCISE_COUNT = 3
+
 @Composable
 private fun SessionCard(
     w: WorkoutWithSets,
@@ -170,13 +183,21 @@ private fun SessionCard(
     onSaveAsTemplate: (String) -> Unit,
 ) {
     val c = SpotterTheme.colors
-    val byExercise = w.sets.groupBy { it.exercise.name }
+    val exercises = remember(w) {
+        w.sets
+            .groupBy { it.exercise }
+            .entries
+            .sortedBy { (_, sets) -> sets.minOf { it.set.orderIndex } }
+            .map { (exercise, sets) -> exercise to sets }
+    }
     val durationMin = w.workout.finishedAt
         ?.let { (it - w.workout.startedAt) / 60_000 }
         ?.toInt()
     var menuOpen by remember { mutableStateOf(false) }
     var confirmDelete by remember { mutableStateOf(false) }
     var saveTemplate by remember { mutableStateOf(false) }
+    var expanded by remember { mutableStateOf(false) }
+    val needsExpansion = exercises.size > COLLAPSED_EXERCISE_COUNT
 
     SpotterCard {
         Column {
@@ -218,30 +239,64 @@ private fun SessionCard(
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 if (durationMin != null) SpotterChip("$durationMin min")
                 if (w.workout.rpe != null) SpotterChip("RPE ${w.workout.rpe}", leading = Icons.Filled.Warning)
-                SpotterChip("${byExercise.size} ejercicios")
+                SpotterChip("${exercises.size} ejercicios")
             }
             Spacer(Modifier.height(10.dp))
             HorizontalDivider(color = c.border, thickness = 1.dp)
             Spacer(Modifier.height(8.dp))
-            byExercise.entries.take(4).forEach { (name, sets) ->
-                val profile = sets.firstOrNull()?.exercise?.profile
-                Text(
-                    text = "· $name · " + if (profile != null) {
-                        sets.joinToString(", ") { it.set.formatShort(profile) }
-                    } else "—",
-                    style = SpotterText.small.copy(fontFamily = FontFamily.Monospace),
-                    color = c.textMuted,
-                    modifier = Modifier.padding(vertical = 3.dp),
-                )
+
+            val visibleExercises = if (needsExpansion && !expanded) {
+                exercises.take(COLLAPSED_EXERCISE_COUNT)
+            } else {
+                exercises
             }
-            if (byExercise.size > 4) {
-                Text(
-                    "+${byExercise.size - 4} más",
-                    style = SpotterText.small,
-                    color = c.textFaint,
-                    modifier = Modifier.padding(vertical = 3.dp),
-                )
+            visibleExercises.forEachIndexed { idx, (exercise, sets) ->
+                ExerciseRow(exercise = exercise, sets = sets)
+                if (idx < visibleExercises.lastIndex) Spacer(Modifier.height(6.dp))
             }
+
+            if (needsExpansion) {
+                AnimatedVisibility(
+                    visible = expanded,
+                    enter = expandVertically(),
+                    exit = shrinkVertically(),
+                ) {
+                    Column {
+                        exercises.drop(COLLAPSED_EXERCISE_COUNT).forEachIndexed { idx, (exercise, sets) ->
+                            if (idx == 0) Spacer(Modifier.height(6.dp))
+                            ExerciseRow(exercise = exercise, sets = sets)
+                            if (idx < exercises.size - COLLAPSED_EXERCISE_COUNT - 1) {
+                                Spacer(Modifier.height(6.dp))
+                            }
+                        }
+                    }
+                }
+                Spacer(Modifier.height(4.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable { expanded = !expanded }
+                        .padding(vertical = 6.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                        contentDescription = null,
+                        tint = c.primary,
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Text(
+                        if (expanded) "Ver menos"
+                        else "Ver ${exercises.size - COLLAPSED_EXERCISE_COUNT} ejercicios más",
+                        style = SpotterText.smallMd,
+                        color = c.primary,
+                    )
+                }
+            }
+
             if (!w.workout.notes.isNullOrBlank()) {
                 Spacer(Modifier.height(10.dp))
                 Row(
@@ -324,5 +379,69 @@ private fun SessionCard(
             },
         )
     }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ExerciseRow(
+    exercise: Exercise,
+    sets: List<WorkoutSetWithExercise>,
+) {
+    val c = SpotterTheme.colors
+    val profile = exercise.profile
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(c.surfaceMuted)
+            .padding(10.dp),
+        verticalAlignment = Alignment.Top,
+    ) {
+        MuscleGroupAvatar(
+            rawGroup = exercise.muscleGroup,
+            size = 32.dp,
+            iconSize = 16.dp,
+        )
+        Spacer(Modifier.width(10.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    exercise.name,
+                    style = SpotterText.smallMd,
+                    color = c.text,
+                    modifier = Modifier.weight(1f, fill = false),
+                )
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    "${sets.size}s",
+                    style = SpotterText.small,
+                    color = c.textFaint,
+                )
+            }
+            Spacer(Modifier.height(6.dp))
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                sets.forEach { ws ->
+                    SetBadge(text = ws.set.formatShort(profile))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SetBadge(text: String) {
+    val c = SpotterTheme.colors
+    Text(
+        text = text,
+        style = SpotterText.numS,
+        color = c.primarySoftText,
+        modifier = Modifier
+            .clip(RoundedCornerShape(6.dp))
+            .background(c.primarySoft)
+            .padding(horizontal = 8.dp, vertical = 3.dp),
+    )
 }
 
