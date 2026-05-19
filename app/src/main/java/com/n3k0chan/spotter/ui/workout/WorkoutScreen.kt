@@ -247,7 +247,9 @@ private fun ExerciseCard(
     var formOpen by remember { mutableStateOf(false) }
     var weightStr by remember { mutableStateOf("") }
     var repsStr by remember { mutableStateOf("") }
-    var durationStr by remember { mutableStateOf("") }
+    var durHStr by remember { mutableStateOf("") }
+    var durMStr by remember { mutableStateOf("") }
+    var durSStr by remember { mutableStateOf("") }
     var distanceStr by remember { mutableStateOf("") }
     var resistanceStr by remember { mutableStateOf("") }
     var inclineStr by remember { mutableStateOf("") }
@@ -266,7 +268,14 @@ private fun ExerciseCard(
             if (best != null) {
                 best.weightKg?.let { weightStr = if (it % 1.0 == 0.0) it.toInt().toString() else "%.1f".format(it) }
                 best.reps?.let { repsStr = it.toString() }
-                best.durationSeconds?.let { durationStr = it.toString() }
+                best.durationSeconds?.let { total ->
+                    val h = total / 3600
+                    val m = (total % 3600) / 60
+                    val s = total % 60
+                    if (h > 0) durHStr = h.toString()
+                    if (m > 0 || h > 0) durMStr = m.toString()
+                    if (s > 0) durSStr = s.toString()
+                }
                 best.distanceMeters?.let { distanceStr = if (it % 1.0 == 0.0) it.toInt().toString() else "%.1f".format(it) }
                 best.resistanceLevel?.let { resistanceStr = it.toString() }
                 best.inclinePercent?.let { inclineStr = if (it % 1.0 == 0.0) it.toInt().toString() else "%.1f".format(it) }
@@ -397,7 +406,9 @@ private fun ExerciseCard(
                     fields = fields,
                     weightStr = weightStr, onWeightChange = { weightStr = sanitizeDecimal(it) },
                     repsStr = repsStr, onRepsChange = { repsStr = it.filter(Char::isDigit) },
-                    durationStr = durationStr, onDurationChange = { durationStr = it.filter(Char::isDigit) },
+                    durHStr = durHStr, onDurHChange = { durHStr = it.filter(Char::isDigit).take(2) },
+                    durMStr = durMStr, onDurMChange = { durMStr = it.filter(Char::isDigit).take(2) },
+                    durSStr = durSStr, onDurSChange = { durSStr = it.filter(Char::isDigit).take(2) },
                     distanceStr = distanceStr, onDistanceChange = { distanceStr = sanitizeDecimal(it) },
                     resistanceStr = resistanceStr, onResistanceChange = { resistanceStr = it.filter(Char::isDigit) },
                     inclineStr = inclineStr, onInclineChange = { inclineStr = sanitizeDecimal(it) },
@@ -414,7 +425,8 @@ private fun ExerciseCard(
                             val input = buildSetInput(
                                 fields = fields,
                                 weightStr = weightStr, repsStr = repsStr,
-                                durationStr = durationStr, distanceStr = distanceStr,
+                                durHStr = durHStr, durMStr = durMStr, durSStr = durSStr,
+                                distanceStr = distanceStr,
                                 resistanceStr = resistanceStr, inclineStr = inclineStr,
                                 restStr = restStr,
                             )
@@ -425,7 +437,9 @@ private fun ExerciseCard(
                                 }
                                 // Conservamos peso/duración/etc., vaciamos solo lo que cambia entre series
                                 repsStr = ""
-                                if (profile == MeasurementProfile.Duration) durationStr = ""
+                                if (profile == MeasurementProfile.Duration) {
+                                    durHStr = ""; durMStr = ""; durSStr = ""
+                                }
                             }
                         },
                     )
@@ -685,14 +699,16 @@ private fun MeasurementFormFields(
     fields: List<MeasurementField>,
     weightStr: String, onWeightChange: (String) -> Unit,
     repsStr: String, onRepsChange: (String) -> Unit,
-    durationStr: String, onDurationChange: (String) -> Unit,
+    durHStr: String, onDurHChange: (String) -> Unit,
+    durMStr: String, onDurMChange: (String) -> Unit,
+    durSStr: String, onDurSChange: (String) -> Unit,
     distanceStr: String, onDistanceChange: (String) -> Unit,
     resistanceStr: String, onResistanceChange: (String) -> Unit,
     inclineStr: String, onInclineChange: (String) -> Unit,
     restStr: String, onRestChange: (String) -> Unit,
 ) {
-    // Renderiza los campos del perfil + el de descanso siempre.
-    // Si hay 4+ campos, los reparte en dos filas para no apretarlos.
+    val hasDuration = MeasurementField.Duration in fields
+
     val items = buildList<@Composable RowScope.() -> Unit> {
         if (MeasurementField.Weight in fields) add {
             NumericField(
@@ -706,14 +722,6 @@ private fun MeasurementFormFields(
             NumericField(
                 label = "Reps", suffix = null,
                 value = repsStr, onValueChange = onRepsChange,
-                keyboardType = KeyboardType.Number,
-                modifier = Modifier.weight(1f),
-            )
-        }
-        if (MeasurementField.Duration in fields) add {
-            NumericField(
-                label = "Tiempo", suffix = "s",
-                value = durationStr, onValueChange = onDurationChange,
                 keyboardType = KeyboardType.Number,
                 modifier = Modifier.weight(1f),
             )
@@ -742,7 +750,6 @@ private fun MeasurementFormFields(
                 modifier = Modifier.weight(1f),
             )
         }
-        // Descanso siempre presente (incluso en cardio: tiempo de pausa entre intervalos)
         add {
             NumericField(
                 label = "Desc.", suffix = "s",
@@ -752,7 +759,16 @@ private fun MeasurementFormFields(
             )
         }
     }
-    // 1-3 campos -> una sola fila. 4+ -> partir en dos filas.
+
+    if (hasDuration) {
+        DurationField(
+            hStr = durHStr, onHChange = onDurHChange,
+            mStr = durMStr, onMChange = onDurMChange,
+            sStr = durSStr, onSChange = onDurSChange,
+        )
+        Spacer(Modifier.height(8.dp))
+    }
+
     val perRow = if (items.size <= 3) items.size else (items.size + 1) / 2
     items.chunked(perRow).forEachIndexed { rowIdx, row ->
         if (rowIdx > 0) Spacer(Modifier.height(8.dp))
@@ -762,11 +778,67 @@ private fun MeasurementFormFields(
     }
 }
 
+@Composable
+private fun DurationField(
+    hStr: String, onHChange: (String) -> Unit,
+    mStr: String, onMChange: (String) -> Unit,
+    sStr: String, onSChange: (String) -> Unit,
+) {
+    val c = SpotterTheme.colors
+    Column {
+        Text("Tiempo", style = SpotterText.small.copy(fontSize = 11.sp), color = c.textMuted)
+        Spacer(Modifier.height(2.dp))
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            DurationSegment(value = hStr, onValueChange = onHChange, hint = "0", label = "h", modifier = Modifier.weight(1f))
+            Text(":", style = SpotterText.numM, color = c.textFaint)
+            DurationSegment(value = mStr, onValueChange = onMChange, hint = "00", label = "m", modifier = Modifier.weight(1f))
+            Text(":", style = SpotterText.numM, color = c.textFaint)
+            DurationSegment(value = sStr, onValueChange = onSChange, hint = "00", label = "s", modifier = Modifier.weight(1f))
+        }
+    }
+}
+
+@Composable
+private fun DurationSegment(
+    value: String,
+    onValueChange: (String) -> Unit,
+    hint: String,
+    label: String,
+    modifier: Modifier = Modifier,
+) {
+    val c = SpotterTheme.colors
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        placeholder = { Text(hint, color = c.textFaint, style = SpotterText.numS) },
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        suffix = { Text(label, style = SpotterText.small, color = c.textMuted) },
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedContainerColor = c.surfaceMuted,
+            unfocusedContainerColor = c.surfaceMuted,
+            focusedBorderColor = c.borderStrong,
+            unfocusedBorderColor = c.border,
+            cursorColor = c.primary,
+            focusedTextColor = c.text,
+            unfocusedTextColor = c.text,
+        ),
+        shape = RoundedCornerShape(12.dp),
+        textStyle = SpotterText.numS,
+        modifier = modifier,
+    )
+}
+
 private fun buildSetInput(
     fields: List<MeasurementField>,
     weightStr: String,
     repsStr: String,
-    durationStr: String,
+    durHStr: String,
+    durMStr: String,
+    durSStr: String,
     distanceStr: String,
     resistanceStr: String,
     inclineStr: String,
@@ -774,7 +846,12 @@ private fun buildSetInput(
 ): SetInput? {
     val weight = if (MeasurementField.Weight in fields) weightStr.replace(',', '.').toDoubleOrNull() else null
     val reps = if (MeasurementField.Reps in fields) repsStr.toIntOrNull() else null
-    val duration = if (MeasurementField.Duration in fields) durationStr.toIntOrNull() else null
+    val duration = if (MeasurementField.Duration in fields) {
+        val total = (durHStr.toIntOrNull() ?: 0) * 3600 +
+            (durMStr.toIntOrNull() ?: 0) * 60 +
+            (durSStr.toIntOrNull() ?: 0)
+        if (total > 0) total else null
+    } else null
     val distance = if (MeasurementField.Distance in fields) distanceStr.replace(',', '.').toDoubleOrNull() else null
     val resistance = if (MeasurementField.Resistance in fields) resistanceStr.toIntOrNull() else null
     val incline = if (MeasurementField.Incline in fields) inclineStr.replace(',', '.').toDoubleOrNull() else null
