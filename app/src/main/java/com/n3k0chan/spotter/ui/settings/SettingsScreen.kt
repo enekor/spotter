@@ -107,13 +107,12 @@ class SettingsViewModel : ViewModel() {
     fun setRest(seconds: Int) = repo.setDefaultRest(seconds)
     fun setPreWarning(value: Boolean) = repo.setPreWarning(value)
     fun setVibrate(value: Boolean) = repo.setVibrate(value)
-    fun setAutoBackup(value: Boolean) = repo.setAutoBackup(value)
     fun setChatHistoryWindow(value: ChatHistoryWindow) = repo.setChatHistoryWindow(value)
 
     fun onAccountPicked(name: String?) {
         if (name.isNullOrBlank()) return
         repo.setDriveAccount(name)
-        backupNow()
+        _toast.value = "Cuenta conectada. Usa \"Subir ahora\" cuando quieras hacer una copia."
     }
 
     fun unlinkAccount() {
@@ -342,16 +341,6 @@ fun SettingsScreen(
                                 onClick = vm::unlinkAccount,
                             )
                         }
-                    }
-                }
-                item { Spacer(Modifier.height(2.dp)) }
-                item {
-                    SpotterCard(padding = 0.dp) {
-                        ToggleSettingRow(
-                            label = "Subir tras cada entreno",
-                            checked = state.autoBackupAfterWorkout,
-                            onChange = vm::setAutoBackup,
-                        )
                     }
                 }
             } else {

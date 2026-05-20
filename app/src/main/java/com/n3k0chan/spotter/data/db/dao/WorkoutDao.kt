@@ -59,4 +59,10 @@ interface WorkoutDao {
 
     @Query("SELECT COUNT(*) FROM workouts WHERE finishedAt IS NOT NULL AND startedAt >= :since")
     fun observeFinishedCountSince(since: Long): Flow<Int>
+
+    @Query("""
+        SELECT * FROM workouts
+        WHERE startedAt >= :startMillis AND startedAt <= :endMillis
+    """)
+    suspend fun getWorkoutsInRange(startMillis: Long, endMillis: Long): List<Workout>
 }

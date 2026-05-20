@@ -4,7 +4,9 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,10 +25,18 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Notes
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.LocalFireDepartment
+import androidx.compose.material.icons.filled.RadioButtonUnchecked
+import androidx.compose.material.icons.filled.Route
+import androidx.compose.material.icons.filled.SelectAll
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
@@ -55,8 +65,10 @@ import com.n3k0chan.spotter.data.db.entities.Exercise
 import com.n3k0chan.spotter.data.db.entities.WorkoutSetWithExercise
 import com.n3k0chan.spotter.data.db.entities.WorkoutWithSets
 import com.n3k0chan.spotter.data.db.entities.profile
+import com.n3k0chan.spotter.data.health.WorkoutHealthMetrics
 import com.n3k0chan.spotter.data.measurement.formatShort
 import com.n3k0chan.spotter.di.ServiceLocator
+import kotlinx.coroutines.flow.MutableStateFlow
 import com.n3k0chan.spotter.ui.components.IconButtonTone
 import com.n3k0chan.spotter.ui.components.MuscleGroupAvatar
 import com.n3k0chan.spotter.ui.components.SpotterCard
@@ -68,15 +80,78 @@ import com.n3k0chan.spotter.ui.theme.SpotterTheme
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.text.DateFormat
+import java.time.Instant
 import java.util.Date
 
 class HistoryViewModel : ViewModel() {
+    private val hc = ServiceLocator.healthConnect
+
     val list: StateFlow<List<WorkoutWithSets>> = ServiceLocator.workouts.observeAll().stateIn(
         viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList(),
     )
+
+    private val _healthMetrics = MutableStateFlow<Map<Long, WorkoutHealthMetrics>>(emptyMap())
+    val healthMetrics: StateFlow<Map<Long, WorkoutHealthMetrics>> = _healthMetrics.asStateFlow()
+
+    private val _selectedIds = MutableStateFlow<Set<Long>>(emptySet())
+    val selectedIds: StateFlow<Set<Long>> = _selectedIds.asStateFlow()
+
+    val isSelecting: Boolean get() = _selectedIds.value.isNotEmpty()
+
+    init {
+        viewModelScope.launch {
+            list.collectLatest { workouts ->
+                _selectedIds.value = _selectedIds.value.filter { id ->
+                    workouts.any { it.workout.id == id }
+                }.toSet()
+                loadHealthMetrics(workouts)
+            }
+        }
+    }
+
+    fun toggleSelection(id: Long) {
+        _selectedIds.value = _selectedIds.value.let {
+            if (id in it) it - id else it + id
+        }
+    }
+
+    fun clearSelection() { _selectedIds.value = emptySet() }
+
+    fun selectAll() {
+        _selectedIds.value = list.value.map { it.workout.id }.toSet()
+    }
+
+    fun deleteSelected() {
+        val ids = _selectedIds.value.toList()
+        if (ids.isEmpty()) return
+        viewModelScope.launch {
+            ids.forEach { ServiceLocator.workouts.delete(it) }
+            _selectedIds.value = emptySet()
+            _toast.value = "${ids.size} entrenos eliminados"
+        }
+    }
+
+    private suspend fun loadHealthMetrics(workouts: List<WorkoutWithSets>) {
+        if (!hc.isAvailable()) return
+        val hasPerms = runCatching { hc.hasAllPermissions() }.getOrDefault(false)
+        if (!hasPerms) return
+
+        val result = mutableMapOf<Long, WorkoutHealthMetrics>()
+        for (w in workouts) {
+            val finished = w.workout.finishedAt ?: continue
+            val startInstant = Instant.ofEpochMilli(w.workout.startedAt)
+            val endInstant = Instant.ofEpochMilli(finished)
+            val metrics = runCatching {
+                hc.readMetricsForTimeRange(startInstant, endInstant)
+            }.getOrNull() ?: continue
+            result[w.workout.id] = metrics
+        }
+        _healthMetrics.value = result
+    }
 
     private val _toast = kotlinx.coroutines.flow.MutableStateFlow<String?>(null)
     val toast: StateFlow<String?> = _toast.asStateFlow()
@@ -126,19 +201,51 @@ class HistoryViewModel : ViewModel() {
 }
 
 @Composable
-fun HistoryScreen(vm: HistoryViewModel = viewModel(factory = HistoryViewModel.Factory)) {
+fun HistoryScreen(
+    onWorkoutClick: (Long) -> Unit = {},
+    vm: HistoryViewModel = viewModel(factory = HistoryViewModel.Factory),
+) {
     val list by vm.list.collectAsStateWithLifecycle()
+    val metricsMap by vm.healthMetrics.collectAsStateWithLifecycle()
+    val selectedIds by vm.selectedIds.collectAsStateWithLifecycle()
     val toast by vm.toast.collectAsStateWithLifecycle()
     val c = SpotterTheme.colors
     val df = remember { DateFormat.getDateInstance(DateFormat.MEDIUM) }
+    val isSelecting = selectedIds.isNotEmpty()
+    var confirmBulkDelete by remember { mutableStateOf(false) }
 
     Scaffold(
         containerColor = c.bg,
         topBar = {
-            SpotterTopBar(
-                title = "Historial",
-                trailing = { SpotterIconButton(Icons.Filled.MoreVert, tone = IconButtonTone.Muted) },
-            )
+            if (isSelecting) {
+                SpotterTopBar(
+                    title = "${selectedIds.size} seleccionados",
+                    leading = {
+                        SpotterIconButton(
+                            icon = Icons.Filled.Close,
+                            onClick = { vm.clearSelection() },
+                        )
+                    },
+                    trailing = {
+                        Row {
+                            SpotterIconButton(
+                                icon = Icons.Filled.SelectAll,
+                                onClick = { vm.selectAll() },
+                            )
+                            SpotterIconButton(
+                                icon = Icons.Filled.Delete,
+                                tone = IconButtonTone.Danger,
+                                onClick = { confirmBulkDelete = true },
+                            )
+                        }
+                    },
+                )
+            } else {
+                SpotterTopBar(
+                    title = "Historial",
+                    trailing = { SpotterIconButton(Icons.Filled.MoreVert, tone = IconButtonTone.Muted) },
+                )
+            }
         },
     ) { padding ->
         if (list.isEmpty()) {
@@ -152,9 +259,18 @@ fun HistoryScreen(vm: HistoryViewModel = viewModel(factory = HistoryViewModel.Fa
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 items(list, key = { it.workout.id }) { w ->
+                    val selected = w.workout.id in selectedIds
                     SessionCard(
                         w = w,
                         df = df,
+                        healthMetrics = metricsMap[w.workout.id],
+                        isSelecting = isSelecting,
+                        isSelected = selected,
+                        onClick = {
+                            if (isSelecting) vm.toggleSelection(w.workout.id)
+                            else onWorkoutClick(w.workout.id)
+                        },
+                        onLongClick = { vm.toggleSelection(w.workout.id) },
                         onDelete = { vm.delete(w.workout.id) },
                         onSaveAsTemplate = { name -> vm.saveAsTemplate(w, name) },
                     )
@@ -171,14 +287,44 @@ fun HistoryScreen(vm: HistoryViewModel = viewModel(factory = HistoryViewModel.Fa
             )
         }
     }
+
+    if (confirmBulkDelete) {
+        AlertDialog(
+            onDismissRequest = { confirmBulkDelete = false },
+            title = { Text("Borrar entrenos", style = SpotterText.title2) },
+            text = {
+                Text(
+                    "Se eliminarán ${selectedIds.size} entrenos junto con todas sus series. Esta acción no se puede deshacer.",
+                    style = SpotterText.body,
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmBulkDelete = false
+                    vm.deleteSelected()
+                }) { Text("Borrar ${selectedIds.size}", color = c.danger) }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmBulkDelete = false }) {
+                    Text("Cancelar", color = c.textMuted)
+                }
+            },
+        )
+    }
 }
 
 private const val COLLAPSED_EXERCISE_COUNT = 3
 
+@OptIn(ExperimentalLayoutApi::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 private fun SessionCard(
     w: WorkoutWithSets,
     df: DateFormat,
+    healthMetrics: WorkoutHealthMetrics? = null,
+    isSelecting: Boolean = false,
+    isSelected: Boolean = false,
+    onClick: () -> Unit = {},
+    onLongClick: () -> Unit = {},
     onDelete: () -> Unit,
     onSaveAsTemplate: (String) -> Unit,
 ) {
@@ -199,9 +345,27 @@ private fun SessionCard(
     var expanded by remember { mutableStateOf(false) }
     val needsExpansion = exercises.size > COLLAPSED_EXERCISE_COUNT
 
-    SpotterCard {
+    val cardModifier = if (isSelected) {
+        Modifier
+            .border(2.dp, c.primary, RoundedCornerShape(16.dp))
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
+    } else {
+        Modifier.combinedClickable(onClick = onClick, onLongClick = onLongClick)
+    }
+
+    SpotterCard(modifier = cardModifier) {
         Column {
             Row(verticalAlignment = Alignment.CenterVertically) {
+                if (isSelecting) {
+                    Icon(
+                        imageVector = if (isSelected) Icons.Filled.CheckCircle
+                        else Icons.Filled.RadioButtonUnchecked,
+                        contentDescription = null,
+                        tint = if (isSelected) c.primary else c.textFaint,
+                        modifier = Modifier.size(24.dp),
+                    )
+                    Spacer(Modifier.width(10.dp))
+                }
                 Column(modifier = Modifier.weight(1f)) {
                     Text(w.workout.title, style = SpotterText.title3, color = c.text)
                     Text(
@@ -210,36 +374,53 @@ private fun SessionCard(
                         color = c.textMuted,
                     )
                 }
-                Box {
-                    IconButton(onClick = { menuOpen = true }) {
-                        Icon(Icons.Filled.MoreVert, contentDescription = "Opciones", tint = c.textFaint)
-                    }
-                    DropdownMenu(
-                        expanded = menuOpen,
-                        onDismissRequest = { menuOpen = false },
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text("Convertir en plantilla") },
-                            onClick = {
-                                menuOpen = false
-                                saveTemplate = true
-                            },
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Borrar entreno", color = c.danger) },
-                            onClick = {
-                                menuOpen = false
-                                confirmDelete = true
-                            },
-                        )
+                if (!isSelecting) {
+                    Box {
+                        IconButton(onClick = { menuOpen = true }) {
+                            Icon(Icons.Filled.MoreVert, contentDescription = "Opciones", tint = c.textFaint)
+                        }
+                        DropdownMenu(
+                            expanded = menuOpen,
+                            onDismissRequest = { menuOpen = false },
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Convertir en plantilla") },
+                                onClick = {
+                                    menuOpen = false
+                                    saveTemplate = true
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Borrar entreno", color = c.danger) },
+                                onClick = {
+                                    menuOpen = false
+                                    confirmDelete = true
+                                },
+                            )
+                        }
                     }
                 }
             }
             Spacer(Modifier.height(10.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
                 if (durationMin != null) SpotterChip("$durationMin min")
                 if (w.workout.rpe != null) SpotterChip("RPE ${w.workout.rpe}", leading = Icons.Filled.Warning)
                 SpotterChip("${exercises.size} ejercicios")
+                if (healthMetrics != null) {
+                    healthMetrics.calories?.let {
+                        SpotterChip("%.0f kcal".format(it), leading = Icons.Filled.LocalFireDepartment)
+                    }
+                    healthMetrics.heartRateAvg?.let {
+                        SpotterChip("$it bpm", leading = Icons.Filled.Favorite)
+                    }
+                    healthMetrics.distanceMeters?.let { d ->
+                        val label = if (d >= 1000) "%.2f km".format(d / 1000) else "%.0f m".format(d)
+                        SpotterChip(label, leading = Icons.Filled.Route)
+                    }
+                }
             }
             Spacer(Modifier.height(10.dp))
             HorizontalDivider(color = c.border, thickness = 1.dp)

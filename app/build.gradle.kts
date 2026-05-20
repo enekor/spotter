@@ -24,7 +24,7 @@ val hasReleaseSigning = releaseStoreFile != null && releaseStorePassword != null
 
 android {
     namespace = "com.n3k0chan.spotter"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.n3k0chan.spotter"

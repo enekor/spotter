@@ -12,9 +12,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
@@ -202,7 +204,7 @@ private fun ProfileDropdown(
                 Text(selected.description, style = SpotterText.small, color = c.textMuted)
             }
             Icon(
-                androidx.compose.material.icons.Icons.Filled.ArrowDropDown,
+                Icons.Filled.ArrowDropDown,
                 contentDescription = null,
                 tint = c.textFaint,
                 modifier = Modifier.size(20.dp),

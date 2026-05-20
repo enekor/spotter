@@ -176,11 +176,10 @@ class WorkoutViewModel(private val workoutId: Long) : ViewModel() {
         }
     }
 
-    fun finish(onDone: () -> Unit) {
+    fun finish(backupAfterFinish: Boolean, onDone: () -> Unit) {
         viewModelScope.launch {
             val s = _state.value
             workouts.finish(workoutId, s.rpe, s.notes.takeIf { it.isNotBlank() })
-            // Resumen IA opcional
             val cfg = settings.state.value
             if (cfg.hasApiKey) {
                 _state.update { it.copy(finishedLoading = true) }
@@ -205,10 +204,8 @@ class WorkoutViewModel(private val workoutId: Long) : ViewModel() {
                     _state.update { it.copy(finishedLoading = false) }
                 }
             }
-            // Backup automático en background si está enlazada Drive
-            if (cfg.isDriveLinked && cfg.autoBackupAfterWorkout) {
+            if (backupAfterFinish && cfg.isDriveLinked) {
                 runCatching { ServiceLocator.driveBackup.backupNow() }
-                // Errores silenciosos: el usuario los ve en Ajustes con la marca de tiempo
             }
             onDone()
         }

@@ -1,3 +1,5 @@
+@file:OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+
 package com.n3k0chan.spotter.ui.chat
 
 import androidx.compose.foundation.background

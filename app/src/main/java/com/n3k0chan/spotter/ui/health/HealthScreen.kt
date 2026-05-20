@@ -2,6 +2,7 @@ package com.n3k0chan.spotter.ui.health
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,17 +24,32 @@ import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.DirectionsWalk
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Route
 import androidx.compose.material.icons.filled.SyncProblem
+import androidx.compose.material.icons.filled.CheckBox
+import androidx.compose.material.icons.filled.CheckBoxOutlineBlank
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.DateRangePicker
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDateRangePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -55,6 +71,7 @@ import com.n3k0chan.spotter.ui.theme.SpotterText
 import com.n3k0chan.spotter.ui.theme.SpotterTheme
 import java.text.NumberFormat
 import java.time.Duration
+import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -68,6 +85,8 @@ fun HealthScreen(
 ) {
     val state by vm.state.collectAsStateWithLifecycle()
     val c = SpotterTheme.colors
+    var showImportDialog by remember { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         PermissionController.createRequestPermissionResultContract()
@@ -75,8 +94,16 @@ fun HealthScreen(
         vm.onPermissionsResult(granted)
     }
 
+    LaunchedEffect(state.importResult) {
+        state.importResult?.let {
+            snackbarHostState.showSnackbar(it)
+            vm.consumeImportResult()
+        }
+    }
+
     Scaffold(
         containerColor = c.bg,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             SpotterTopBar(
                 title = "Salud",
@@ -85,6 +112,14 @@ fun HealthScreen(
                         icon = Icons.AutoMirrored.Filled.ArrowBack,
                         onClick = onBack,
                     )
+                },
+                trailing = {
+                    if (state.hasPermissions && state.available) {
+                        SpotterIconButton(
+                            icon = Icons.Filled.Download,
+                            onClick = { showImportDialog = true },
+                        )
+                    }
                 },
             )
         },
@@ -97,7 +132,8 @@ fun HealthScreen(
                     permissionLauncher.launch(ServiceLocator.healthConnect.permissions)
                 },
             )
-            state.loading -> LoadingState(Modifier.padding(padding))
+            state.loading || state.importing || state.scanningImport ->
+                LoadingState(Modifier.padding(padding))
             state.error != null -> ErrorState(
                 modifier = Modifier.padding(padding),
                 message = state.error!!,
@@ -111,6 +147,25 @@ fun HealthScreen(
                 onNextDay = { vm.nextDay() },
             )
         }
+    }
+
+    if (showImportDialog) {
+        ImportSessionsDialog(
+            onDismiss = { showImportDialog = false },
+            onConfirm = { startDate, endDate ->
+                showImportDialog = false
+                vm.scanForImport(startDate, endDate)
+            },
+        )
+    }
+
+    state.importPreview?.let { preview ->
+        ImportPreviewDialog(
+            preview = preview,
+            onToggleSource = { vm.toggleImportSource(it) },
+            onConfirm = { vm.confirmImport() },
+            onDismiss = { vm.dismissImportPreview() },
+        )
     }
 }
 
@@ -434,7 +489,136 @@ private fun SleepSessionCard(session: SleepSession) {
     }
 }
 
-private fun exerciseTypeName(type: Int): String = when (type) {
+@Composable
+private fun ImportPreviewDialog(
+    preview: ImportPreview,
+    onToggleSource: (String) -> Unit,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val c = SpotterTheme.colors
+    val selectedCount = preview.sessions.count {
+        (it.sourcePackage ?: "desconocido") in preview.selectedSources
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Importar sesiones", style = SpotterText.title2) },
+        confirmButton = {
+            TextButton(
+                onClick = onConfirm,
+                enabled = selectedCount > 0,
+            ) { Text("Importar $selectedCount", color = if (selectedCount > 0) c.primary else c.textFaint) }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancelar", color = c.textMuted) }
+        },
+        text = {
+            Column {
+                Text(
+                    "${preview.sessions.size} sesiones con calorías encontradas",
+                    style = SpotterText.body,
+                    color = c.textMuted,
+                )
+                if (preview.sources.size > 1) {
+                    Spacer(Modifier.height(12.dp))
+                    Text("Fuentes", style = SpotterText.bodyMd, color = c.text)
+                    Spacer(Modifier.height(8.dp))
+                }
+                preview.sources.forEach { source ->
+                    val checked = source.packageName in preview.selectedSources
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(10.dp))
+                            .clickable { onToggleSource(source.packageName) }
+                            .padding(vertical = 8.dp, horizontal = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            imageVector = if (checked) Icons.Filled.CheckBox
+                            else Icons.Filled.CheckBoxOutlineBlank,
+                            contentDescription = null,
+                            tint = if (checked) c.primary else c.textFaint,
+                            modifier = Modifier.size(22.dp),
+                        )
+                        Spacer(Modifier.width(10.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                appLabel(source.packageName),
+                                style = SpotterText.bodyMd,
+                                color = c.text,
+                            )
+                            Text(
+                                "${source.sessionCount} sesiones",
+                                style = SpotterText.small,
+                                color = c.textMuted,
+                            )
+                        }
+                    }
+                }
+            }
+        },
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ImportSessionsDialog(
+    onDismiss: () -> Unit,
+    onConfirm: (LocalDate, LocalDate) -> Unit,
+) {
+    val c = SpotterTheme.colors
+    val datePickerState = rememberDateRangePickerState()
+
+    DatePickerDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    val startMs = datePickerState.selectedStartDateMillis
+                    val endMs = datePickerState.selectedEndDateMillis
+                    if (startMs != null && endMs != null) {
+                        val zone = ZoneId.systemDefault()
+                        val start = Instant.ofEpochMilli(startMs).atZone(zone).toLocalDate()
+                        val end = Instant.ofEpochMilli(endMs).atZone(zone).toLocalDate()
+                        onConfirm(start, end)
+                    }
+                },
+                enabled = datePickerState.selectedStartDateMillis != null
+                        && datePickerState.selectedEndDateMillis != null,
+            ) {
+                Text("Importar", color = c.primary)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancelar", color = c.textMuted)
+            }
+        },
+    ) {
+        DateRangePicker(
+            state = datePickerState,
+            title = {
+                Text(
+                    "Importar sesiones de Health Connect",
+                    style = SpotterText.title3,
+                    modifier = Modifier.padding(start = 24.dp, end = 12.dp, top = 16.dp),
+                )
+            },
+            headline = {
+                Text(
+                    "Selecciona un rango de fechas",
+                    style = SpotterText.body,
+                    modifier = Modifier.padding(start = 24.dp, end = 12.dp, bottom = 12.dp),
+                )
+            },
+            modifier = Modifier.weight(1f),
+        )
+    }
+}
+
+internal fun exerciseTypeName(type: Int): String = when (type) {
     2 -> "Badminton"
     4 -> "Béisbol"
     5 -> "Baloncesto"

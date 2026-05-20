@@ -27,12 +27,22 @@ data class ExerciseSession(
     val calories: Double?,
     val distance: Double?,
     val heartRateAvg: Long?,
+    val sourcePackage: String? = null,
 )
 
 data class SleepSession(
     val startTime: Instant,
     val endTime: Instant,
     val durationMinutes: Long,
+)
+
+data class WorkoutHealthMetrics(
+    val calories: Double?,
+    val heartRateAvg: Long?,
+    val heartRateMin: Long?,
+    val heartRateMax: Long?,
+    val distanceMeters: Double?,
+    val steps: Long?,
 )
 
 data class DaySummary(
@@ -148,6 +158,7 @@ class HealthConnectManager(private val context: Context) {
                     calories = cal,
                     distance = dist,
                     heartRateAvg = hrAvg,
+                    sourcePackage = r.metadata.dataOrigin.packageName,
                 )
             }
         }.getOrDefault(emptyList())
@@ -174,6 +185,93 @@ class HealthConnectManager(private val context: Context) {
             distanceMeters = distance,
             exerciseSessions = exerciseSessions,
             sleepSessions = sleepSessions,
+        )
+    }
+
+    suspend fun readExerciseSessions(startDate: LocalDate, endDate: LocalDate): List<ExerciseSession> {
+        val zone = ZoneId.systemDefault()
+        val start = startDate.atStartOfDay(zone).toInstant()
+        val end = endDate.plusDays(1).atStartOfDay(zone).toInstant()
+        val filter = TimeRangeFilter.between(start, end)
+        val client = getClient()
+
+        return runCatching {
+            val records = client.readRecords(
+                ReadRecordsRequest(ExerciseSessionRecord::class, filter)
+            ).records
+            records.map { r ->
+                val sessionFilter = TimeRangeFilter.between(r.startTime, r.endTime)
+                val cal = runCatching {
+                    client.aggregate(
+                        AggregateRequest(setOf(ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL), sessionFilter)
+                    )[ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL]?.inKilocalories
+                }.getOrNull()
+                val dist = runCatching {
+                    client.aggregate(
+                        AggregateRequest(setOf(DistanceRecord.DISTANCE_TOTAL), sessionFilter)
+                    )[DistanceRecord.DISTANCE_TOTAL]?.inMeters
+                }.getOrNull()
+                val hrAvg = runCatching {
+                    client.aggregate(
+                        AggregateRequest(setOf(HeartRateRecord.BPM_AVG), sessionFilter)
+                    )[HeartRateRecord.BPM_AVG]
+                }.getOrNull()
+                ExerciseSession(
+                    title = r.title,
+                    type = r.exerciseType,
+                    startTime = r.startTime,
+                    endTime = r.endTime,
+                    calories = cal,
+                    distance = dist,
+                    heartRateAvg = hrAvg,
+                    sourcePackage = r.metadata.dataOrigin.packageName,
+                )
+            }
+        }.getOrDefault(emptyList())
+    }
+
+    suspend fun readMetricsForTimeRange(startInstant: Instant, endInstant: Instant): WorkoutHealthMetrics? {
+        val filter = TimeRangeFilter.between(startInstant, endInstant)
+        val client = getClient()
+
+        val calories = runCatching {
+            client.aggregate(
+                AggregateRequest(setOf(ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL), filter)
+            )[ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL]?.inKilocalories
+        }.getOrNull()
+
+        val hr = runCatching {
+            val agg = client.aggregate(
+                AggregateRequest(
+                    setOf(HeartRateRecord.BPM_MIN, HeartRateRecord.BPM_MAX, HeartRateRecord.BPM_AVG),
+                    filter,
+                )
+            )
+            Triple(agg[HeartRateRecord.BPM_MIN], agg[HeartRateRecord.BPM_MAX], agg[HeartRateRecord.BPM_AVG])
+        }.getOrNull()
+
+        val distance = runCatching {
+            client.aggregate(
+                AggregateRequest(setOf(DistanceRecord.DISTANCE_TOTAL), filter)
+            )[DistanceRecord.DISTANCE_TOTAL]?.inMeters
+        }.getOrNull()
+
+        val steps = runCatching {
+            client.aggregate(
+                AggregateRequest(setOf(StepsRecord.COUNT_TOTAL), filter)
+            )[StepsRecord.COUNT_TOTAL]
+        }.getOrNull()
+
+        val hasAnyData = calories != null || hr?.third != null || distance != null || steps != null
+        if (!hasAnyData) return null
+
+        return WorkoutHealthMetrics(
+            calories = calories,
+            heartRateAvg = hr?.third,
+            heartRateMin = hr?.first,
+            heartRateMax = hr?.second,
+            distanceMeters = distance,
+            steps = steps,
         )
     }
 }
