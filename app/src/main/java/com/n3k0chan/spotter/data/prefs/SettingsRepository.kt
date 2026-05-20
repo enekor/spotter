@@ -44,6 +44,10 @@ class SettingsRepository(context: Context) {
             chatHistoryWindow = ChatHistoryWindow.fromName(
                 prefs.getString(KEY_CHAT_HISTORY_WINDOW, ChatHistoryWindow.Month.name),
             ),
+            reminderDays = prefs.getStringSet(KEY_REMINDER_DAYS, emptySet())
+                ?.mapNotNull { it.toIntOrNull() }?.toSet() ?: emptySet(),
+            reminderHour = prefs.getInt(KEY_REMINDER_HOUR, 18),
+            reminderMinute = prefs.getInt(KEY_REMINDER_MINUTE, 0),
         )
     }
 
@@ -96,6 +100,16 @@ class SettingsRepository(context: Context) {
         _state.value = load()
     }
 
+    fun setReminderDays(days: Set<Int>) {
+        prefs.edit().putStringSet(KEY_REMINDER_DAYS, days.map { it.toString() }.toSet()).apply()
+        _state.value = load()
+    }
+
+    fun setReminderTime(hour: Int, minute: Int) {
+        prefs.edit().putInt(KEY_REMINDER_HOUR, hour).putInt(KEY_REMINDER_MINUTE, minute).apply()
+        _state.value = load()
+    }
+
     companion object {
         private const val FILE = "spotter_secure_prefs"
         private const val KEY_GROQ_API = "groq_api_key"
@@ -107,6 +121,9 @@ class SettingsRepository(context: Context) {
         private const val KEY_AUTO_BACKUP = "auto_backup"
         private const val KEY_LAST_BACKUP = "last_backup_at"
         private const val KEY_CHAT_HISTORY_WINDOW = "chat_history_window"
+        private const val KEY_REMINDER_DAYS = "reminder_days"
+        private const val KEY_REMINDER_HOUR = "reminder_hour"
+        private const val KEY_REMINDER_MINUTE = "reminder_minute"
         const val DEFAULT_MODEL = "llama-3.3-70b-versatile"
         val MODELS = listOf(
             "llama-3.3-70b-versatile",
@@ -127,9 +144,13 @@ data class AppSettings(
     val autoBackupAfterWorkout: Boolean = true,
     val lastBackupAt: Long? = null,
     val chatHistoryWindow: ChatHistoryWindow = ChatHistoryWindow.Month,
+    val reminderDays: Set<Int> = emptySet(),
+    val reminderHour: Int = 18,
+    val reminderMinute: Int = 0,
 ) {
     val hasApiKey: Boolean get() = groqApiKey.isNotBlank()
     val isDriveLinked: Boolean get() = !driveAccountName.isNullOrBlank()
+    val hasReminders: Boolean get() = reminderDays.isNotEmpty()
 }
 
 /** Cuánto historial enviar al chat al usar "Compartir historial". */

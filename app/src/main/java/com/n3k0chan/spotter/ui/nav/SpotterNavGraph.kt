@@ -8,9 +8,9 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.n3k0chan.spotter.ui.chat.ChatScreen
-import com.n3k0chan.spotter.ui.health.HealthScreen
 import com.n3k0chan.spotter.ui.exercises.ExercisesScreen
 import com.n3k0chan.spotter.ui.history.HistoryScreen
+import com.n3k0chan.spotter.ui.history.WorkoutDetailScreen
 import com.n3k0chan.spotter.ui.home.HomeScreen
 import com.n3k0chan.spotter.ui.settings.SettingsScreen
 import com.n3k0chan.spotter.ui.stats.StatsScreen
@@ -89,7 +89,22 @@ fun SpotterNavGraph(
         }
 
         composable(Routes.History) {
-            HistoryScreen()
+            HistoryScreen(
+                onWorkoutClick = { workoutId ->
+                    navController.navigate(Routes.workoutDetail(workoutId))
+                },
+            )
+        }
+
+        composable(
+            route = Routes.WorkoutDetailPattern,
+            arguments = listOf(navArgument("workoutId") { type = NavType.LongType }),
+        ) { backStackEntry ->
+            val id = backStackEntry.arguments?.getLong("workoutId") ?: 0L
+            WorkoutDetailScreen(
+                workoutId = id,
+                onBack = { navController.popBackStack() },
+            )
         }
 
         composable(Routes.Stats) {
@@ -99,12 +114,7 @@ fun SpotterNavGraph(
         composable(Routes.Settings) {
             SettingsScreen(
                 onBack = { navController.popBackStack() },
-                onOpenHealth = { navController.navigate(Routes.Health) },
             )
-        }
-
-        composable(Routes.Health) {
-            HealthScreen(onBack = { navController.popBackStack() })
         }
     }
 }

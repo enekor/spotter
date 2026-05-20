@@ -29,5 +29,7 @@ object Routes {
     const val History = "history"
     const val Stats = "stats"
     const val Settings = "settings"
-    const val Health = "health"
+
+    fun workoutDetail(workoutId: Long) = "workout_detail/$workoutId"
+    const val WorkoutDetailPattern = "workout_detail/{workoutId}"
 }

@@ -1,27 +1,40 @@
 package com.n3k0chan.spotter.ui.stats
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ChevronLeft
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -30,6 +43,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.n3k0chan.spotter.di.ServiceLocator
 import com.n3k0chan.spotter.ui.components.SpotterCard
+import com.n3k0chan.spotter.ui.components.SpotterIconButton
 import com.n3k0chan.spotter.ui.components.SpotterTopBar
 import com.n3k0chan.spotter.ui.theme.SpotterText
 import com.n3k0chan.spotter.ui.theme.SpotterTheme
@@ -40,7 +54,10 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.YearMonth
 import java.time.ZoneId
+import java.time.format.TextStyle
+import java.util.Locale
 
 class StatsViewModel : ViewModel() {
     private val workouts = ServiceLocator.workouts
@@ -62,6 +79,14 @@ class StatsViewModel : ViewModel() {
         .map { StreakCalculator.longest(it) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
 
+    val workoutDates: StateFlow<Set<LocalDate>> = workouts.observeFinishedStartTimes()
+        .map { timestamps ->
+            timestamps.map { ms ->
+                java.time.Instant.ofEpochMilli(ms).atZone(ZoneId.systemDefault()).toLocalDate()
+            }.toSet()
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptySet())
+
     companion object {
         val Factory = object : ViewModelProvider.Factory {
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -78,6 +103,7 @@ fun StatsScreen(vm: StatsViewModel = viewModel(factory = StatsViewModel.Factory)
     val week by vm.thisWeekSessions.collectAsStateWithLifecycle()
     val streak by vm.currentStreak.collectAsStateWithLifecycle()
     val longest by vm.longestStreak.collectAsStateWithLifecycle()
+    val workoutDates by vm.workoutDates.collectAsStateWithLifecycle()
     val c = SpotterTheme.colors
 
     Scaffold(
@@ -100,6 +126,137 @@ fun StatsScreen(vm: StatsViewModel = viewModel(factory = StatsViewModel.Factory)
                     StatTile("Racha actual", "$streak", "días", modifier = Modifier.weight(1f))
                     StatTile("Racha más larga", "$longest", "días", modifier = Modifier.weight(1f))
                 }
+            }
+            item {
+                Spacer(Modifier.height(4.dp))
+                WorkoutCalendar(workoutDates = workoutDates)
+            }
+        }
+    }
+}
+
+@Composable
+private fun WorkoutCalendar(workoutDates: Set<LocalDate>) {
+    val c = SpotterTheme.colors
+    var currentMonth by remember { mutableStateOf(YearMonth.now()) }
+    val today = LocalDate.now()
+    val isCurrentMonth = currentMonth == YearMonth.now()
+
+    val monthLabel = currentMonth.month.getDisplayName(TextStyle.FULL, Locale("es"))
+        .replaceFirstChar { it.uppercase() } + " ${currentMonth.year}"
+
+    SpotterCard {
+        Column {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                SpotterIconButton(
+                    icon = Icons.Filled.ChevronLeft,
+                    onClick = { currentMonth = currentMonth.minusMonths(1) },
+                )
+                Text(monthLabel, style = SpotterText.title3, color = c.text)
+                if (isCurrentMonth) {
+                    Box(Modifier.size(40.dp))
+                } else {
+                    SpotterIconButton(
+                        icon = Icons.Filled.ChevronRight,
+                        onClick = { currentMonth = currentMonth.plusMonths(1) },
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(12.dp))
+
+            val dayLabels = listOf("L", "M", "X", "J", "V", "S", "D")
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+            ) {
+                dayLabels.forEach { label ->
+                    Box(
+                        modifier = Modifier.weight(1f),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(label, style = SpotterText.caps, color = c.textFaint)
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(8.dp))
+
+            val firstDay = currentMonth.atDay(1)
+            val startOffset = (firstDay.dayOfWeek.value - 1) // Mon=0
+            val daysInMonth = currentMonth.lengthOfMonth()
+
+            val cells = mutableListOf<LocalDate?>()
+            repeat(startOffset) { cells.add(null) }
+            for (d in 1..daysInMonth) cells.add(currentMonth.atDay(d))
+            while (cells.size % 7 != 0) cells.add(null)
+
+            val rows = cells.chunked(7)
+            rows.forEach { week ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                ) {
+                    week.forEach { date ->
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .aspectRatio(1f)
+                                .padding(2.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            if (date != null) {
+                                val hasWorkout = date in workoutDates
+                                val isToday = date == today
+                                val isFuture = date.isAfter(today)
+
+                                Box(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .clip(CircleShape)
+                                        .background(
+                                            when {
+                                                hasWorkout -> c.primary
+                                                isToday -> c.primarySoft
+                                                else -> c.bg
+                                            }
+                                        ),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Text(
+                                        "${date.dayOfMonth}",
+                                        style = SpotterText.smallMd,
+                                        color = when {
+                                            hasWorkout -> c.onPrimary
+                                            isFuture -> c.textFaint
+                                            isToday -> c.primary
+                                            else -> c.text
+                                        },
+                                        textAlign = TextAlign.Center,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            val monthWorkouts = workoutDates.count {
+                it.year == currentMonth.year && it.monthValue == currentMonth.monthValue
+            }
+            if (monthWorkouts > 0) {
+                Spacer(Modifier.height(10.dp))
+                Text(
+                    "$monthWorkouts sesiones este mes",
+                    style = SpotterText.small,
+                    color = c.textMuted,
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center,
+                )
             }
         }
     }

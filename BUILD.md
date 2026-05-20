@@ -110,5 +110,4 @@ keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey \
 ## Notas
 
 - Si `assembleRelease` falla por timeouts a Maven Central, vuelve a lanzarlo: Gradle cachea lo que ya bajó.
-- El package de la app es `com.n3k0chan.spotter`. Es el que tienes que registrar en GCP junto a la SHA-1 para Drive y para Health Connect.
-- Health Connect en builds debug funciona en Android 14+ sin nada extra; en Android 13 y anteriores la app pedirá instalar `com.google.android.apps.healthdata` desde Play Store.
+- El package de la app es `com.n3k0chan.spotter`. Es el que tienes que registrar en GCP junto a la SHA-1 para Drive.
