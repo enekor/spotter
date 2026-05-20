@@ -2,6 +2,7 @@ package com.n3k0chan.spotter.ui.exercises
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -12,12 +13,16 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -202,18 +207,18 @@ private fun ProfileDropdown(
                 Text(selected.description, style = SpotterText.small, color = c.textMuted)
             }
             Icon(
-                androidx.compose.material.icons.Icons.Filled.ArrowDropDown,
+                Icons.Filled.ArrowDropDown,
                 contentDescription = null,
                 tint = c.textFaint,
                 modifier = Modifier.size(20.dp),
             )
         }
-        androidx.compose.material3.DropdownMenu(
+        DropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
         ) {
             MeasurementProfile.entries.forEach { p ->
-                androidx.compose.material3.DropdownMenuItem(
+                DropdownMenuItem(
                     text = {
                         Column {
                             Text(p.display, style = SpotterText.bodyMd, color = c.text)

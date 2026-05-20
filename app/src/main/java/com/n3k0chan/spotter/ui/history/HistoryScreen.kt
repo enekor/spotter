@@ -87,12 +87,6 @@ class HistoryViewModel : ViewModel() {
         viewModelScope.launch { ServiceLocator.workouts.delete(id) }
     }
 
-    /**
-     * Crea una plantilla a partir de una sesión existente. Toma los ejercicios
-     * usados (en su orden de aparición) y genera una plantilla con valores
-     * razonables: sets = cuántos hizo en la sesión, reps/rest tomados del
-     * primer set del ejercicio.
-     */
     fun saveAsTemplate(session: WorkoutWithSets, name: String) {
         if (name.isBlank()) return
         viewModelScope.launch {
@@ -126,7 +120,10 @@ class HistoryViewModel : ViewModel() {
 }
 
 @Composable
-fun HistoryScreen(vm: HistoryViewModel = viewModel(factory = HistoryViewModel.Factory)) {
+fun HistoryScreen(
+    onWorkoutClick: (Long) -> Unit,
+    vm: HistoryViewModel = viewModel(factory = HistoryViewModel.Factory)
+) {
     val list by vm.list.collectAsStateWithLifecycle()
     val toast by vm.toast.collectAsStateWithLifecycle()
     val c = SpotterTheme.colors
@@ -155,6 +152,7 @@ fun HistoryScreen(vm: HistoryViewModel = viewModel(factory = HistoryViewModel.Fa
                     SessionCard(
                         w = w,
                         df = df,
+                        onClick = { onWorkoutClick(w.workout.id) },
                         onDelete = { vm.delete(w.workout.id) },
                         onSaveAsTemplate = { name -> vm.saveAsTemplate(w, name) },
                     )
@@ -179,6 +177,7 @@ private const val COLLAPSED_EXERCISE_COUNT = 3
 private fun SessionCard(
     w: WorkoutWithSets,
     df: DateFormat,
+    onClick: () -> Unit,
     onDelete: () -> Unit,
     onSaveAsTemplate: (String) -> Unit,
 ) {
@@ -199,7 +198,9 @@ private fun SessionCard(
     var expanded by remember { mutableStateOf(false) }
     val needsExpansion = exercises.size > COLLAPSED_EXERCISE_COUNT
 
-    SpotterCard {
+    SpotterCard(
+        modifier = Modifier.clickable { onClick() }
+    ) {
         Column {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(modifier = Modifier.weight(1f)) {
@@ -444,4 +445,3 @@ private fun SetBadge(text: String) {
             .padding(horizontal = 8.dp, vertical = 3.dp),
     )
 }
-
