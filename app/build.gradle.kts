@@ -116,6 +116,8 @@ dependencies {
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
 
+    implementation(libs.androidx.health.connect)
+
     implementation(libs.androidx.security.crypto)
     implementation(libs.androidx.datastore.preferences)
 
@@ -127,9 +129,6 @@ dependencies {
     implementation(libs.retrofit.kotlinx.serialization.converter)
     implementation(libs.okhttp)
     implementation(libs.okhttp.logging)
-
-    // Health Connect (solo lectura)
-    implementation(libs.androidx.health.connect)
 
     // Google Sign-In + Drive (appDataFolder)
     implementation(libs.play.services.auth)
