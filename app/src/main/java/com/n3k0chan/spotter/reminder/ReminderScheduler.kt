@@ -44,7 +44,7 @@ object ReminderScheduler {
                 intent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
             )
-            am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, millis, pi)
+            am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, millis, pi)
         }
 
         scheduleCatchUp(context, am, settings, zone, time)
@@ -83,7 +83,7 @@ object ReminderScheduler {
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
-        am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, millis, pi)
+        am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, millis, pi)
     }
 
     private fun cancelAll(context: Context, am: AlarmManager) {
