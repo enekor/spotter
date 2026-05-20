@@ -3,10 +3,10 @@ package com.n3k0chan.spotter.di
 import android.content.Context
 import com.n3k0chan.spotter.backup.DriveBackupManager
 import com.n3k0chan.spotter.data.db.SpotterDatabase
-import com.n3k0chan.spotter.data.health.HealthConnectManager
 import com.n3k0chan.spotter.data.prefs.SettingsRepository
 import com.n3k0chan.spotter.data.repository.ExerciseRepository
 import com.n3k0chan.spotter.data.repository.TemplateRepository
+import com.n3k0chan.spotter.data.health.HealthConnectManager
 import com.n3k0chan.spotter.data.repository.WorkoutRepository
 
 /**
