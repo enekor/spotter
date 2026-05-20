@@ -26,9 +26,11 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.CloudUpload
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
@@ -171,6 +173,7 @@ class SettingsViewModel : ViewModel() {
 @Composable
 fun SettingsScreen(
     onBack: () -> Unit,
+    onOpenHealth: () -> Unit = {},
     vm: SettingsViewModel = viewModel(factory = SettingsViewModel.Factory),
 ) {
     val state by vm.state.collectAsStateWithLifecycle()
@@ -356,8 +359,6 @@ fun SettingsScreen(
             // ── RECORDATORIOS
             item { SectionHeader("RECORDATORIOS") }
             item { ReminderSection(state = state, onUpdate = vm::updateReminders) }
-<<<<<<< HEAD
-=======
 
             // ── SALUD
             item { SectionHeader("SALUD") }
@@ -392,7 +393,6 @@ fun SettingsScreen(
                     }
                 }
             }
->>>>>>> hc-try
 
             item {
                 Spacer(Modifier.height(12.dp))

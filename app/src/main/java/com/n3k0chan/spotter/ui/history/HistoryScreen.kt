@@ -196,13 +196,8 @@ class HistoryViewModel : ViewModel() {
 
 @Composable
 fun HistoryScreen(
-<<<<<<< HEAD
-    onWorkoutClick: (Long) -> Unit,
-    vm: HistoryViewModel = viewModel(factory = HistoryViewModel.Factory)
-=======
     onWorkoutClick: (Long) -> Unit = {},
     vm: HistoryViewModel = viewModel(factory = HistoryViewModel.Factory),
->>>>>>> hc-try
 ) {
     val list by vm.list.collectAsStateWithLifecycle()
     val metricsMap by vm.healthMetrics.collectAsStateWithLifecycle()
@@ -262,9 +257,6 @@ fun HistoryScreen(
                     SessionCard(
                         w = w,
                         df = df,
-<<<<<<< HEAD
-                        onClick = { onWorkoutClick(w.workout.id) },
-=======
                         healthMetrics = metricsMap[w.workout.id],
                         isSelecting = isSelecting,
                         isSelected = selected,
@@ -273,7 +265,6 @@ fun HistoryScreen(
                             else onWorkoutClick(w.workout.id)
                         },
                         onLongClick = { vm.toggleSelection(w.workout.id) },
->>>>>>> hc-try
                         onDelete = { vm.delete(w.workout.id) },
                         onSaveAsTemplate = { name -> vm.saveAsTemplate(w, name) },
                     )
@@ -323,15 +314,11 @@ private const val COLLAPSED_EXERCISE_COUNT = 3
 private fun SessionCard(
     w: WorkoutWithSets,
     df: DateFormat,
-<<<<<<< HEAD
-    onClick: () -> Unit,
-=======
     healthMetrics: WorkoutHealthMetrics? = null,
     isSelecting: Boolean = false,
     isSelected: Boolean = false,
     onClick: () -> Unit = {},
     onLongClick: () -> Unit = {},
->>>>>>> hc-try
     onDelete: () -> Unit,
     onSaveAsTemplate: (String) -> Unit,
 ) {
@@ -352,11 +339,6 @@ private fun SessionCard(
     var expanded by remember { mutableStateOf(false) }
     val needsExpansion = exercises.size > COLLAPSED_EXERCISE_COUNT
 
-<<<<<<< HEAD
-    SpotterCard(
-        modifier = Modifier.clickable { onClick() }
-    ) {
-=======
     val cardModifier = if (isSelected) {
         Modifier
             .border(2.dp, c.primary, RoundedCornerShape(16.dp))
@@ -366,7 +348,6 @@ private fun SessionCard(
     }
 
     SpotterCard(modifier = cardModifier) {
->>>>>>> hc-try
         Column {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (isSelecting) {

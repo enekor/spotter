@@ -1,16 +1,5 @@
 package com.n3k0chan.spotter.ui.history
 
-<<<<<<< HEAD
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-=======
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -43,7 +32,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -51,20 +39,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
->>>>>>> hc-try
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
-<<<<<<< HEAD
-import com.n3k0chan.spotter.data.db.entities.WorkoutWithSets
-import com.n3k0chan.spotter.data.db.entities.profile
-import com.n3k0chan.spotter.data.measurement.formatShort
-import com.n3k0chan.spotter.di.ServiceLocator
-import com.n3k0chan.spotter.ui.components.MuscleGroupAvatar
-=======
 import com.n3k0chan.spotter.data.db.entities.Exercise
 import com.n3k0chan.spotter.data.db.entities.WorkoutSetWithExercise
 import com.n3k0chan.spotter.data.db.entities.WorkoutWithSets
@@ -75,26 +55,12 @@ import com.n3k0chan.spotter.di.ServiceLocator
 import com.n3k0chan.spotter.ui.components.MuscleGroupAvatar
 import com.n3k0chan.spotter.ui.components.SpotterCard
 import com.n3k0chan.spotter.ui.components.SpotterChip
->>>>>>> hc-try
 import com.n3k0chan.spotter.ui.components.SpotterIconButton
 import com.n3k0chan.spotter.ui.components.SpotterTopBar
 import com.n3k0chan.spotter.ui.theme.SpotterText
 import com.n3k0chan.spotter.ui.theme.SpotterTheme
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-<<<<<<< HEAD
-import kotlinx.coroutines.launch
-import java.text.DateFormat
-import java.util.Date
-
-class WorkoutDetailViewModel(private val workoutId: Long) : ViewModel() {
-    private val _workout = MutableStateFlow<WorkoutWithSets?>(null)
-    val workout: StateFlow<WorkoutWithSets?> = _workout
-
-    init {
-        viewModelScope.launch {
-            _workout.value = ServiceLocator.workouts.get(workoutId)
-=======
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -139,22 +105,14 @@ class WorkoutDetailViewModel(private val workoutId: Long) : ViewModel() {
                 )
             }.getOrNull()
             _state.update { it.copy(healthMetrics = metrics) }
->>>>>>> hc-try
         }
     }
 
     companion object {
-<<<<<<< HEAD
-        fun provideFactory(id: Long) = object : ViewModelProvider.Factory {
-            @Suppress("UNCHECKED_CAST")
-            override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                return WorkoutDetailViewModel(id) as T
-=======
         fun factory(workoutId: Long) = object : ViewModelProvider.Factory {
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
                 @Suppress("UNCHECKED_CAST")
                 return WorkoutDetailViewModel(workoutId) as T
->>>>>>> hc-try
             }
         }
     }
@@ -164,67 +122,15 @@ class WorkoutDetailViewModel(private val workoutId: Long) : ViewModel() {
 fun WorkoutDetailScreen(
     workoutId: Long,
     onBack: () -> Unit,
-<<<<<<< HEAD
-    vm: WorkoutDetailViewModel = viewModel(factory = WorkoutDetailViewModel.provideFactory(workoutId))
-) {
-    val workout by vm.workout.collectAsStateWithLifecycle()
-    val c = SpotterTheme.colors
-    val df = remember { DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT) }
-=======
 ) {
     val vm: WorkoutDetailViewModel = viewModel(factory = WorkoutDetailViewModel.factory(workoutId))
     val state by vm.state.collectAsStateWithLifecycle()
     val c = SpotterTheme.colors
->>>>>>> hc-try
 
     Scaffold(
         containerColor = c.bg,
         topBar = {
             SpotterTopBar(
-<<<<<<< HEAD
-                title = workout?.workout?.title ?: "Detalle",
-                leading = { SpotterIconButton(Icons.AutoMirrored.Filled.ArrowBack, onClick = onBack) }
-            )
-        }
-    ) { innerPadding ->
-        workout?.let { w ->
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                item {
-                    Text(df.format(Date(w.workout.startedAt)), style = SpotterText.body, color = c.textMuted)
-                    if (!w.workout.notes.isNullOrBlank()) {
-                        Spacer(Modifier.height(8.dp))
-                        Text(w.workout.notes, style = SpotterText.body, color = c.text)
-                    }
-                    Spacer(Modifier.height(16.dp))
-                    HorizontalDivider(color = c.border)
-                }
-
-                val exercises = w.sets.groupBy { it.exercise }
-                items(exercises.toList()) { (exercise, sets) ->
-                    Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            MuscleGroupAvatar(rawGroup = exercise.muscleGroup, size = 32.dp)
-                            Spacer(Modifier.width(12.dp))
-                            Text(exercise.name, style = SpotterText.title3, color = c.text)
-                        }
-                        Spacer(Modifier.height(8.dp))
-                        sets.sortedBy { it.set.orderIndex }.forEach { s ->
-                            Text(
-                                text = "Serie ${s.set.orderIndex + 1}: ${s.set.formatShort(exercise.profile)}",
-                                style = SpotterText.body,
-                                color = c.text,
-                                modifier = Modifier.padding(start = 44.dp, top = 2.dp, bottom = 2.dp)
-                            )
-                        }
-                    }
-                    HorizontalDivider(color = c.border, thickness = 0.5.dp)
-=======
                 title = state.workout?.workout?.title ?: "Detalle",
                 leading = {
                     SpotterIconButton(
@@ -439,14 +345,11 @@ private fun DetailExerciseCard(
                             )
                         }
                     }
->>>>>>> hc-try
                 }
             }
         }
     }
 }
-<<<<<<< HEAD
-=======
 
 @Composable
 private fun HealthMetricCard(
@@ -494,4 +397,3 @@ private fun HealthMetricCard(
         }
     }
 }
->>>>>>> hc-try
