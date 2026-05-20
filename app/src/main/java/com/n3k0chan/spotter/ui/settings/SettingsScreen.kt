@@ -363,7 +363,10 @@ fun SettingsScreen(
             // ── SALUD
             item { SectionHeader("SALUD") }
             item {
-                SpotterCard(onClick = onOpenHealth) {
+                SpotterCard(onClick = {
+                    android.util.Log.d("SettingsScreen", "Health Connect card clicked!")
+                    onOpenHealth()
+                }) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,

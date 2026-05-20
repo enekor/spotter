@@ -115,7 +115,15 @@ fun SpotterNavGraph(
         composable(Routes.Settings) {
             SettingsScreen(
                 onBack = { navController.popBackStack() },
+                onOpenHealth = {
+                    android.util.Log.d("NavGraph", "Navigating to Health route")
+                    navController.navigate(Routes.Health)
+                },
             )
+        }
+
+        composable(Routes.Health) {
+            HealthScreen(onBack = { navController.popBackStack() })
         }
     }
 }
