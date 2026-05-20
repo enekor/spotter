@@ -356,6 +356,43 @@ fun SettingsScreen(
             // ── RECORDATORIOS
             item { SectionHeader("RECORDATORIOS") }
             item { ReminderSection(state = state, onUpdate = vm::updateReminders) }
+<<<<<<< HEAD
+=======
+
+            // ── SALUD
+            item { SectionHeader("SALUD") }
+            item {
+                SpotterCard(onClick = onOpenHealth) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            Icons.Filled.Favorite,
+                            contentDescription = null,
+                            tint = c.primary,
+                            modifier = Modifier.size(20.dp),
+                        )
+                        Spacer(Modifier.width(12.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Health Connect", style = SpotterText.bodyMd, color = c.text)
+                            Spacer(Modifier.height(2.dp))
+                            Text(
+                                "Pasos, calorías, sueño y más desde tus dispositivos",
+                                style = SpotterText.small,
+                                color = c.textMuted,
+                            )
+                        }
+                        Icon(
+                            Icons.Filled.ChevronRight,
+                            contentDescription = null,
+                            tint = c.textFaint,
+                            modifier = Modifier.size(20.dp),
+                        )
+                    }
+                }
+            }
+>>>>>>> hc-try
 
             item {
                 Spacer(Modifier.height(12.dp))

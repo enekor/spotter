@@ -37,6 +37,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -208,13 +210,17 @@ fun WorkoutScreen(
         )
     }
     if (showFinishDialog) {
+        val isDriveLinked = remember {
+            ServiceLocator.settings.state.value.isDriveLinked
+        }
         FinishWorkoutDialog(
             initialNotes = state.notes,
             initialRpe = state.rpe,
-            onConfirm = { rpe, notes ->
+            showBackupSwitch = isDriveLinked,
+            onConfirm = { rpe, notes, backup ->
                 vm.setRpe(rpe)
                 vm.setNotes(notes)
-                vm.finish(onFinished)
+                vm.finish(backupAfterFinish = backup, onDone = onFinished)
                 showFinishDialog = false
             },
             onCancel = { showFinishDialog = false },
@@ -592,17 +598,21 @@ private fun NumericField(
 private fun FinishWorkoutDialog(
     initialNotes: String,
     initialRpe: Int?,
-    onConfirm: (Int?, String) -> Unit,
+    showBackupSwitch: Boolean,
+    onConfirm: (Int?, String, Boolean) -> Unit,
     onCancel: () -> Unit,
 ) {
     val c = SpotterTheme.colors
     var notes by remember { mutableStateOf(initialNotes) }
     var rpe by remember { mutableStateOf(initialRpe) }
+    var backupToDrive by remember { mutableStateOf(true) }
     AlertDialog(
         onDismissRequest = onCancel,
         title = { Text("Terminar entreno", style = SpotterText.title2) },
         confirmButton = {
-            TextButton(onClick = { onConfirm(rpe, notes) }) { Text("Guardar", color = c.primary) }
+            TextButton(onClick = { onConfirm(rpe, notes, backupToDrive && showBackupSwitch) }) {
+                Text("Guardar", color = c.primary)
+            }
         },
         dismissButton = {
             TextButton(onClick = onCancel) { Text("Cancelar", color = c.textMuted) }
@@ -620,6 +630,36 @@ private fun FinishWorkoutDialog(
                     minLines = 2,
                     modifier = Modifier.fillMaxWidth(),
                 )
+                if (showBackupSwitch) {
+                    Spacer(Modifier.height(14.dp))
+                    HorizontalDivider(color = c.border, thickness = 1.dp)
+                    Spacer(Modifier.height(10.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Subir copia a Drive", style = SpotterText.bodyMd, color = c.text)
+                            Spacer(Modifier.height(2.dp))
+                            Text(
+                                "Guardar copia de seguridad",
+                                style = SpotterText.small,
+                                color = c.textMuted,
+                            )
+                        }
+                        Switch(
+                            checked = backupToDrive,
+                            onCheckedChange = { backupToDrive = it },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = Color.White,
+                                checkedTrackColor = c.primary,
+                                uncheckedThumbColor = Color.White,
+                                uncheckedTrackColor = c.borderStrong,
+                                uncheckedBorderColor = Color.Transparent,
+                            ),
+                        )
+                    }
+                }
             }
         },
     )

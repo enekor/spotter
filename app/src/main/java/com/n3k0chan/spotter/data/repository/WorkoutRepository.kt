@@ -108,6 +108,23 @@ class WorkoutRepository(private val dao: WorkoutDao) {
         }
     }
 
+    suspend fun getWorkoutsInRange(startMillis: Long, endMillis: Long): List<Workout> =
+        dao.getWorkoutsInRange(startMillis, endMillis)
+
+    suspend fun importFromHealthConnect(
+        title: String,
+        startedAt: Long,
+        finishedAt: Long,
+        notes: String,
+    ): Long = dao.insertWorkout(
+        Workout(
+            title = title,
+            startedAt = startedAt,
+            finishedAt = finishedAt,
+            notes = notes,
+        ),
+    )
+
     fun observeFinishedStartTimes(): Flow<List<Long>> = dao.observeFinishedStartTimes()
     fun observeFinishedCount(): Flow<Int> = dao.observeFinishedCount()
     fun observeFinishedCountSince(sinceEpochMillis: Long): Flow<Int> =
