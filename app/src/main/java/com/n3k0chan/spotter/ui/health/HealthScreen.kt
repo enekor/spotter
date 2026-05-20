@@ -516,7 +516,7 @@ private fun ImportPreviewDialog(
         text = {
             Column {
                 Text(
-                    "${preview.sessions.size} sesiones con calorías encontradas",
+                    "${preview.sessions.size} sesiones encontradas",
                     style = SpotterText.body,
                     color = c.textMuted,
                 )

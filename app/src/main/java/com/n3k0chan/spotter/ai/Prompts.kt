@@ -102,6 +102,23 @@ object Prompts {
         )
     }
 
+    fun healthConnectImport(sessionsJson: String): List<GroqMessage> = listOf(
+        GroqMessage(
+            "system",
+            """
+            Eres un asistente que procesa datos de sesiones de ejercicio de Health Connect.
+            Recibes un JSON con sesiones crudas y debes devolver un JSON con la misma cantidad de elementos.
+            Para cada sesión:
+            - "title": un nombre descriptivo en español (ej: "Carrera 5K", "Fuerza tren superior", "Caminata"). Si ya tiene título bueno, mantenlo.
+            - "label": una etiqueta corta para mostrar como chip (ej: "Cardio", "Fuerza", "HIIT", "Flexibilidad", "Caminar"). Máximo 12 caracteres.
+            - "skip": true si la sesión NO parece ejercicio real (ej: tipo desconocido sin datos, duraciones de <2min). false si se debe importar.
+            Responde SOLO con un JSON array, sin markdown, sin explicaciones. Ejemplo:
+            [{"title":"Carrera matutina","label":"Cardio","skip":false},{"title":"Desconocido","label":"","skip":true}]
+            """.trimIndent(),
+        ),
+        GroqMessage("user", sessionsJson),
+    )
+
     fun chatTurn(history: List<GroqMessage>, userInput: String): List<GroqMessage> =
         buildList {
             add(GroqMessage("system", systemTrainer))

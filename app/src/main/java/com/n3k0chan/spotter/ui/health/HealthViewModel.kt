@@ -1,8 +1,11 @@
 package com.n3k0chan.spotter.ui.health
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.n3k0chan.spotter.ai.GroqClient
+import com.n3k0chan.spotter.ai.Prompts
 import com.n3k0chan.spotter.data.health.DaySummary
 import com.n3k0chan.spotter.data.health.ExerciseSession
 import com.n3k0chan.spotter.di.ServiceLocator
@@ -11,7 +14,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import java.time.LocalDate
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 data class SourceInfo(
     val packageName: String,
@@ -95,11 +102,8 @@ class HealthViewModel : ViewModel() {
             _state.update { it.copy(scanningImport = true, importPreview = null) }
             try {
                 val allSessions = hc.readExerciseSessions(startDate, endDate)
-                val valid = allSessions.filter { s ->
-                    s.calories != null && s.calories > 0 &&
-                        (s.title != null || s.type != 0)
-                }
-                val sources = valid
+                    .filter { it.title != null || it.type != 0 }
+                val sources = allSessions
                     .groupBy { it.sourcePackage ?: "desconocido" }
                     .map { (pkg, list) -> SourceInfo(pkg, list.size) }
                     .sortedByDescending { it.sessionCount }
@@ -107,7 +111,7 @@ class HealthViewModel : ViewModel() {
                     it.copy(
                         scanningImport = false,
                         importPreview = ImportPreview(
-                            sessions = valid,
+                            sessions = allSessions,
                             sources = sources,
                             selectedSources = sources.map { s -> s.packageName }.toSet(),
                         ),
@@ -144,11 +148,18 @@ class HealthViewModel : ViewModel() {
             _state.update { it.copy(importing = true, importPreview = null) }
             try {
                 val workoutsRepo = ServiceLocator.workouts
+                val settings = ServiceLocator.settings.state.value
                 val filtered = preview.sessions.filter {
                     (it.sourcePackage ?: "desconocido") in preview.selectedSources
                 }
+
+                val aiResults = processWithAi(filtered, settings.groqApiKey, settings.groqModel)
+
                 var imported = 0
-                for (session in filtered) {
+                for ((i, session) in filtered.withIndex()) {
+                    val ai = aiResults.getOrNull(i)
+                    if (ai?.skip == true) continue
+
                     val startMs = session.startTime.toEpochMilli()
                     val existing = workoutsRepo.getWorkoutsInRange(
                         startMs - 5 * 60_000,
@@ -156,9 +167,10 @@ class HealthViewModel : ViewModel() {
                     )
                     if (existing.isNotEmpty()) continue
 
-                    val title = session.title ?: exerciseTypeName(session.type)
+                    val title = ai?.title ?: session.title ?: exerciseTypeName(session.type)
                     val durationMin = java.time.Duration.between(session.startTime, session.endTime).toMinutes()
                     val notesParts = mutableListOf("Importado desde Health Connect")
+                    ai?.label?.takeIf { it.isNotBlank() }?.let { notesParts += it }
                     notesParts += "Duración: ${durationMin}min"
                     session.calories?.let { notesParts += "Calorías: %.0f kcal".format(it) }
                     session.heartRateAvg?.let { notesParts += "FC media: $it bpm" }
@@ -167,8 +179,7 @@ class HealthViewModel : ViewModel() {
                         else "Distancia: %.0f m".format(d)
                     }
                     session.sourcePackage?.let { pkg ->
-                        val label = appLabel(pkg)
-                        notesParts += "Fuente: $label"
+                        notesParts += "Fuente: ${appLabel(pkg)}"
                     }
 
                     workoutsRepo.importFromHealthConnect(
@@ -191,6 +202,59 @@ class HealthViewModel : ViewModel() {
                     it.copy(importing = false, importResult = "Error: ${e.localizedMessage}")
                 }
             }
+        }
+    }
+
+    @Serializable
+    private data class AiSessionResult(
+        val title: String? = null,
+        val label: String? = null,
+        val skip: Boolean = false,
+    )
+
+    private val lenientJson = Json { ignoreUnknownKeys = true; isLenient = true }
+
+    private suspend fun processWithAi(
+        sessions: List<ExerciseSession>,
+        apiKey: String,
+        model: String,
+    ): List<AiSessionResult> {
+        if (apiKey.isBlank() || sessions.isEmpty()) return emptyList()
+        return try {
+            val zone = ZoneId.systemDefault()
+            val timeFmt = DateTimeFormatter.ofPattern("HH:mm")
+            val dateFmt = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+
+            val sessionsJson = buildString {
+                append("[")
+                sessions.forEachIndexed { idx, s ->
+                    if (idx > 0) append(",")
+                    val start = s.startTime.atZone(zone)
+                    val durationMin = java.time.Duration.between(s.startTime, s.endTime).toMinutes()
+                    append("{")
+                    append("\"date\":\"${start.format(dateFmt)}\",")
+                    append("\"time\":\"${start.format(timeFmt)}\",")
+                    append("\"title\":${s.title?.let { "\"$it\"" } ?: "null"},")
+                    append("\"type\":\"${exerciseTypeName(s.type)}\",")
+                    append("\"durationMin\":$durationMin,")
+                    append("\"calories\":${s.calories?.let { "%.0f".format(it) } ?: "null"},")
+                    append("\"heartRateAvg\":${s.heartRateAvg ?: "null"},")
+                    append("\"distanceM\":${s.distance?.let { "%.0f".format(it) } ?: "null"}")
+                    append("}")
+                }
+                append("]")
+            }
+
+            val messages = Prompts.healthConnectImport(sessionsJson)
+            val response = GroqClient.chat(apiKey, model, messages, temperature = 0.3)
+
+            val cleaned = response.trim()
+                .removePrefix("```json").removePrefix("```")
+                .removeSuffix("```").trim()
+            lenientJson.decodeFromString<List<AiSessionResult>>(cleaned)
+        } catch (e: Exception) {
+            Log.w("HealthVM", "AI processing failed, importing all: ${e.message}")
+            sessions.map { AiSessionResult(skip = false) }
         }
     }
 

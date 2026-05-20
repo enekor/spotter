@@ -8,8 +8,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.n3k0chan.spotter.ui.chat.ChatScreen
-import com.n3k0chan.spotter.ui.health.HealthScreen
 import com.n3k0chan.spotter.ui.exercises.ExercisesScreen
+import com.n3k0chan.spotter.ui.health.HealthScreen
 import com.n3k0chan.spotter.ui.history.HistoryScreen
 import com.n3k0chan.spotter.ui.history.WorkoutDetailScreen
 import com.n3k0chan.spotter.ui.home.HomeScreen

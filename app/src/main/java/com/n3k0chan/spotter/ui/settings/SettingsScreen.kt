@@ -1,6 +1,7 @@
 package com.n3k0chan.spotter.ui.settings
 
 import android.app.Activity
+import android.app.TimePickerDialog
 import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -68,6 +69,7 @@ import com.n3k0chan.spotter.data.prefs.AppSettings
 import com.n3k0chan.spotter.data.prefs.ChatHistoryWindow
 import com.n3k0chan.spotter.data.prefs.SettingsRepository
 import com.n3k0chan.spotter.di.ServiceLocator
+import com.n3k0chan.spotter.reminder.ReminderScheduler
 import com.n3k0chan.spotter.ui.components.SpotterButton
 import com.n3k0chan.spotter.ui.components.SpotterButtonVariant
 import com.n3k0chan.spotter.ui.components.SpotterCard
@@ -108,6 +110,11 @@ class SettingsViewModel : ViewModel() {
     fun setPreWarning(value: Boolean) = repo.setPreWarning(value)
     fun setVibrate(value: Boolean) = repo.setVibrate(value)
     fun setChatHistoryWindow(value: ChatHistoryWindow) = repo.setChatHistoryWindow(value)
+
+    fun updateReminders(days: Set<Int>, hour: Int, minute: Int) {
+        repo.setReminderDays(days)
+        repo.setReminderTime(hour, minute)
+    }
 
     fun onAccountPicked(name: String?) {
         if (name.isNullOrBlank()) return
@@ -215,21 +222,6 @@ fun SettingsScreen(
                         ApiKeyRow(state = state, onSave = vm::setApiKey, onClear = { vm.setApiKey("") })
                         HorizontalDivider(color = c.border, thickness = 1.dp)
                         ModelRow(selected = state.groqModel, onSelect = vm::setModel)
-                        HorizontalDivider(color = c.border, thickness = 1.dp)
-                        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
-                            Text("Historial al chat", style = SpotterText.bodyMd, color = c.text)
-                            Spacer(Modifier.height(2.dp))
-                            Text(
-                                "Cuánto historial se envía al activar el toggle",
-                                style = SpotterText.small,
-                                color = c.textMuted,
-                            )
-                            Spacer(Modifier.height(10.dp))
-                            ChatHistoryWindowSelector(
-                                selected = state.chatHistoryWindow,
-                                onSelect = vm::setChatHistoryWindow,
-                            )
-                        }
                     }
                 }
             }
@@ -363,6 +355,10 @@ fun SettingsScreen(
                     }
                 }
             }
+
+            // ── RECORDATORIOS
+            item { SectionHeader("RECORDATORIOS") }
+            item { ReminderSection(state = state, onUpdate = vm::updateReminders) }
 
             // ── SALUD
             item { SectionHeader("SALUD") }
@@ -660,6 +656,105 @@ private fun ToggleSettingRow(label: String, checked: Boolean, onChange: (Boolean
                 uncheckedBorderColor = Color.Transparent,
             ),
         )
+    }
+}
+
+@Composable
+private fun ReminderSection(
+    state: AppSettings,
+    onUpdate: (days: Set<Int>, hour: Int, minute: Int) -> Unit,
+) {
+    val c = SpotterTheme.colors
+    val ctx = LocalContext.current
+
+    val dayLabels = listOf("L" to 1, "M" to 2, "X" to 3, "J" to 4, "V" to 5, "S" to 6, "D" to 7)
+    var selectedDays by remember(state.reminderDays) { mutableStateOf(state.reminderDays) }
+    var hour by remember(state.reminderHour) { mutableStateOf(state.reminderHour) }
+    var minute by remember(state.reminderMinute) { mutableStateOf(state.reminderMinute) }
+
+    fun commit() {
+        onUpdate(selectedDays, hour, minute)
+        ReminderScheduler.reschedule(ctx.applicationContext, state.copy(
+            reminderDays = selectedDays,
+            reminderHour = hour,
+            reminderMinute = minute,
+        ))
+    }
+
+    SpotterCard {
+        Column {
+            Text("Días de gimnasio", style = SpotterText.bodyMd, color = c.text)
+            Spacer(Modifier.height(2.dp))
+            Text(
+                "Recibirás una notificación a la hora indicada. Si no entrenas en la semana, se te recordará el fin de semana.",
+                style = SpotterText.small,
+                color = c.textMuted,
+            )
+            Spacer(Modifier.height(12.dp))
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(c.surfaceMuted)
+                    .padding(4.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                dayLabels.forEach { (label, value) ->
+                    val isSelected = value in selectedDays
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(if (isSelected) c.primary else Color.Transparent)
+                            .clickable {
+                                selectedDays = if (isSelected) selectedDays - value else selectedDays + value
+                                commit()
+                            }
+                            .padding(vertical = 10.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            label,
+                            style = SpotterText.smallMd,
+                            color = if (isSelected) c.onPrimary else c.textMuted,
+                        )
+                    }
+                }
+            }
+
+            if (selectedDays.isNotEmpty()) {
+                Spacer(Modifier.height(14.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text("Hora de aviso", style = SpotterText.bodyMd, color = c.text, modifier = Modifier.weight(1f))
+                    Text(
+                        "%02d:%02d".format(hour, minute),
+                        style = SpotterText.numS,
+                        color = c.primary,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(c.primarySoft)
+                            .clickable {
+                                TimePickerDialog(
+                                    ctx,
+                                    { _, h, m ->
+                                        hour = h
+                                        minute = m
+                                        commit()
+                                    },
+                                    hour,
+                                    minute,
+                                    true,
+                                ).show()
+                            }
+                            .padding(horizontal = 14.dp, vertical = 8.dp),
+                    )
+                }
+            }
+        }
     }
 }
 
