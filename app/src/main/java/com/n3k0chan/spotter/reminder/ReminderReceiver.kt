@@ -10,10 +10,7 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import com.n3k0chan.spotter.R
 import com.n3k0chan.spotter.di.ServiceLocator
-import kotlinx.coroutines.runBlocking
 import java.time.DayOfWeek
-import java.time.LocalDate
-import java.time.ZoneId
 
 class ReminderReceiver : BroadcastReceiver() {
 
@@ -32,37 +29,23 @@ class ReminderReceiver : BroadcastReceiver() {
                 showNotification(
                     context,
                     title = "¡Hora de entrenar!",
-                    body = "Hoy es $dayName — tu día de gimnasio 💪",
+                    body = "Hoy es $dayName — tu día de gimnasio",
                 )
             }
             "WORKOUT_CATCHUP" -> {
-                val trainedThisWeek = runBlocking { checkTrainedThisWeek(context, settings) }
-                if (!trainedThisWeek) {
-                    showNotification(
-                        context,
-                        title = "¿Sesión de recuperación?",
-                        body = "No has entrenado esta semana. ¡Un buen momento para ir!",
-                    )
-                }
+                if (!settings.hasReminders) return
+                showNotification(
+                    context,
+                    title = "¿Sesión de recuperación?",
+                    body = "No has entrenado esta semana. ¡Un buen momento para ir!",
+                )
             }
             Intent.ACTION_BOOT_COMPLETED, "android.intent.action.MY_PACKAGE_REPLACED" -> {
-                // no-op: just reschedule below
+                // just reschedule below
             }
         }
 
         ReminderScheduler.reschedule(context.applicationContext, settings)
-    }
-
-    private suspend fun checkTrainedThisWeek(context: Context, settings: com.n3k0chan.spotter.data.prefs.AppSettings): Boolean {
-        val monday = LocalDate.now().with(DayOfWeek.MONDAY)
-            .atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
-        val now = System.currentTimeMillis()
-        val workouts = ServiceLocator.workouts.getWorkoutsInRange(monday, now)
-        val weekdayWorkouts = settings.reminderDays.count { dayVal ->
-            val targetDate = LocalDate.now().with(DayOfWeek.of(dayVal))
-            targetDate.isBefore(LocalDate.now()) || targetDate.isEqual(LocalDate.now())
-        }
-        return workouts.isNotEmpty()
     }
 
     private fun showNotification(context: Context, title: String, body: String) {
