@@ -83,7 +83,6 @@ fun HealthScreen(
     onBack: () -> Unit,
     vm: HealthViewModel = viewModel(factory = HealthViewModel.Factory),
 ) {
-    android.util.Log.d("HealthScreen", "HealthScreen composable entered, available=${vm.state.value.available}")
     val state by vm.state.collectAsStateWithLifecycle()
     val c = SpotterTheme.colors
     var showImportDialog by remember { mutableStateOf(false) }

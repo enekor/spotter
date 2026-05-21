@@ -32,11 +32,12 @@ import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Notes
+import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
-import androidx.compose.material.icons.filled.Route
 import androidx.compose.material.icons.filled.SelectAll
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
@@ -197,6 +198,8 @@ class HistoryViewModel : ViewModel() {
 @Composable
 fun HistoryScreen(
     onWorkoutClick: (Long) -> Unit = {},
+    onOpenSettings: () -> Unit = {},
+    onOpenChat: () -> Unit = {},
     vm: HistoryViewModel = viewModel(factory = HistoryViewModel.Factory),
 ) {
     val list by vm.list.collectAsStateWithLifecycle()
@@ -237,7 +240,12 @@ fun HistoryScreen(
             } else {
                 SpotterTopBar(
                     title = "Historial",
-                    trailing = { SpotterIconButton(Icons.Filled.MoreVert, tone = IconButtonTone.Muted) },
+                    trailing = {
+                        Row {
+                            SpotterIconButton(Icons.AutoMirrored.Filled.Chat, onClick = onOpenChat)
+                            SpotterIconButton(Icons.Filled.Settings, onClick = onOpenSettings)
+                        }
+                    },
                 )
             }
         },
@@ -409,10 +417,6 @@ private fun SessionCard(
                     }
                     healthMetrics.heartRateAvg?.let {
                         SpotterChip("$it bpm", leading = Icons.Filled.Favorite)
-                    }
-                    healthMetrics.distanceMeters?.let { d ->
-                        val label = if (d >= 1000) "%.2f km".format(d / 1000) else "%.0f m".format(d)
-                        SpotterChip(label, leading = Icons.Filled.Route)
                     }
                 }
             }

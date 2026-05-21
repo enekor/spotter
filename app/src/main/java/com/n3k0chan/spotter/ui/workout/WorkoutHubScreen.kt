@@ -14,8 +14,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -34,6 +36,7 @@ import com.n3k0chan.spotter.di.ServiceLocator
 import com.n3k0chan.spotter.ui.components.SpotterButton
 import com.n3k0chan.spotter.ui.components.SpotterButtonVariant
 import com.n3k0chan.spotter.ui.components.SpotterCard
+import com.n3k0chan.spotter.ui.components.SpotterIconButton
 import com.n3k0chan.spotter.ui.components.SpotterTopBar
 import com.n3k0chan.spotter.ui.theme.SpotterText
 import com.n3k0chan.spotter.ui.theme.SpotterTheme
@@ -81,6 +84,8 @@ fun WorkoutHubScreen(
     onStartFromTemplate: (Long) -> Unit,
     onOpenTemplates: () -> Unit,
     onOpenExercises: () -> Unit,
+    onOpenSettings: () -> Unit = {},
+    onOpenChat: () -> Unit = {},
     vm: WorkoutHubViewModel = viewModel(factory = WorkoutHubViewModel.Factory),
 ) {
     val templates by vm.templatesList.collectAsStateWithLifecycle()
@@ -88,7 +93,17 @@ fun WorkoutHubScreen(
 
     Scaffold(
         containerColor = c.bg,
-        topBar = { SpotterTopBar(title = "Entrenar") },
+        topBar = {
+            SpotterTopBar(
+                title = "Entrenar",
+                trailing = {
+                    Row {
+                        SpotterIconButton(Icons.AutoMirrored.Filled.Chat, onClick = onOpenChat)
+                        SpotterIconButton(Icons.Filled.Settings, onClick = onOpenSettings)
+                    }
+                },
+            )
+        },
     ) { padding ->
         LazyColumn(
             modifier = Modifier.padding(padding).fillMaxSize(),

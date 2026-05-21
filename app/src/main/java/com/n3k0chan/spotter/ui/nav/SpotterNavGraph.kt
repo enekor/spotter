@@ -47,6 +47,8 @@ fun SpotterNavGraph(
                 onStartFromTemplate = { id -> navController.navigate(Routes.workoutSession(id)) },
                 onOpenTemplates = { navController.navigate(Routes.Templates) },
                 onOpenExercises = { navController.navigate(Routes.Exercises) },
+                onOpenSettings = { navController.navigate(Routes.Settings) },
+                onOpenChat = { navController.navigate(Routes.Chat) },
             )
         }
 
@@ -94,6 +96,8 @@ fun SpotterNavGraph(
                 onWorkoutClick = { workoutId ->
                     navController.navigate(Routes.workoutDetail(workoutId))
                 },
+                onOpenSettings = { navController.navigate(Routes.Settings) },
+                onOpenChat = { navController.navigate(Routes.Chat) },
             )
         }
 
@@ -109,16 +113,17 @@ fun SpotterNavGraph(
         }
 
         composable(Routes.Stats) {
-            StatsScreen()
+            StatsScreen(
+                onOpenSettings = { navController.navigate(Routes.Settings) },
+                onOpenChat = { navController.navigate(Routes.Chat) },
+                onOpenHealth = { navController.navigate(Routes.Health) },
+            )
         }
 
         composable(Routes.Settings) {
             SettingsScreen(
                 onBack = { navController.popBackStack() },
-                onOpenHealth = {
-                    android.util.Log.d("NavGraph", "Navigating to Health route")
-                    navController.navigate(Routes.Health)
-                },
+                onOpenHealth = { navController.navigate(Routes.Health) },
             )
         }
 

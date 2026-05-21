@@ -18,7 +18,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.Chat
-import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.PlayArrow
@@ -63,11 +62,18 @@ fun HomeScreen(
             com.n3k0chan.spotter.ui.components.SpotterTopBar(
                 title = "Spotter",
                 trailing = {
-                    SpotterIconButton(
-                        icon = Icons.Filled.Settings,
-                        onClick = onOpenSettings,
-                        contentDescription = "Ajustes",
-                    )
+                    Row {
+                        SpotterIconButton(
+                            icon = Icons.AutoMirrored.Filled.Chat,
+                            onClick = onOpenChat,
+                            contentDescription = "Chat",
+                        )
+                        SpotterIconButton(
+                            icon = Icons.Filled.Settings,
+                            onClick = onOpenSettings,
+                            contentDescription = "Ajustes",
+                        )
+                    }
                 },
             )
         },
@@ -112,8 +118,6 @@ fun HomeScreen(
                     )
                 }
             }
-
-            AiCard(onClick = onOpenChat)
         }
     }
 }
@@ -224,50 +228,3 @@ private fun TemplateRow(name: String, detail: String, onClick: () -> Unit) {
     }
 }
 
-@Composable
-private fun AiCard(onClick: () -> Unit) {
-    val c = SpotterTheme.colors
-    SpotterCard(
-        padding = 14.dp,
-        background = c.primarySoft,
-        border = c.primarySoft,
-        onClick = onClick,
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(c.primary),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    Icons.Filled.AutoAwesome,
-                    contentDescription = null,
-                    tint = c.onPrimary,
-                    modifier = Modifier.size(20.dp),
-                )
-            }
-            Spacer(Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    "Hablar con el asistente",
-                    style = SpotterText.bodyMd,
-                    color = c.primarySoftText,
-                )
-                Spacer(Modifier.height(2.dp))
-                Text(
-                    "Pregúntale por tu progreso o tu próxima sesión",
-                    style = SpotterText.small,
-                    color = c.primarySoftText.copy(alpha = 0.8f),
-                )
-            }
-            Icon(
-                Icons.AutoMirrored.Filled.ArrowForward,
-                contentDescription = null,
-                tint = c.primarySoftText.copy(alpha = 0.7f),
-                modifier = Modifier.size(18.dp),
-            )
-        }
-    }
-}
