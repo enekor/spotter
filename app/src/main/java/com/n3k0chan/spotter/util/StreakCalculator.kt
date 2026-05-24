@@ -16,7 +16,8 @@ object StreakCalculator {
      */
     fun current(startTimes: List<Long>, today: LocalDate = LocalDate.now()): Int {
         if (startTimes.isEmpty()) return 0
-        val days = startTimes.toLocalDates().toSortedSet().reversed()
+        // Usamos .toList().reversed() para evitar el error NoSuchMethodError en SortedSet.reversed() de Java 21
+        val days = startTimes.toLocalDates().toSortedSet().toList().reversed()
         var streak = 0
         var cursor = today
         val mostRecent = days.first()
@@ -62,10 +63,13 @@ object StreakCalculator {
      */
     fun currentWeeks(startTimes: List<Long>, today: LocalDate = LocalDate.now()): Int {
         if (startTimes.isEmpty()) return 0
+        // Usamos .toList().reversed() para evitar el error NoSuchMethodError en SortedSet.reversed() de Java 21
         val mondays = startTimes.toLocalDates()
             .map { it.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)) }
             .toSortedSet()
+            .toList()
             .reversed()
+            
         val thisMonday = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
         val mostRecentMonday = mondays.first()
         val weeksBack = ChronoUnit.WEEKS.between(mostRecentMonday, thisMonday)

@@ -8,6 +8,7 @@ import com.n3k0chan.spotter.ai.Prompts
 import com.n3k0chan.spotter.data.db.entities.Exercise
 import com.n3k0chan.spotter.data.db.entities.WorkoutSet
 import com.n3k0chan.spotter.data.db.entities.WorkoutWithSets
+import com.n3k0chan.spotter.data.health.WorkoutHealthMetrics
 import com.n3k0chan.spotter.data.repository.SetInput
 import com.n3k0chan.spotter.di.ServiceLocator
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,6 +17,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.time.Instant
 
 data class WorkoutUiState(
     val loading: Boolean = true,
@@ -36,6 +38,7 @@ class WorkoutViewModel(private val workoutId: Long) : ViewModel() {
     private val exercises = ServiceLocator.exercises
     private val templates = ServiceLocator.templates
     private val settings = ServiceLocator.settings
+    private val healthConnect = ServiceLocator.healthConnect
 
     val exerciseCatalog: StateFlow<List<Exercise>> = exercises.observeAll().stateIn(
         viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList(),
@@ -54,8 +57,6 @@ class WorkoutViewModel(private val workoutId: Long) : ViewModel() {
             _state.update { it.copy(loading = false) }
             return
         }
-        // Reordenado: primero los ejercicios añadidos en este entreno (orden de aparición),
-        // si proviene de una plantilla y no hay sets aún, exponemos los ejercicios de la plantilla.
         val orderedFromSets = w.sets.map { it.set.exerciseId }.distinct()
         val orderedFromTemplate = w.workout.templateId?.let { tplId ->
             templates.get(tplId)?.items?.sortedBy { it.templateExercise.orderIndex }?.map { it.exercise.id }
@@ -73,6 +74,19 @@ class WorkoutViewModel(private val workoutId: Long) : ViewModel() {
         }
     }
 
+    fun calculateEstimatedStart(): Long {
+        val w = _state.value.workout ?: return System.currentTimeMillis()
+        if (w.sets.isEmpty()) return w.workout.startedAt
+        
+        // Sumamos duraciones de series y descansos
+        val totalActiveSeconds = w.sets.sumOf { (it.set.durationSeconds ?: 0).toLong() }
+        val totalRestSeconds = w.sets.sumOf { (it.set.restSeconds ?: 0).toLong() }
+        
+        // Estimación: tiempo total = suma de todo
+        val totalMs = (totalActiveSeconds + totalRestSeconds) * 1000
+        return System.currentTimeMillis() - totalMs
+    }
+
     fun addExerciseToSession(exerciseId: Long) {
         _state.update {
             if (it.orderedExerciseIds.contains(exerciseId)) it
@@ -82,7 +96,6 @@ class WorkoutViewModel(private val workoutId: Long) : ViewModel() {
 
     fun removeExerciseFromSession(exerciseId: Long) {
         viewModelScope.launch {
-            // Quita el ejercicio del orden y borra sus sets de hoy
             val current = _state.value.workout ?: return@launch
             current.sets.filter { it.set.exerciseId == exerciseId }
                 .forEach { workouts.deleteSet(it.set.id) }
@@ -176,10 +189,38 @@ class WorkoutViewModel(private val workoutId: Long) : ViewModel() {
         }
     }
 
-    fun finish(backupAfterFinish: Boolean, onDone: () -> Unit) {
+    fun finish(chosenStartedAt: Long, backupAfterFinish: Boolean, onDone: () -> Unit) {
         viewModelScope.launch {
             val s = _state.value
-            workouts.finish(workoutId, s.rpe, s.notes.takeIf { it.isNotBlank() })
+            val now = System.currentTimeMillis()
+            
+            // Obtener métricas de Health Connect
+            var metrics: WorkoutHealthMetrics? = null
+            if (healthConnect.isAvailable()) {
+                val hasPerms = runCatching { healthConnect.hasAllPermissions() }.getOrDefault(false)
+                if (hasPerms) {
+                    metrics = runCatching {
+                        healthConnect.readMetricsForTimeRange(
+                            Instant.ofEpochMilli(chosenStartedAt),
+                            Instant.ofEpochMilli(now)
+                        )
+                    }.getOrNull()
+                }
+            }
+
+            workouts.finish(
+                workoutId = workoutId,
+                rpe = s.rpe,
+                notes = s.notes.takeIf { it.isNotBlank() },
+                startedAt = chosenStartedAt,
+                calories = metrics?.calories,
+                heartRateAvg = metrics?.heartRateAvg,
+                heartRateMin = metrics?.heartRateMin,
+                heartRateMax = metrics?.heartRateMax,
+                distanceMeters = metrics?.distanceMeters,
+                steps = metrics?.steps
+            )
+
             val cfg = settings.state.value
             if (cfg.hasApiKey) {
                 _state.update { it.copy(finishedLoading = true) }

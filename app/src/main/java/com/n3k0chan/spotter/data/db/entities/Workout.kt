@@ -14,6 +14,14 @@ data class Workout(
     val finishedAt: Long? = null,
     val rpe: Int? = null,
     val notes: String? = null,
+
+    // Métricas de salud (Health Connect) persistidas
+    val calories: Double? = null,
+    val heartRateAvg: Long? = null,
+    val heartRateMin: Long? = null,
+    val heartRateMax: Long? = null,
+    val distanceMeters: Double? = null,
+    val steps: Long? = null,
 )
 
 /**

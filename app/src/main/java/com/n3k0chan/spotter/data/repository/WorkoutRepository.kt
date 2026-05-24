@@ -36,13 +36,31 @@ class WorkoutRepository(private val dao: WorkoutDao) {
             ),
         )
 
-    suspend fun finish(workoutId: Long, rpe: Int?, notes: String?) {
+    suspend fun finish(
+        workoutId: Long,
+        rpe: Int?,
+        notes: String?,
+        startedAt: Long? = null,
+        calories: Double? = null,
+        heartRateAvg: Long? = null,
+        heartRateMin: Long? = null,
+        heartRateMax: Long? = null,
+        distanceMeters: Double? = null,
+        steps: Long? = null,
+    ) {
         val current = dao.getById(workoutId)?.workout ?: return
         dao.updateWorkout(
             current.copy(
+                startedAt = startedAt ?: current.startedAt,
                 finishedAt = System.currentTimeMillis(),
                 rpe = rpe,
                 notes = notes,
+                calories = calories,
+                heartRateAvg = heartRateAvg,
+                heartRateMin = heartRateMin,
+                heartRateMax = heartRateMax,
+                distanceMeters = distanceMeters,
+                steps = steps,
             ),
         )
     }

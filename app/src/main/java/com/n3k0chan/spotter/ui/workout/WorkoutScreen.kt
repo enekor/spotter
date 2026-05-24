@@ -2,50 +2,16 @@ package com.n3k0chan.spotter.ui.workout
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.Chat
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -68,17 +34,11 @@ import com.n3k0chan.spotter.data.repository.SetInput
 import com.n3k0chan.spotter.di.ServiceLocator
 import com.n3k0chan.spotter.timer.RestTimerController
 import com.n3k0chan.spotter.timer.RestTimerService
-import com.n3k0chan.spotter.ui.components.IconButtonTone
-import com.n3k0chan.spotter.ui.components.MuscleGroup
-import com.n3k0chan.spotter.ui.components.MuscleGroupAvatar
-import com.n3k0chan.spotter.ui.components.SpotterButton
-import com.n3k0chan.spotter.ui.components.SpotterButtonVariant
-import com.n3k0chan.spotter.ui.components.SpotterCard
-import com.n3k0chan.spotter.ui.components.SpotterIconButton
-import com.n3k0chan.spotter.ui.components.SpotterTopBar
+import com.n3k0chan.spotter.ui.components.*
 import com.n3k0chan.spotter.ui.theme.SpotterText
 import com.n3k0chan.spotter.ui.theme.SpotterTheme
-import kotlinx.coroutines.launch
+import java.text.DateFormat
+import java.util.*
 
 @Composable
 fun WorkoutScreen(
@@ -89,6 +49,8 @@ fun WorkoutScreen(
 ) {
     val state by vm.state.collectAsStateWithLifecycle()
     val catalog by vm.exerciseCatalog.collectAsStateWithLifecycle()
+    // Usamos el estado recolectado de settings en lugar de .value directo
+    val settings by ServiceLocator.settings.state.collectAsStateWithLifecycle()
     val c = SpotterTheme.colors
     var showPicker by remember { mutableStateOf(false) }
     var showFinishDialog by remember { mutableStateOf(false) }
@@ -158,7 +120,7 @@ fun WorkoutScreen(
                 .fillMaxSize()
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 14.dp),
+            contentPadding = PaddingValues(vertical = 14.dp),
         ) {
             if (state.orderedExerciseIds.isEmpty()) {
                 item {
@@ -180,9 +142,9 @@ fun WorkoutScreen(
                         exercise = exercise,
                         sets = sets,
                         active = isLast,
-                        defaultRest = ServiceLocator.settings.state.value.defaultRestSeconds,
-                        preWarning = ServiceLocator.settings.state.value.preWarning,
-                        vibrate = ServiceLocator.settings.state.value.vibrate,
+                        defaultRest = settings.defaultRestSeconds,
+                        preWarning = settings.preWarning,
+                        vibrate = settings.vibrate,
                         suggestion = state.suggestion?.takeIf {
                             state.suggestionForExerciseId == exerciseId && !state.suggestionLoading
                         },
@@ -199,7 +161,7 @@ fun WorkoutScreen(
     }
 
     if (showPicker) {
-        com.n3k0chan.spotter.ui.components.ExercisePickerSheet(
+        ExercisePickerSheet(
             catalog = catalog,
             alreadyAdded = state.orderedExerciseIds.toSet(),
             onPick = {
@@ -209,18 +171,20 @@ fun WorkoutScreen(
             onDismiss = { showPicker = false },
         )
     }
-    if (showFinishDialog) {
-        val isDriveLinked = remember {
-            ServiceLocator.settings.state.value.isDriveLinked
-        }
+    if (showFinishDialog && state.workout != null) {
+        val estimatedStart = vm.calculateEstimatedStart()
+        val originalStart = state.workout!!.workout.startedAt
+        
         FinishWorkoutDialog(
             initialNotes = state.notes,
             initialRpe = state.rpe,
-            showBackupSwitch = isDriveLinked,
-            onConfirm = { rpe, notes, backup ->
+            originalStart = originalStart,
+            estimatedStart = estimatedStart,
+            showBackupSwitch = settings.isDriveLinked,
+            onConfirm = { rpe, notes, startAt, backup ->
                 vm.setRpe(rpe)
                 vm.setNotes(notes)
-                vm.finish(backupAfterFinish = backup, onDone = onFinished)
+                vm.finish(startAt, backupAfterFinish = backup, onDone = onFinished)
                 showFinishDialog = false
             },
             onCancel = { showFinishDialog = false },
@@ -238,7 +202,7 @@ private fun ExerciseCard(
     vibrate: Boolean,
     suggestion: String?,
     suggestionLoading: Boolean,
-    onAddSet: (com.n3k0chan.spotter.data.repository.SetInput) -> Unit,
+    onAddSet: (SetInput) -> Unit,
     onDeleteSet: (Long) -> Unit,
     onRequestSuggestion: () -> Unit,
     onClearSuggestion: () -> Unit,
@@ -249,7 +213,6 @@ private fun ExerciseCard(
     val profile = exercise.profile
     val fields = profile.fields
 
-    // Estado del formulario inline (cerrado por defecto), un campo por cada métrica posible
     var formOpen by remember { mutableStateOf(false) }
     var weightStr by remember { mutableStateOf("") }
     var repsStr by remember { mutableStateOf("") }
@@ -261,14 +224,11 @@ private fun ExerciseCard(
     var inclineStr by remember { mutableStateOf("") }
     var restStr by remember { mutableStateOf(defaultRest.toString()) }
 
-    // Estado del menú kebab
     var menuOpen by remember { mutableStateOf(false) }
     var confirmRemove by remember { mutableStateOf(false) }
 
-    // Cargamos el mejor set histórico una vez por ejercicio y lo usamos para
-    // prellenar el form la primera vez que se abre.
     var bestPrefilled by remember(exercise.id) { mutableStateOf(false) }
-    androidx.compose.runtime.LaunchedEffect(exercise.id, formOpen) {
+    LaunchedEffect(exercise.id, formOpen) {
         if (formOpen && !bestPrefilled && sets.isEmpty()) {
             val best = ServiceLocator.workouts.bestSetFor(exercise.id, profile)
             if (best != null) {
@@ -300,7 +260,6 @@ private fun ExerciseCard(
         border = if (active) c.primary else c.border,
     ) {
         Column {
-            // ── Header: avatar + nombre + ring (si activo) + kebab
             Row(verticalAlignment = Alignment.Top) {
                 MuscleGroupAvatar(
                     group = MuscleGroup.from(exercise.muscleGroup),
@@ -349,7 +308,6 @@ private fun ExerciseCard(
                 }
             }
 
-            // ── Sugerencia IA
             if (suggestionLoading) {
                 Spacer(Modifier.height(8.dp))
                 SuggestionCard(text = "Pensando…", onDismiss = null)
@@ -358,7 +316,6 @@ private fun ExerciseCard(
                 SuggestionCard(text = suggestion, onDismiss = onClearSuggestion)
             }
 
-            // ── Sets ya completados (formato según perfil)
             if (sets.isNotEmpty()) {
                 Spacer(Modifier.height(12.dp))
                 sets.forEachIndexed { i, s ->
@@ -406,7 +363,6 @@ private fun ExerciseCard(
 
             Spacer(Modifier.height(12.dp))
 
-            // ── Footer: o botón "+" o formulario dinámico (campos según perfil)
             if (formOpen) {
                 MeasurementFormFields(
                     fields = fields,
@@ -441,7 +397,6 @@ private fun ExerciseCard(
                                 if (input.restSeconds != null && input.restSeconds > 0) {
                                     RestTimerService.start(ctx, input.restSeconds, preWarning, vibrate)
                                 }
-                                // Conservamos peso/duración/etc., vaciamos solo lo que cambia entre series
                                 repsStr = ""
                                 if (profile == MeasurementProfile.Duration) {
                                     durHStr = ""; durMStr = ""; durSStr = ""
@@ -598,19 +553,25 @@ private fun NumericField(
 private fun FinishWorkoutDialog(
     initialNotes: String,
     initialRpe: Int?,
+    originalStart: Long,
+    estimatedStart: Long,
     showBackupSwitch: Boolean,
-    onConfirm: (Int?, String, Boolean) -> Unit,
+    onConfirm: (rpe: Int?, notes: String, startAt: Long, backup: Boolean) -> Unit,
     onCancel: () -> Unit,
 ) {
     val c = SpotterTheme.colors
     var notes by remember { mutableStateOf(initialNotes) }
     var rpe by remember { mutableStateOf(initialRpe) }
     var backupToDrive by remember { mutableStateOf(true) }
+    
+    var selectedStartAt by remember { mutableStateOf(minOf(originalStart, estimatedStart)) }
+    val timeFmt = remember { DateFormat.getTimeInstance(DateFormat.SHORT) }
+
     AlertDialog(
         onDismissRequest = onCancel,
         title = { Text("Terminar entreno", style = SpotterText.title2) },
         confirmButton = {
-            TextButton(onClick = { onConfirm(rpe, notes, backupToDrive && showBackupSwitch) }) {
+            TextButton(onClick = { onConfirm(rpe, notes, selectedStartAt, backupToDrive && showBackupSwitch) }) {
                 Text("Guardar", color = c.primary)
             }
         },
@@ -619,7 +580,25 @@ private fun FinishWorkoutDialog(
         },
         text = {
             Column {
-                Text("RPE (1-10)", style = SpotterText.smallMd, color = c.textMuted)
+                Text("Hora de inicio", style = SpotterText.smallMd, color = c.textMuted)
+                Spacer(Modifier.height(8.dp))
+                
+                StartTimeOption(
+                    label = "App (cuando pulsaste empezar)",
+                    time = timeFmt.format(Date(originalStart)),
+                    selected = selectedStartAt == originalStart,
+                    onClick = { selectedStartAt = originalStart }
+                )
+                Spacer(Modifier.height(8.dp))
+                StartTimeOption(
+                    label = "Estimada (según duración ejercicios)",
+                    time = timeFmt.format(Date(estimatedStart)),
+                    selected = selectedStartAt == estimatedStart,
+                    onClick = { selectedStartAt = estimatedStart }
+                )
+
+                Spacer(Modifier.height(16.dp))
+                Text("Valoración y notas", style = SpotterText.smallMd, color = c.textMuted)
                 Spacer(Modifier.height(6.dp))
                 RpeDropdown(selected = rpe, onSelect = { rpe = it })
                 Spacer(Modifier.height(12.dp))
@@ -641,11 +620,7 @@ private fun FinishWorkoutDialog(
                         Column(modifier = Modifier.weight(1f)) {
                             Text("Subir copia a Drive", style = SpotterText.bodyMd, color = c.text)
                             Spacer(Modifier.height(2.dp))
-                            Text(
-                                "Guardar copia de seguridad",
-                                style = SpotterText.small,
-                                color = c.textMuted,
-                            )
+                            Text("Guardar copia de seguridad", style = SpotterText.small, color = c.textMuted)
                         }
                         Switch(
                             checked = backupToDrive,
@@ -663,6 +638,36 @@ private fun FinishWorkoutDialog(
             }
         },
     )
+}
+
+@Composable
+private fun StartTimeOption(
+    label: String,
+    time: String,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    val c = SpotterTheme.colors
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(if (selected) c.primarySoft else c.surfaceMuted)
+            .clickable { onClick() }
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        RadioButton(
+            selected = selected,
+            onClick = null,
+            colors = RadioButtonDefaults.colors(selectedColor = c.primary)
+        )
+        Spacer(Modifier.width(8.dp))
+        Column {
+            Text(label, style = SpotterText.small, color = if (selected) c.primary else c.textMuted)
+            Text(time, style = SpotterText.bodyMd, color = c.text)
+        }
+    }
 }
 
 @Composable
@@ -728,11 +733,6 @@ private fun RpeDropdown(selected: Int?, onSelect: (Int?) -> Unit) {
         }
     }
 }
-
-private fun formatWeight(value: Double): String =
-    if (value % 1.0 == 0.0) value.toInt().toString() else "%.1f".format(value)
-
-/* ─── Form dinámico según perfil ─── */
 
 @Composable
 private fun MeasurementFormFields(
@@ -896,7 +896,6 @@ private fun buildSetInput(
     val resistance = if (MeasurementField.Resistance in fields) resistanceStr.toIntOrNull() else null
     val incline = if (MeasurementField.Incline in fields) inclineStr.replace(',', '.').toDoubleOrNull() else null
 
-    // Validación: al menos un campo del perfil debe estar relleno.
     val anyFilled = listOf(weight, reps, duration, distance, resistance, incline).any { it != null }
     if (!anyFilled) return null
 
