@@ -55,7 +55,61 @@ class HistoryViewModel : ViewModel() {
     private val _toast = MutableStateFlow<String?>(null)
     val toast: StateFlow<String?> = _toast.asStateFlow()
 
+    private val _syncing = MutableStateFlow(false)
+    val syncing: StateFlow<Boolean> = _syncing.asStateFlow()
+
     fun consumedToast() { _toast.value = null }
+
+    fun syncRecentWithHC() {
+        viewModelScope.launch {
+            _syncing.value = true
+            val updated = syncWorkoutsWithHC(
+                list.value.filter { w ->
+                    val fiveDaysAgo = System.currentTimeMillis() - 5L * 24 * 60 * 60 * 1000
+                    w.workout.startedAt >= fiveDaysAgo
+                }
+            )
+            _syncing.value = false
+            _toast.value = if (updated > 0) "$updated entrenos sincronizados con Health Connect"
+            else "No se encontraron datos nuevos"
+        }
+    }
+
+    private suspend fun syncWorkoutsWithHC(workouts: List<WorkoutWithSets>): Int {
+        if (!healthConnect.isAvailable()) return 0
+        val hasPerms = runCatching { healthConnect.hasAllPermissions() }.getOrDefault(false)
+        if (!hasPerms) return 0
+
+        var count = 0
+        for (w in workouts) {
+            val finished = w.workout.finishedAt ?: continue
+            val metrics = runCatching {
+                healthConnect.readMetricsForTimeRange(
+                    Instant.ofEpochMilli(w.workout.startedAt),
+                    Instant.ofEpochMilli(finished),
+                )
+            }.getOrNull() ?: continue
+
+            val changed = w.workout.calories != metrics.calories
+                    || w.workout.heartRateAvg != metrics.heartRateAvg
+                    || w.workout.steps != metrics.steps
+                    || w.workout.distanceMeters != metrics.distanceMeters
+            if (!changed && w.workout.calories != null) continue
+
+            workoutsRepo.update(
+                w.workout.copy(
+                    calories = metrics.calories,
+                    heartRateAvg = metrics.heartRateAvg,
+                    heartRateMin = metrics.heartRateMin,
+                    heartRateMax = metrics.heartRateMax,
+                    distanceMeters = metrics.distanceMeters,
+                    steps = metrics.steps,
+                )
+            )
+            count++
+        }
+        return count
+    }
 
     fun toggleSelection(id: Long) {
         _selectedIds.value = _selectedIds.value.let {
@@ -167,6 +221,7 @@ fun HistoryScreen(
     val list by vm.list.collectAsStateWithLifecycle()
     val selectedIds by vm.selectedIds.collectAsStateWithLifecycle()
     val toast by vm.toast.collectAsStateWithLifecycle()
+    val syncing by vm.syncing.collectAsStateWithLifecycle()
     val c = SpotterTheme.colors
     val df = remember { DateFormat.getDateInstance(DateFormat.MEDIUM) }
     val isSelecting = selectedIds.isNotEmpty()
@@ -204,7 +259,21 @@ fun HistoryScreen(
                 SpotterTopBar(
                     title = "Historial",
                     trailing = {
-                        Row {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            if (syncing) {
+                                CircularProgressIndicator(
+                                    color = c.primary,
+                                    strokeWidth = 2.dp,
+                                    modifier = Modifier.size(20.dp),
+                                )
+                                Spacer(Modifier.width(8.dp))
+                            } else {
+                                SpotterIconButton(
+                                    Icons.Filled.Sync,
+                                    onClick = { vm.syncRecentWithHC() },
+                                    contentDescription = "Sincronizar HC",
+                                )
+                            }
                             SpotterIconButton(Icons.AutoMirrored.Filled.Chat, onClick = onOpenChat)
                             SpotterIconButton(Icons.Filled.Settings, onClick = onOpenSettings)
                         }

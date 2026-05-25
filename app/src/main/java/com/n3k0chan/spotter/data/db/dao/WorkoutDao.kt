@@ -65,4 +65,7 @@ interface WorkoutDao {
         WHERE startedAt >= :startMillis AND startedAt <= :endMillis
     """)
     suspend fun getWorkoutsInRange(startMillis: Long, endMillis: Long): List<Workout>
+
+    @Query("SELECT * FROM workouts WHERE finishedAt IS NOT NULL ORDER BY startedAt DESC")
+    suspend fun getAllFinished(): List<Workout>
 }

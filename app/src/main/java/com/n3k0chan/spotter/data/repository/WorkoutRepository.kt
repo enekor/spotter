@@ -129,6 +129,8 @@ class WorkoutRepository(private val dao: WorkoutDao) {
     suspend fun getWorkoutsInRange(startMillis: Long, endMillis: Long): List<Workout> =
         dao.getWorkoutsInRange(startMillis, endMillis)
 
+    suspend fun getAllFinished(): List<Workout> = dao.getAllFinished()
+
     suspend fun importFromHealthConnect(
         title: String,
         startedAt: Long,

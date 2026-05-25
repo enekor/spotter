@@ -90,10 +90,15 @@ class SettingsViewModel : ViewModel() {
 
     private val repo: SettingsRepository = ServiceLocator.settings
     private val drive: DriveBackupManager = ServiceLocator.driveBackup
+    private val workoutsRepo = ServiceLocator.workouts
+    private val healthConnect = ServiceLocator.healthConnect
     val state: StateFlow<AppSettings> = repo.state
 
     private val _busy = MutableStateFlow(false)
     val busy: StateFlow<Boolean> = _busy.asStateFlow()
+
+    private val _syncingHC = MutableStateFlow(false)
+    val syncingHC: StateFlow<Boolean> = _syncingHC.asStateFlow()
 
     private val _toast = MutableStateFlow<String?>(null)
     val toast: StateFlow<String?> = _toast.asStateFlow()
@@ -156,6 +161,53 @@ class SettingsViewModel : ViewModel() {
         }
     }
 
+    fun syncAllWithHC() {
+        viewModelScope.launch {
+            _syncingHC.value = true
+            try {
+                if (!healthConnect.isAvailable()) {
+                    _toast.value = "Health Connect no disponible"
+                    _syncingHC.value = false
+                    return@launch
+                }
+                val hasPerms = runCatching { healthConnect.hasAllPermissions() }.getOrDefault(false)
+                if (!hasPerms) {
+                    _toast.value = "No hay permisos de Health Connect"
+                    _syncingHC.value = false
+                    return@launch
+                }
+                val allWorkouts = workoutsRepo.getAllFinished()
+                var count = 0
+                for (w in allWorkouts) {
+                    val finished = w.finishedAt ?: continue
+                    val metrics = runCatching {
+                        healthConnect.readMetricsForTimeRange(
+                            java.time.Instant.ofEpochMilli(w.startedAt),
+                            java.time.Instant.ofEpochMilli(finished),
+                        )
+                    }.getOrNull() ?: continue
+
+                    workoutsRepo.update(
+                        w.copy(
+                            calories = metrics.calories,
+                            heartRateAvg = metrics.heartRateAvg,
+                            heartRateMin = metrics.heartRateMin,
+                            heartRateMax = metrics.heartRateMax,
+                            distanceMeters = metrics.distanceMeters,
+                            steps = metrics.steps,
+                        )
+                    )
+                    count++
+                }
+                _toast.value = if (count > 0) "$count entrenos sincronizados con Health Connect"
+                else "No se encontraron datos de Health Connect"
+            } catch (e: Exception) {
+                _toast.value = "Error: ${e.localizedMessage}"
+            }
+            _syncingHC.value = false
+        }
+    }
+
     fun consumedToast() { _toast.value = null }
     fun consumedConsent() { _consentRequest.value = null }
     fun retryAfterConsent() = backupNow()
@@ -178,6 +230,7 @@ fun SettingsScreen(
 ) {
     val state by vm.state.collectAsStateWithLifecycle()
     val busy by vm.busy.collectAsStateWithLifecycle()
+    val syncingHC by vm.syncingHC.collectAsStateWithLifecycle()
     val toast by vm.toast.collectAsStateWithLifecycle()
     val consentIntent by vm.consentRequest.collectAsStateWithLifecycle()
     val restoreDone by vm.restoreDone.collectAsStateWithLifecycle()
@@ -363,32 +416,55 @@ fun SettingsScreen(
             // ── SALUD
             item { SectionHeader("SALUD") }
             item {
-                SpotterCard(onClick = onOpenHealth) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Icon(
-                            Icons.Filled.Favorite,
-                            contentDescription = null,
-                            tint = c.primary,
-                            modifier = Modifier.size(20.dp),
-                        )
-                        Spacer(Modifier.width(12.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text("Health Connect", style = SpotterText.bodyMd, color = c.text)
-                            Spacer(Modifier.height(2.dp))
-                            Text(
-                                "Pasos, calorías, sueño y más desde tus dispositivos",
-                                style = SpotterText.small,
-                                color = c.textMuted,
+                SpotterCard {
+                    Column {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(10.dp))
+                                .clickable(onClick = onOpenHealth)
+                                .padding(vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(
+                                Icons.Filled.Favorite,
+                                contentDescription = null,
+                                tint = c.primary,
+                                modifier = Modifier.size(20.dp),
+                            )
+                            Spacer(Modifier.width(12.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("Health Connect", style = SpotterText.bodyMd, color = c.text)
+                                Spacer(Modifier.height(2.dp))
+                                Text(
+                                    "Pasos, calorías, sueño y más desde tus dispositivos",
+                                    style = SpotterText.small,
+                                    color = c.textMuted,
+                                )
+                            }
+                            Icon(
+                                Icons.Filled.ChevronRight,
+                                contentDescription = null,
+                                tint = c.textFaint,
+                                modifier = Modifier.size(20.dp),
                             )
                         }
-                        Icon(
-                            Icons.Filled.ChevronRight,
-                            contentDescription = null,
-                            tint = c.textFaint,
-                            modifier = Modifier.size(20.dp),
+                        Spacer(Modifier.height(12.dp))
+                        HorizontalDivider(color = c.border, thickness = 1.dp)
+                        Spacer(Modifier.height(12.dp))
+                        Text(
+                            "Sincronizar todos los entrenos con datos de Health Connect. Útil si la sincronización automática falló.",
+                            style = SpotterText.small,
+                            color = c.textMuted,
+                        )
+                        Spacer(Modifier.height(10.dp))
+                        SpotterButton(
+                            text = if (syncingHC) "Sincronizando…" else "Sincronizar todos",
+                            variant = SpotterButtonVariant.Outlined,
+                            full = true,
+                            height = 42.dp,
+                            onClick = vm::syncAllWithHC,
+                            enabled = !syncingHC,
                         )
                     }
                 }
