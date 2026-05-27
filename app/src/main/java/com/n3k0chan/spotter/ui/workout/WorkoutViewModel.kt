@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.n3k0chan.spotter.ai.GroqClient
 import com.n3k0chan.spotter.ai.Prompts
 import com.n3k0chan.spotter.data.db.entities.Exercise
+import com.n3k0chan.spotter.data.db.entities.TemplateExercise
 import com.n3k0chan.spotter.data.db.entities.WorkoutSet
 import com.n3k0chan.spotter.data.db.entities.WorkoutWithSets
 import com.n3k0chan.spotter.data.health.WorkoutHealthMetrics
@@ -23,6 +24,7 @@ data class WorkoutUiState(
     val loading: Boolean = true,
     val workout: WorkoutWithSets? = null,
     val orderedExerciseIds: List<Long> = emptyList(),
+    val templateTargets: Map<Long, TemplateExercise> = emptyMap(),
     val notes: String = "",
     val rpe: Int? = null,
     val suggestion: String? = null,
@@ -30,6 +32,7 @@ data class WorkoutUiState(
     val suggestionLoading: Boolean = false,
     val finishedSummary: String? = null,
     val finishedLoading: Boolean = false,
+    val showPostFinish: Boolean = false,
 )
 
 class WorkoutViewModel(private val workoutId: Long) : ViewModel() {
@@ -58,16 +61,21 @@ class WorkoutViewModel(private val workoutId: Long) : ViewModel() {
             return
         }
         val orderedFromSets = w.sets.map { it.set.exerciseId }.distinct()
-        val orderedFromTemplate = w.workout.templateId?.let { tplId ->
-            templates.get(tplId)?.items?.sortedBy { it.templateExercise.orderIndex }?.map { it.exercise.id }
-        }.orEmpty()
+        val tpl = w.workout.templateId?.let { tplId -> templates.get(tplId) }
+        val orderedFromTemplate = tpl?.items
+            ?.sortedBy { it.templateExercise.orderIndex }
+            ?.map { it.exercise.id }
+            .orEmpty()
         val combined = (orderedFromSets + orderedFromTemplate).distinct()
+
+        val targets = tpl?.items?.associate { it.exercise.id to it.templateExercise }.orEmpty()
 
         _state.update {
             it.copy(
                 loading = false,
                 workout = w,
                 orderedExerciseIds = combined,
+                templateTargets = targets,
                 notes = w.workout.notes.orEmpty(),
                 rpe = w.workout.rpe,
             )
@@ -190,65 +198,77 @@ class WorkoutViewModel(private val workoutId: Long) : ViewModel() {
     }
 
     fun finish(chosenStartedAt: Long, backupAfterFinish: Boolean, onDone: () -> Unit) {
-        viewModelScope.launch {
-            val s = _state.value
-            val now = System.currentTimeMillis()
-            
-            // Obtener métricas de Health Connect
-            var metrics: WorkoutHealthMetrics? = null
-            if (healthConnect.isAvailable()) {
-                val hasPerms = runCatching { healthConnect.hasAllPermissions() }.getOrDefault(false)
-                if (hasPerms) {
-                    metrics = runCatching {
-                        healthConnect.readMetricsForTimeRange(
-                            Instant.ofEpochMilli(chosenStartedAt),
-                            Instant.ofEpochMilli(now)
-                        )
-                    }.getOrNull()
-                }
+        val cfg = settings.state.value
+        val hasAi = cfg.hasApiKey
+
+        if (!hasAi) {
+            viewModelScope.launch {
+                persistWorkout(chosenStartedAt, backupAfterFinish)
+                onDone()
             }
+            return
+        }
 
-            workouts.finish(
-                workoutId = workoutId,
-                rpe = s.rpe,
-                notes = s.notes.takeIf { it.isNotBlank() },
-                startedAt = chosenStartedAt,
-                calories = metrics?.calories,
-                heartRateAvg = metrics?.heartRateAvg,
-                heartRateMin = metrics?.heartRateMin,
-                heartRateMax = metrics?.heartRateMax,
-                distanceMeters = metrics?.distanceMeters,
-                steps = metrics?.steps
-            )
+        viewModelScope.launch {
+            persistWorkout(chosenStartedAt, backupAfterFinish)
+            _state.update { it.copy(showPostFinish = true, finishedLoading = true) }
 
-            val cfg = settings.state.value
-            if (cfg.hasApiKey) {
-                _state.update { it.copy(finishedLoading = true) }
-                val full = workouts.get(workoutId)
-                if (full != null) {
-                    val previous = full.sets.flatMap { sw ->
-                        workouts.recentSetsFor(sw.exercise.id, 10)
-                    }.take(20)
-                    runCatching {
-                        GroqClient.chat(
-                            apiKey = cfg.groqApiKey,
-                            model = cfg.groqModel,
-                            messages = Prompts.postSessionSummary(full, previous),
-                            temperature = 0.5,
-                        )
-                    }.onSuccess { res ->
-                        _state.update { it.copy(finishedSummary = res.trim(), finishedLoading = false) }
-                    }.onFailure {
-                        _state.update { it.copy(finishedLoading = false) }
-                    }
-                } else {
+            val full = workouts.get(workoutId)
+            if (full != null) {
+                val previous = full.sets.flatMap { sw ->
+                    workouts.recentSetsFor(sw.exercise.id, 10)
+                }.take(20)
+                runCatching {
+                    GroqClient.chat(
+                        apiKey = cfg.groqApiKey,
+                        model = cfg.groqModel,
+                        messages = Prompts.postSessionSummary(full, previous),
+                        temperature = 0.5,
+                    )
+                }.onSuccess { res ->
+                    _state.update { it.copy(finishedSummary = res.trim(), finishedLoading = false) }
+                }.onFailure {
                     _state.update { it.copy(finishedLoading = false) }
                 }
+            } else {
+                _state.update { it.copy(finishedLoading = false) }
             }
-            if (backupAfterFinish && cfg.isDriveLinked) {
-                runCatching { ServiceLocator.driveBackup.backupNow() }
+        }
+    }
+
+    private suspend fun persistWorkout(chosenStartedAt: Long, backupAfterFinish: Boolean) {
+        val s = _state.value
+        val now = System.currentTimeMillis()
+
+        var metrics: WorkoutHealthMetrics? = null
+        if (healthConnect.isAvailable()) {
+            val hasPerms = runCatching { healthConnect.hasAllPermissions() }.getOrDefault(false)
+            if (hasPerms) {
+                metrics = runCatching {
+                    healthConnect.readMetricsForTimeRange(
+                        Instant.ofEpochMilli(chosenStartedAt),
+                        Instant.ofEpochMilli(now)
+                    )
+                }.getOrNull()
             }
-            onDone()
+        }
+
+        workouts.finish(
+            workoutId = workoutId,
+            rpe = s.rpe,
+            notes = s.notes.takeIf { it.isNotBlank() },
+            startedAt = chosenStartedAt,
+            calories = metrics?.calories,
+            heartRateAvg = metrics?.heartRateAvg,
+            heartRateMin = metrics?.heartRateMin,
+            heartRateMax = metrics?.heartRateMax,
+            distanceMeters = metrics?.distanceMeters,
+            steps = metrics?.steps
+        )
+
+        val cfg = settings.state.value
+        if (backupAfterFinish && cfg.isDriveLinked) {
+            runCatching { ServiceLocator.driveBackup.backupNow() }
         }
     }
 

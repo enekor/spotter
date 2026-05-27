@@ -68,4 +68,18 @@ interface WorkoutDao {
 
     @Query("SELECT * FROM workouts WHERE finishedAt IS NOT NULL ORDER BY startedAt DESC")
     suspend fun getAllFinished(): List<Workout>
+
+    @Query("""
+        SELECT ws.* FROM workout_sets ws
+        INNER JOIN workouts w ON ws.workoutId = w.id
+        WHERE w.finishedAt IS NOT NULL
+          AND ws.exerciseId IN (
+              SELECT exerciseId FROM workout_sets
+              GROUP BY exerciseId
+              ORDER BY COUNT(*) DESC
+              LIMIT :topN
+          )
+        ORDER BY ws.completedAt ASC
+    """)
+    suspend fun getTopExerciseSets(topN: Int = 5): List<WorkoutSet>
 }

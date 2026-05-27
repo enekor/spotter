@@ -131,6 +131,9 @@ class WorkoutRepository(private val dao: WorkoutDao) {
 
     suspend fun getAllFinished(): List<Workout> = dao.getAllFinished()
 
+    suspend fun getTopExerciseSets(topN: Int = 5): List<WorkoutSet> =
+        dao.getTopExerciseSets(topN)
+
     suspend fun importFromHealthConnect(
         title: String,
         startedAt: Long,

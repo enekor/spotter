@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.n3k0chan.spotter.data.db.entities.Exercise
+import com.n3k0chan.spotter.data.db.entities.WorkoutSet
 import com.n3k0chan.spotter.data.db.entities.profile
 import com.n3k0chan.spotter.data.measurement.MeasurementField
 import com.n3k0chan.spotter.data.measurement.MeasurementProfile
@@ -138,19 +139,23 @@ fun WorkoutScreen(
                         ?.filter { it.set.exerciseId == exerciseId }
                         ?.map { it.set }
                         .orEmpty()
+                    val target = state.templateTargets[exerciseId]
                     ExerciseCard(
                         exercise = exercise,
                         sets = sets,
                         active = isLast,
-                        defaultRest = settings.defaultRestSeconds,
+                        defaultRest = target?.defaultRestSeconds ?: settings.defaultRestSeconds,
                         preWarning = settings.preWarning,
                         vibrate = settings.vibrate,
+                        targetSets = target?.targetSets,
+                        targetReps = target?.targetReps,
                         suggestion = state.suggestion?.takeIf {
                             state.suggestionForExerciseId == exerciseId && !state.suggestionLoading
                         },
                         suggestionLoading = state.suggestionLoading && state.suggestionForExerciseId == exerciseId,
                         onAddSet = { input -> vm.addSet(exerciseId, input) },
                         onDeleteSet = { vm.deleteSet(it) },
+                        onUpdateSet = { vm.updateSet(it) },
                         onRequestSuggestion = { vm.fetchSuggestion(exerciseId, exercise.name) },
                         onClearSuggestion = { vm.clearSuggestion() },
                         onRemove = { vm.removeExerciseFromSession(exerciseId) },
@@ -190,20 +195,30 @@ fun WorkoutScreen(
             onCancel = { showFinishDialog = false },
         )
     }
+    if (state.showPostFinish) {
+        PostFinishSummaryDialog(
+            loading = state.finishedLoading,
+            summary = state.finishedSummary,
+            onDismiss = onFinished,
+        )
+    }
 }
 
 @Composable
 private fun ExerciseCard(
     exercise: Exercise,
-    sets: List<com.n3k0chan.spotter.data.db.entities.WorkoutSet>,
+    sets: List<WorkoutSet>,
     active: Boolean,
     defaultRest: Int,
     preWarning: Boolean,
     vibrate: Boolean,
+    targetSets: Int? = null,
+    targetReps: Int? = null,
     suggestion: String?,
     suggestionLoading: Boolean,
     onAddSet: (SetInput) -> Unit,
     onDeleteSet: (Long) -> Unit,
+    onUpdateSet: (WorkoutSet) -> Unit,
     onRequestSuggestion: () -> Unit,
     onClearSuggestion: () -> Unit,
     onRemove: () -> Unit,
@@ -226,28 +241,37 @@ private fun ExerciseCard(
 
     var menuOpen by remember { mutableStateOf(false) }
     var confirmRemove by remember { mutableStateOf(false) }
+    var editingSetId by remember { mutableStateOf<Long?>(null) }
 
     var bestPrefilled by remember(exercise.id) { mutableStateOf(false) }
-    LaunchedEffect(exercise.id, formOpen) {
-        if (formOpen && !bestPrefilled && sets.isEmpty()) {
+    var lastPrefillSetCount by remember(exercise.id) { mutableStateOf(-1) }
+
+    fun prefillFromSet(src: WorkoutSet) {
+        src.weightKg?.let { weightStr = if (it % 1.0 == 0.0) it.toInt().toString() else "%.1f".format(it) }
+        src.reps?.let { repsStr = it.toString() }
+        src.durationSeconds?.let { total ->
+            val h = total / 3600
+            val m = (total % 3600) / 60
+            val s = total % 60
+            if (h > 0) durHStr = h.toString()
+            if (m > 0 || h > 0) durMStr = m.toString()
+            if (s > 0) durSStr = s.toString()
+        }
+        src.distanceMeters?.let { distanceStr = if (it % 1.0 == 0.0) it.toInt().toString() else "%.1f".format(it) }
+        src.resistanceLevel?.let { resistanceStr = it.toString() }
+        src.inclinePercent?.let { inclineStr = if (it % 1.0 == 0.0) it.toInt().toString() else "%.1f".format(it) }
+        src.restSeconds?.let { restStr = it.toString() }
+    }
+
+    LaunchedEffect(exercise.id, formOpen, sets.size) {
+        if (formOpen && sets.isEmpty() && !bestPrefilled) {
             val best = ServiceLocator.workouts.bestSetFor(exercise.id, profile)
-            if (best != null) {
-                best.weightKg?.let { weightStr = if (it % 1.0 == 0.0) it.toInt().toString() else "%.1f".format(it) }
-                best.reps?.let { repsStr = it.toString() }
-                best.durationSeconds?.let { total ->
-                    val h = total / 3600
-                    val m = (total % 3600) / 60
-                    val s = total % 60
-                    if (h > 0) durHStr = h.toString()
-                    if (m > 0 || h > 0) durMStr = m.toString()
-                    if (s > 0) durSStr = s.toString()
-                }
-                best.distanceMeters?.let { distanceStr = if (it % 1.0 == 0.0) it.toInt().toString() else "%.1f".format(it) }
-                best.resistanceLevel?.let { resistanceStr = it.toString() }
-                best.inclinePercent?.let { inclineStr = if (it % 1.0 == 0.0) it.toInt().toString() else "%.1f".format(it) }
-                best.restSeconds?.let { restStr = it.toString() }
-            }
+            if (best != null) prefillFromSet(best)
             bestPrefilled = true
+            lastPrefillSetCount = 0
+        } else if (formOpen && sets.isNotEmpty() && sets.size != lastPrefillSetCount) {
+            prefillFromSet(sets.last())
+            lastPrefillSetCount = sets.size
         }
     }
 
@@ -272,6 +296,25 @@ private fun ExerciseCard(
                     if (exercise.muscleGroup != null) {
                         Spacer(Modifier.height(2.dp))
                         Text(exercise.muscleGroup, style = SpotterText.small, color = c.textMuted)
+                    }
+                    if (targetSets != null) {
+                        Spacer(Modifier.height(4.dp))
+                        val done = sets.size
+                        val complete = done >= targetSets
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                "$done/$targetSets series",
+                                style = SpotterText.smallMd,
+                                color = if (complete) c.success else c.primary,
+                            )
+                            if (targetReps != null) {
+                                Text(
+                                    " · $targetReps reps",
+                                    style = SpotterText.small,
+                                    color = c.textFaint,
+                                )
+                            }
+                        }
                     }
                 }
                 if (showRing) {
@@ -319,41 +362,57 @@ private fun ExerciseCard(
             if (sets.isNotEmpty()) {
                 Spacer(Modifier.height(12.dp))
                 sets.forEachIndexed { i, s ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 10.dp, horizontal = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            "SERIE ${i + 1}",
-                            style = SpotterText.caps,
-                            color = c.textMuted,
-                            modifier = Modifier.width(64.dp),
+                    if (editingSetId == s.id) {
+                        InlineSetEditor(
+                            set = s,
+                            setIndex = i,
+                            profile = profile,
+                            fields = fields,
+                            onSave = { updated ->
+                                onUpdateSet(updated)
+                                editingSetId = null
+                            },
+                            onCancel = { editingSetId = null },
                         )
-                        Text(
-                            text = s.formatForProfile(profile),
-                            style = SpotterText.numS,
-                            color = c.text,
-                            modifier = Modifier.weight(1f),
-                        )
-                        Icon(
-                            Icons.Filled.CheckCircle,
-                            contentDescription = null,
-                            tint = c.success,
-                            modifier = Modifier.size(16.dp),
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        IconButton(
-                            onClick = { onDeleteSet(s.id) },
-                            modifier = Modifier.size(24.dp),
+                    } else {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(8.dp))
+                                .clickable { editingSetId = s.id }
+                                .padding(vertical = 10.dp, horizontal = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
+                            Text(
+                                "SERIE ${i + 1}",
+                                style = SpotterText.caps,
+                                color = c.textMuted,
+                                modifier = Modifier.width(64.dp),
+                            )
+                            Text(
+                                text = s.formatForProfile(profile),
+                                style = SpotterText.numS,
+                                color = c.text,
+                                modifier = Modifier.weight(1f),
+                            )
                             Icon(
-                                Icons.Filled.Delete,
-                                contentDescription = "Borrar",
-                                tint = c.textFaint,
+                                Icons.Filled.CheckCircle,
+                                contentDescription = null,
+                                tint = c.success,
                                 modifier = Modifier.size(16.dp),
                             )
+                            Spacer(Modifier.width(8.dp))
+                            IconButton(
+                                onClick = { onDeleteSet(s.id) },
+                                modifier = Modifier.size(24.dp),
+                            ) {
+                                Icon(
+                                    Icons.Filled.Delete,
+                                    contentDescription = "Borrar",
+                                    tint = c.textFaint,
+                                    modifier = Modifier.size(16.dp),
+                                )
+                            }
                         }
                     }
                     if (i < sets.size - 1) HorizontalDivider(color = c.border, thickness = 1.dp)
@@ -397,10 +456,6 @@ private fun ExerciseCard(
                                 if (input.restSeconds != null && input.restSeconds > 0) {
                                     RestTimerService.start(ctx, input.restSeconds, preWarning, vibrate)
                                 }
-                                repsStr = ""
-                                if (profile == MeasurementProfile.Duration) {
-                                    durHStr = ""; durMStr = ""; durSStr = ""
-                                }
                             }
                         },
                     )
@@ -443,6 +498,79 @@ private fun ExerciseCard(
                 TextButton(onClick = { confirmRemove = false }) { Text("Cancelar", color = c.textMuted) }
             },
         )
+    }
+}
+
+@Composable
+private fun InlineSetEditor(
+    set: WorkoutSet,
+    setIndex: Int,
+    profile: MeasurementProfile,
+    fields: List<MeasurementField>,
+    onSave: (WorkoutSet) -> Unit,
+    onCancel: () -> Unit,
+) {
+    val c = SpotterTheme.colors
+    var eWeight by remember { mutableStateOf(set.weightKg?.let { if (it % 1.0 == 0.0) it.toInt().toString() else "%.1f".format(it) } ?: "") }
+    var eReps by remember { mutableStateOf(set.reps?.toString() ?: "") }
+    var eDurH by remember { mutableStateOf(set.durationSeconds?.let { it / 3600 }?.takeIf { it > 0 }?.toString() ?: "") }
+    var eDurM by remember { mutableStateOf(set.durationSeconds?.let { (it % 3600) / 60 }?.takeIf { it > 0 || (set.durationSeconds ?: 0) >= 3600 }?.toString() ?: "") }
+    var eDurS by remember { mutableStateOf(set.durationSeconds?.let { it % 60 }?.takeIf { it > 0 }?.toString() ?: "") }
+    var eDistance by remember { mutableStateOf(set.distanceMeters?.let { if (it % 1.0 == 0.0) it.toInt().toString() else "%.1f".format(it) } ?: "") }
+    var eResistance by remember { mutableStateOf(set.resistanceLevel?.toString() ?: "") }
+    var eIncline by remember { mutableStateOf(set.inclinePercent?.let { if (it % 1.0 == 0.0) it.toInt().toString() else "%.1f".format(it) } ?: "") }
+    var eRest by remember { mutableStateOf(set.restSeconds?.toString() ?: "") }
+
+    Column(modifier = Modifier.padding(vertical = 8.dp)) {
+        Text("EDITANDO SERIE ${setIndex + 1}", style = SpotterText.caps, color = c.primary)
+        Spacer(Modifier.height(8.dp))
+        MeasurementFormFields(
+            fields = fields,
+            weightStr = eWeight, onWeightChange = { eWeight = sanitizeDecimal(it) },
+            repsStr = eReps, onRepsChange = { eReps = it.filter(Char::isDigit) },
+            durHStr = eDurH, onDurHChange = { eDurH = it.filter(Char::isDigit).take(2) },
+            durMStr = eDurM, onDurMChange = { eDurM = it.filter(Char::isDigit).take(2) },
+            durSStr = eDurS, onDurSChange = { eDurS = it.filter(Char::isDigit).take(2) },
+            distanceStr = eDistance, onDistanceChange = { eDistance = sanitizeDecimal(it) },
+            resistanceStr = eResistance, onResistanceChange = { eResistance = it.filter(Char::isDigit) },
+            inclineStr = eIncline, onInclineChange = { eIncline = sanitizeDecimal(it) },
+            restStr = eRest, onRestChange = { eRest = it.filter(Char::isDigit) },
+        )
+        Spacer(Modifier.height(8.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            SpotterButton(
+                text = "Guardar",
+                leading = Icons.Filled.Check,
+                variant = SpotterButtonVariant.Filled,
+                modifier = Modifier.weight(1f),
+                onClick = {
+                    val input = buildSetInput(
+                        fields = fields,
+                        weightStr = eWeight, repsStr = eReps,
+                        durHStr = eDurH, durMStr = eDurM, durSStr = eDurS,
+                        distanceStr = eDistance,
+                        resistanceStr = eResistance, inclineStr = eIncline,
+                        restStr = eRest,
+                    )
+                    if (input != null) {
+                        onSave(set.copy(
+                            weightKg = input.weightKg,
+                            reps = input.reps,
+                            durationSeconds = input.durationSeconds,
+                            distanceMeters = input.distanceMeters,
+                            resistanceLevel = input.resistanceLevel,
+                            inclinePercent = input.inclinePercent,
+                            restSeconds = input.restSeconds,
+                        ))
+                    }
+                },
+            )
+            SpotterButton(
+                text = "Cancelar",
+                variant = SpotterButtonVariant.Outlined,
+                onClick = onCancel,
+            )
+        }
     }
 }
 
@@ -634,6 +762,75 @@ private fun FinishWorkoutDialog(
                             ),
                         )
                     }
+                }
+            }
+        },
+    )
+}
+
+@Composable
+private fun PostFinishSummaryDialog(
+    loading: Boolean,
+    summary: String?,
+    onDismiss: () -> Unit,
+) {
+    val c = SpotterTheme.colors
+    AlertDialog(
+        onDismissRequest = { if (!loading) onDismiss() },
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = c.success, modifier = Modifier.size(24.dp))
+                Spacer(Modifier.width(10.dp))
+                Text("Entreno guardado", style = SpotterText.title2)
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cerrar", color = c.primary)
+            }
+        },
+        text = {
+            Column {
+                if (loading) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        CircularProgressIndicator(
+                            color = c.primary,
+                            strokeWidth = 2.dp,
+                            modifier = Modifier.size(20.dp),
+                        )
+                        Text("Generando resumen…", style = SpotterText.body, color = c.textMuted)
+                    }
+                } else if (!summary.isNullOrBlank()) {
+                    SpotterCard(
+                        radius = 12.dp,
+                        padding = 12.dp,
+                        background = c.primarySoft,
+                        border = c.primarySoft,
+                    ) {
+                        Row(verticalAlignment = Alignment.Top) {
+                            Icon(
+                                Icons.Filled.AutoAwesome,
+                                contentDescription = null,
+                                tint = c.primary,
+                                modifier = Modifier.size(16.dp),
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Column {
+                                Text("RESUMEN IA", style = SpotterText.caps, color = c.primarySoftText)
+                                Spacer(Modifier.height(4.dp))
+                                Text(summary, style = SpotterText.body, color = c.primarySoftText.copy(alpha = 0.85f))
+                            }
+                        }
+                    }
+                } else {
+                    Text(
+                        com.n3k0chan.spotter.motivation.MotivationalMessages.afterWorkout(),
+                        style = SpotterText.body,
+                        color = c.textMuted,
+                    )
                 }
             }
         },

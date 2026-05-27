@@ -52,10 +52,13 @@ import androidx.compose.material3.Icon
 import com.n3k0chan.spotter.ui.theme.SpotterText
 import com.n3k0chan.spotter.ui.theme.SpotterTheme
 import com.n3k0chan.spotter.util.StreakCalculator
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
@@ -63,8 +66,17 @@ import java.time.ZoneId
 import java.time.format.TextStyle
 import java.util.Locale
 
+data class ExerciseProgressData(
+    val exerciseId: Long,
+    val exerciseName: String,
+    val points: List<Float>,
+    val latestValue: String,
+    val unit: String,
+)
+
 class StatsViewModel : ViewModel() {
     private val workouts = ServiceLocator.workouts
+    private val exercises = ServiceLocator.exercises
 
     val totalSessions: StateFlow<Int> = workouts.observeFinishedCount()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
@@ -83,6 +95,10 @@ class StatsViewModel : ViewModel() {
         .map { StreakCalculator.longest(it) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
 
+    val weeksStreak: StateFlow<Int> = workouts.observeFinishedStartTimes()
+        .map { StreakCalculator.currentWeeks(it) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
+
     val workoutDates: StateFlow<Set<LocalDate>> = workouts.observeFinishedStartTimes()
         .map { timestamps ->
             timestamps.map { ms ->
@@ -90,6 +106,50 @@ class StatsViewModel : ViewModel() {
             }.toSet()
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptySet())
+
+    private val _exerciseProgress = MutableStateFlow<List<ExerciseProgressData>>(emptyList())
+    val exerciseProgress: StateFlow<List<ExerciseProgressData>> = _exerciseProgress.asStateFlow()
+
+    init {
+        viewModelScope.launch { loadExerciseProgress() }
+    }
+
+    private suspend fun loadExerciseProgress() {
+        val sets = workouts.getTopExerciseSets(5)
+        if (sets.isEmpty()) return
+
+        val grouped = sets.groupBy { it.exerciseId }
+        val result = grouped.mapNotNull { (exId, exSets) ->
+            val exercise = exercises.get(exId) ?: return@mapNotNull null
+
+            val byWorkout = exSets.groupBy { it.workoutId }
+            val sessionMaxes = byWorkout.values.mapNotNull { sessionSets ->
+                val maxWeight = sessionSets.mapNotNull { it.weightKg }.maxOrNull()
+                if (maxWeight != null && maxWeight > 0) return@mapNotNull maxWeight
+                val maxReps = sessionSets.mapNotNull { it.reps }.maxOrNull()
+                if (maxReps != null && maxReps > 0) return@mapNotNull maxReps.toDouble()
+                val maxDist = sessionSets.mapNotNull { it.distanceMeters }.maxOrNull()
+                if (maxDist != null && maxDist > 0) return@mapNotNull maxDist
+                null
+            }
+            if (sessionMaxes.size < 2) return@mapNotNull null
+
+            val hasWeight = exSets.any { (it.weightKg ?: 0.0) > 0 }
+            val unit = if (hasWeight) "kg" else "reps"
+            val latest = sessionMaxes.last()
+            val latestStr = if (latest % 1.0 == 0.0) latest.toInt().toString() else "%.1f".format(latest)
+
+            ExerciseProgressData(
+                exerciseId = exId,
+                exerciseName = exercise.name,
+                points = sessionMaxes.map { it.toFloat() },
+                latestValue = latestStr,
+                unit = unit,
+            )
+        }.sortedByDescending { it.points.size }
+
+        _exerciseProgress.value = result
+    }
 
     companion object {
         val Factory = object : ViewModelProvider.Factory {
@@ -112,7 +172,9 @@ fun StatsScreen(
     val week by vm.thisWeekSessions.collectAsStateWithLifecycle()
     val streak by vm.currentStreak.collectAsStateWithLifecycle()
     val longest by vm.longestStreak.collectAsStateWithLifecycle()
+    val weeksStreak by vm.weeksStreak.collectAsStateWithLifecycle()
     val workoutDates by vm.workoutDates.collectAsStateWithLifecycle()
+    val exerciseProgress by vm.exerciseProgress.collectAsStateWithLifecycle()
     val c = SpotterTheme.colors
 
     Scaffold(
@@ -143,12 +205,23 @@ fun StatsScreen(
             item {
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     StatTile("Racha actual", "$streak", "días", modifier = Modifier.weight(1f))
-                    StatTile("Racha más larga", "$longest", "días", modifier = Modifier.weight(1f))
+                    StatTile("Racha semanal", "$weeksStreak", if (weeksStreak == 1) "semana" else "semanas", modifier = Modifier.weight(1f))
                 }
             }
             item {
                 Spacer(Modifier.height(4.dp))
                 WorkoutCalendar(workoutDates = workoutDates)
+            }
+            if (exerciseProgress.isNotEmpty()) {
+                item {
+                    Spacer(Modifier.height(4.dp))
+                    Text("PROGRESO POR EJERCICIO", style = SpotterText.caps, color = c.textMuted,
+                        modifier = Modifier.padding(start = 4.dp))
+                }
+                items(exerciseProgress.size) { idx ->
+                    val data = exerciseProgress[idx]
+                    ExerciseSparklineCard(data)
+                }
             }
             item {
                 Spacer(Modifier.height(4.dp))
@@ -331,6 +404,38 @@ private fun HealthConnectCard(onClick: () -> Unit) {
                 tint = c.textFaint,
                 modifier = Modifier.size(20.dp),
             )
+        }
+    }
+}
+
+@Composable
+private fun ExerciseSparklineCard(data: ExerciseProgressData) {
+    val c = SpotterTheme.colors
+    SpotterCard(padding = 16.dp) {
+        Column {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Bottom,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(data.exerciseName, style = SpotterText.bodyMd, color = c.text)
+                    Spacer(Modifier.height(2.dp))
+                    Text("${data.points.size} sesiones", style = SpotterText.small, color = c.textMuted)
+                }
+                Column(horizontalAlignment = Alignment.End) {
+                    Text("${data.latestValue} ${data.unit}", style = SpotterText.numM, color = c.primary)
+                    val firstVal = data.points.first()
+                    val lastVal = data.points.last()
+                    if (firstVal > 0f) {
+                        val pct = ((lastVal - firstVal) / firstVal * 100).toInt()
+                        val label = if (pct >= 0) "+$pct%" else "$pct%"
+                        Text(label, style = SpotterText.small, color = if (pct >= 0) c.success else c.danger)
+                    }
+                }
+            }
+            Spacer(Modifier.height(12.dp))
+            Sparkline(points = data.points, modifier = Modifier.fillMaxWidth().height(64.dp))
         }
     }
 }

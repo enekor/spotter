@@ -36,6 +36,10 @@ class HomeViewModel : ViewModel() {
         .map { StreakCalculator.totalDaysTrained(it) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
 
+    val currentStreak: StateFlow<Int> = workouts.observeFinishedStartTimes()
+        .map { StreakCalculator.current(it) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
+
     private val _greeting = MutableStateFlow<String?>(null)
     val greeting: StateFlow<String?> = _greeting.asStateFlow()
 

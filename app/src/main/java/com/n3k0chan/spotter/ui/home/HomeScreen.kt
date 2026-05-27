@@ -28,6 +28,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -51,7 +52,7 @@ fun HomeScreen(
     vm: HomeViewModel = viewModel(factory = HomeViewModel.Factory),
 ) {
     val weeks by vm.weeksStreak.collectAsStateWithLifecycle()
-    val totalDays by vm.totalDays.collectAsStateWithLifecycle()
+    val dailyStreak by vm.currentStreak.collectAsStateWithLifecycle()
     val greeting by vm.greeting.collectAsStateWithLifecycle()
     val templates by vm.templatesList.collectAsStateWithLifecycle()
     val c = SpotterTheme.colors
@@ -86,7 +87,7 @@ fun HomeScreen(
                 .padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            StreakCard(weeksStreak = weeks, totalDays = totalDays, motivational = greeting)
+            StreakCard(weeksStreak = weeks, dailyStreak = dailyStreak, motivational = greeting)
 
             SpotterButton(
                 text = "Entreno libre",
@@ -123,11 +124,18 @@ fun HomeScreen(
 }
 
 @Composable
-private fun StreakCard(weeksStreak: Int, totalDays: Int, motivational: String?) {
+private fun StreakCard(weeksStreak: Int, dailyStreak: Int, motivational: String?) {
     val c = SpotterTheme.colors
+    val timeGreeting = remember {
+        when (java.time.LocalTime.now().hour) {
+            in 5..11 -> "Buenos días"
+            in 12..19 -> "Buenas tardes"
+            else -> "Buenas noches"
+        }
+    }
     SpotterCard(padding = 20.dp) {
         Column {
-            Text("Buenos días", style = SpotterText.small, color = c.textMuted)
+            Text(timeGreeting, style = SpotterText.small, color = c.textMuted)
             Spacer(Modifier.height(8.dp))
             Row(verticalAlignment = Alignment.Top) {
                 StatColumn(
@@ -137,8 +145,8 @@ private fun StreakCard(weeksStreak: Int, totalDays: Int, motivational: String?) 
                     modifier = Modifier.weight(1f),
                 )
                 StatColumn(
-                    value = "$totalDays",
-                    label = if (totalDays == 1) "día total" else "días totales",
+                    value = "$dailyStreak",
+                    label = if (dailyStreak == 1) "día seguido" else "días seguidos",
                     accent = false,
                     modifier = Modifier.weight(1f),
                 )
