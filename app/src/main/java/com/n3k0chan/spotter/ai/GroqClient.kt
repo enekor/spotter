@@ -31,11 +31,23 @@ object GroqClient {
             .create(GroqService::class.java)
     }
 
-    suspend fun chat(apiKey: String, model: String, messages: List<GroqMessage>, temperature: Double = 0.6): String {
+    suspend fun chat(
+        apiKey: String,
+        model: String,
+        messages: List<GroqMessage>,
+        temperature: Double = 0.6,
+        responseFormat: String? = null
+    ): String {
         require(apiKey.isNotBlank()) { "Groq API key vacía" }
+        val reqFormat = responseFormat?.let { GroqResponseFormat(type = it) }
         val res = service.chatCompletions(
             authHeader = "Bearer $apiKey",
-            request = GroqRequest(model = model, messages = messages, temperature = temperature),
+            request = GroqRequest(
+                model = model,
+                messages = messages,
+                temperature = temperature,
+                response_format = reqFormat
+            ),
         )
         return res.firstContent.orEmpty()
     }

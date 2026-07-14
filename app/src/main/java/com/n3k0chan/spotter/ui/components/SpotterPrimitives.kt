@@ -38,7 +38,7 @@ import com.n3k0chan.spotter.ui.theme.SpotterTheme
 @Composable
 fun SpotterCard(
     modifier: Modifier = Modifier,
-    radius: Dp = 16.dp,
+    radius: Dp = 20.dp,
     padding: Dp = 16.dp,
     background: Color = SpotterTheme.colors.surface,
     border: Color = SpotterTheme.colors.border,

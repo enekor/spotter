@@ -20,6 +20,16 @@ class ReminderReceiver : BroadcastReceiver() {
 
         when (intent?.action) {
             "WORKOUT_REMINDER" -> {
+                val now = java.time.LocalDate.now()
+                val startOfDay = now.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
+                val endOfDay = now.plusDays(1).atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
+                
+                val workoutsToday = kotlinx.coroutines.runBlocking {
+                    ServiceLocator.workouts.getWorkoutsInRange(startOfDay, endOfDay)
+                }
+                
+                if (workoutsToday.isNotEmpty()) return
+
                 val dayName = intent.getIntExtra("day", 1).let {
                     DayOfWeek.of(it).getDisplayName(
                         java.time.format.TextStyle.FULL,

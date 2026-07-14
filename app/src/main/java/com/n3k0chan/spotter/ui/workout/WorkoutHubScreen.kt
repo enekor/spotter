@@ -23,6 +23,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -156,8 +157,8 @@ fun WorkoutHubScreen(
                 items(templates, key = { it.template.id }) { tpl ->
                     TemplateRowCard(
                         name = tpl.template.name,
-                        count = tpl.items.size,
-                        onClick = { vm.startFromTemplate(tpl.template.id, onStartFromTemplate) },
+                        exercises = tpl.items,
+                        onClickStart = { vm.startFromTemplate(tpl.template.id, onStartFromTemplate) },
                     )
                 }
             }
@@ -166,28 +167,47 @@ fun WorkoutHubScreen(
 }
 
 @Composable
-private fun TemplateRowCard(name: String, count: Int, onClick: () -> Unit) {
+private fun TemplateRowCard(
+    name: String,
+    exercises: List<com.n3k0chan.spotter.data.db.entities.TemplateItemWithExercise>,
+    onClickStart: () -> Unit
+) {
     val c = SpotterTheme.colors
-    SpotterCard(onClick = onClick) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                Icons.Filled.FitnessCenter,
-                contentDescription = null,
-                tint = c.textMuted,
-                modifier = Modifier.size(20.dp),
-            )
-            Spacer(Modifier.size(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(name, style = SpotterText.title3, color = c.text)
-                Spacer(Modifier.size(2.dp))
-                Text("$count ejercicios", style = SpotterText.small, color = c.textMuted)
+    var expanded by androidx.compose.runtime.mutableStateOf(false)
+
+    SpotterCard(onClick = { expanded = !expanded }) {
+        Column {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    Icons.Filled.FitnessCenter,
+                    contentDescription = null,
+                    tint = c.textMuted,
+                    modifier = Modifier.size(20.dp),
+                )
+                Spacer(Modifier.size(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(name, style = SpotterText.title3, color = c.text)
+                    Spacer(Modifier.size(2.dp))
+                    Text("${exercises.size} ejercicios", style = SpotterText.small, color = c.textMuted)
+                }
+                SpotterButton(
+                    text = "Iniciar",
+                    variant = SpotterButtonVariant.Primary,
+                    onClick = onClickStart,
+                )
             }
-            Icon(
-                Icons.AutoMirrored.Filled.ArrowForward,
-                contentDescription = null,
-                tint = c.textFaint,
-                modifier = Modifier.size(18.dp),
-            )
+            if (expanded) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    exercises.forEach { item ->
+                        Text(
+                            text = "• ${item.exercise.name} (${item.item.targetSets} series)",
+                            style = SpotterText.body,
+                            color = c.textMuted
+                        )
+                    }
+                }
+            }
         }
     }
 }

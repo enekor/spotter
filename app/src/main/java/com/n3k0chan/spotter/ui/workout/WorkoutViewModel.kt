@@ -20,6 +20,21 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.Instant
 
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+
+@Serializable
+data class AiSummaryResponse(
+    val summary: String,
+    val exercises: List<AiSummaryExercise> = emptyList()
+)
+
+@Serializable
+data class AiSummaryExercise(
+    val name: String,
+    val markdown: String
+)
+
 data class WorkoutUiState(
     val loading: Boolean = true,
     val workout: WorkoutWithSets? = null,
@@ -30,7 +45,7 @@ data class WorkoutUiState(
     val suggestion: String? = null,
     val suggestionForExerciseId: Long? = null,
     val suggestionLoading: Boolean = false,
-    val finishedSummary: String? = null,
+    val finishedSummary: AiSummaryResponse? = null,
     val finishedLoading: Boolean = false,
     val showPostFinish: Boolean = false,
 )
@@ -224,9 +239,18 @@ class WorkoutViewModel(private val workoutId: Long) : ViewModel() {
                         model = cfg.groqModel,
                         messages = Prompts.postSessionSummary(full, previous),
                         temperature = 0.5,
+                        responseFormat = "json_object"
                     )
                 }.onSuccess { res ->
-                    _state.update { it.copy(finishedSummary = res.trim(), finishedLoading = false) }
+                    val parsed = runCatching {
+                        Json { ignoreUnknownKeys = true }.decodeFromString<AiSummaryResponse>(res)
+                    }.getOrNull()
+                    
+                    if (parsed != null) {
+                        _state.update { it.copy(finishedSummary = parsed, finishedLoading = false) }
+                    } else {
+                        _state.update { it.copy(finishedLoading = false) }
+                    }
                 }.onFailure {
                     _state.update { it.copy(finishedLoading = false) }
                 }

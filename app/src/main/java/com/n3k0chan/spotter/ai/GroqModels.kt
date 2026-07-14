@@ -9,12 +9,18 @@ data class GroqMessage(
 )
 
 @Serializable
+data class GroqResponseFormat(
+    val type: String
+)
+
+@Serializable
 data class GroqRequest(
     val model: String,
     val messages: List<GroqMessage>,
     val temperature: Double = 0.6,
-    val max_tokens: Int = 512,
+    val max_tokens: Int = 1024,
     val stream: Boolean = false,
+    val response_format: GroqResponseFormat? = null
 )
 
 @Serializable

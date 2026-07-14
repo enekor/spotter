@@ -42,25 +42,35 @@ object Prompts {
     fun postSessionSummary(workout: WorkoutWithSets, previousSimilar: List<WorkoutSet>): List<GroqMessage> {
         val sb = StringBuilder()
         sb.append("Sesión recién terminada (\"${workout.workout.title}\"):\n")
-        workout.sets.groupBy { it.exercise.name }.forEach { (name, sets) ->
-            val profile = sets.firstOrNull()?.exercise?.profile ?: return@forEach
-            sb.append("- $name [").append(profile.display).append("]: ")
+        workout.sets.groupBy { it.exercise }.forEach { (exercise, sets) ->
+            val profile = exercise.profile ?: return@forEach
+            sb.append("- ${exercise.name} [${profile.display}]: ")
             sb.append(sets.joinToString(", ") { it.set.formatShort(profile) })
             sb.append("\n")
         }
         if (previousSimilar.isNotEmpty()) {
-            sb.append("\nReferencia de sesiones anteriores:\n")
-            previousSimilar.take(8).forEach {
-                // Este formato es mejor approx que crudo: usamos numérico simple ya que no llega el exercise asociado
+            sb.append("\nReferencia de series en sesiones anteriores (para comparar PRs, volumen total, etc):\n")
+            previousSimilar.take(20).forEach {
                 sb.append("- ").append(formatRawSet(it)).append("\n")
             }
         }
         return listOf(
-            GroqMessage("system", systemTrainer),
+            GroqMessage("system", systemTrainer + "\nDebes responder ÚNICAMENTE con un objeto JSON válido, sin markdown ni explicaciones adicionales fuera del JSON."),
             GroqMessage(
                 role = "user",
-                content = sb.toString() + "\nDame un resumen en 2-3 frases: progreso vs anteriores, " +
-                    "qué destacar y un punto a vigilar la próxima vez. Sin cursiladas.",
+                content = sb.toString() + "\nCompara el total de cada ejercicio (volumen = peso x reps, o tiempo x distancia, etc) con los datos anteriores. " +
+                    "Desglosa puntos fuertes y débiles frente a entrenamientos anteriores (sobre todo entre la mejor serie y la más parecida hecha hoy). " +
+                    "Ten en cuenta el nombre y tipo del ejercicio (ej. si es Just Dance, valora el esfuerzo aeróbico). " +
+                    "Responde EXACTAMENTE con este JSON:\n" +
+                    "{\n" +
+                    "  \"summary\": \"Descripción pequeña general del entrenamiento (2-3 frases)\",\n" +
+                    "  \"exercises\": [\n" +
+                    "    {\n" +
+                    "      \"name\": \"Nombre del ejercicio\",\n" +
+                    "      \"markdown\": \"Tu veredicto detallado para este ejercicio en formato Markdown\"\n" +
+                    "    }\n" +
+                    "  ]\n" +
+                    "}"
             ),
         )
     }

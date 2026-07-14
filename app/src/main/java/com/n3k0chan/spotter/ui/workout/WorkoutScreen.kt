@@ -36,6 +36,9 @@ import com.n3k0chan.spotter.di.ServiceLocator
 import com.n3k0chan.spotter.timer.RestTimerController
 import com.n3k0chan.spotter.timer.RestTimerService
 import com.n3k0chan.spotter.ui.components.*
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import com.n3k0chan.spotter.ui.workout.AiSummaryResponse
 import com.n3k0chan.spotter.ui.theme.SpotterText
 import com.n3k0chan.spotter.ui.theme.SpotterTheme
 import java.text.DateFormat
@@ -771,7 +774,7 @@ private fun FinishWorkoutDialog(
 @Composable
 private fun PostFinishSummaryDialog(
     loading: Boolean,
-    summary: String?,
+    summary: AiSummaryResponse?,
     onDismiss: () -> Unit,
 ) {
     val c = SpotterTheme.colors
@@ -803,25 +806,57 @@ private fun PostFinishSummaryDialog(
                         )
                         Text("Generando resumen…", style = SpotterText.body, color = c.textMuted)
                     }
-                } else if (!summary.isNullOrBlank()) {
-                    SpotterCard(
-                        radius = 12.dp,
-                        padding = 12.dp,
-                        background = c.primarySoft,
-                        border = c.primarySoft,
-                    ) {
-                        Row(verticalAlignment = Alignment.Top) {
-                            Icon(
-                                Icons.Filled.AutoAwesome,
-                                contentDescription = null,
-                                tint = c.primary,
-                                modifier = Modifier.size(16.dp),
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            Column {
-                                Text("RESUMEN IA", style = SpotterText.caps, color = c.primarySoftText)
-                                Spacer(Modifier.height(4.dp))
-                                Text(summary, style = SpotterText.body, color = c.primarySoftText.copy(alpha = 0.85f))
+                } else if (summary != null) {
+                    Text(summary.summary, style = SpotterText.body, color = c.text)
+                    Spacer(Modifier.height(16.dp))
+                    
+                    if (summary.exercises.isNotEmpty()) {
+                        val pagerState = rememberPagerState(pageCount = { summary.exercises.size })
+                        HorizontalPager(
+                            state = pagerState,
+                            modifier = Modifier.fillMaxWidth()
+                        ) { page ->
+                            val ex = summary.exercises[page]
+                            SpotterCard(
+                                radius = 12.dp,
+                                padding = 12.dp,
+                                background = c.primarySoft,
+                                border = c.primarySoft,
+                            ) {
+                                Column {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            Icons.Filled.AutoAwesome,
+                                            contentDescription = null,
+                                            tint = c.primary,
+                                            modifier = Modifier.size(16.dp),
+                                        )
+                                        Spacer(Modifier.width(8.dp))
+                                        Text(ex.name, style = SpotterText.caps, color = c.primarySoftText)
+                                    }
+                                    Spacer(Modifier.height(8.dp))
+                                    Text(
+                                        ex.markdown,
+                                        style = SpotterText.small,
+                                        color = c.primarySoftText.copy(alpha = 0.85f)
+                                    )
+                                }
+                            }
+                        }
+                        Spacer(Modifier.height(8.dp))
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            repeat(summary.exercises.size) { iteration ->
+                                val color = if (pagerState.currentPage == iteration) c.primary else c.surfaceVariant
+                                Box(
+                                    modifier = Modifier
+                                        .padding(2.dp)
+                                        .clip(androidx.compose.foundation.shape.CircleShape)
+                                        .background(color)
+                                        .size(6.dp)
+                                )
                             }
                         }
                     }
