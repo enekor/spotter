@@ -28,6 +28,7 @@ data class SpotterColors(
     val danger: Color,
     val chartFill: Color,
     val isDark: Boolean,
+    val style: AppThemeStyle,
 )
 
 val LightSpotterColors = SpotterColors(
@@ -48,6 +49,7 @@ val LightSpotterColors = SpotterColors(
     danger = LightDanger,
     chartFill = LightChartFill,
     isDark = false,
+    style = AppThemeStyle.Modern,
 )
 
 val DarkSpotterColors = SpotterColors(
@@ -68,6 +70,7 @@ val DarkSpotterColors = SpotterColors(
     danger = DarkDanger,
     chartFill = DarkChartFill,
     isDark = true,
+    style = AppThemeStyle.Modern,
 )
 
 val LocalSpotterColors = staticCompositionLocalOf { LightSpotterColors }

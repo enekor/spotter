@@ -69,14 +69,28 @@ private val DarkM3 = darkColorScheme(
 @Composable
 fun SpotterTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
+    appThemeStyle: AppThemeStyle = AppThemeStyle.Modern,
     content: @Composable () -> Unit,
 ) {
     val m3 = if (darkTheme) DarkM3 else LightM3
-    val tokens = if (darkTheme) DarkSpotterColors else LightSpotterColors
+    val baseTokens = if (darkTheme) DarkSpotterColors else LightSpotterColors
+    val tokens = baseTokens.copy(style = appThemeStyle)
+    
+    // Configurar Typography basándose en el estilo (para el Brutalismo y Minimalista)
+    val typography = when (appThemeStyle) {
+        AppThemeStyle.Modern -> Typography
+        AppThemeStyle.Brutalism -> Typography.copy(
+            titleLarge = Typography.titleLarge.copy(fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace),
+            titleMedium = Typography.titleMedium.copy(fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace),
+            titleSmall = Typography.titleSmall.copy(fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
+        )
+        else -> Typography
+    }
+    
     CompositionLocalProvider(LocalSpotterColors provides tokens) {
         MaterialTheme(
             colorScheme = m3,
-            typography = Typography,
+            typography = typography,
             content = content,
         )
     }

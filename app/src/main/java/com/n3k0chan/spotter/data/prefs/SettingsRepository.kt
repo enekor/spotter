@@ -48,6 +48,10 @@ class SettingsRepository(context: Context) {
                 ?.mapNotNull { it.toIntOrNull() }?.toSet() ?: emptySet(),
             reminderHour = prefs.getInt(KEY_REMINDER_HOUR, 18),
             reminderMinute = prefs.getInt(KEY_REMINDER_MINUTE, 0),
+            appThemeStyle = com.n3k0chan.spotter.ui.theme.AppThemeStyle.valueOf(
+                prefs.getString(KEY_APP_THEME_STYLE, com.n3k0chan.spotter.ui.theme.AppThemeStyle.Modern.name)
+                    ?: com.n3k0chan.spotter.ui.theme.AppThemeStyle.Modern.name
+            ),
         )
     }
 
@@ -110,6 +114,11 @@ class SettingsRepository(context: Context) {
         _state.value = load()
     }
 
+    fun setAppThemeStyle(style: com.n3k0chan.spotter.ui.theme.AppThemeStyle) {
+        prefs.edit().putString(KEY_APP_THEME_STYLE, style.name).apply()
+        _state.value = load()
+    }
+
     companion object {
         private const val FILE = "spotter_secure_prefs"
         private const val KEY_GROQ_API = "groq_api_key"
@@ -124,6 +133,7 @@ class SettingsRepository(context: Context) {
         private const val KEY_REMINDER_DAYS = "reminder_days"
         private const val KEY_REMINDER_HOUR = "reminder_hour"
         private const val KEY_REMINDER_MINUTE = "reminder_minute"
+        private const val KEY_APP_THEME_STYLE = "app_theme_style"
         const val DEFAULT_MODEL = "llama-3.3-70b-versatile"
         val MODELS = listOf(
             "llama-3.3-70b-versatile",
@@ -147,6 +157,7 @@ data class AppSettings(
     val reminderDays: Set<Int> = emptySet(),
     val reminderHour: Int = 18,
     val reminderMinute: Int = 0,
+    val appThemeStyle: com.n3k0chan.spotter.ui.theme.AppThemeStyle = com.n3k0chan.spotter.ui.theme.AppThemeStyle.Modern,
 ) {
     val hasApiKey: Boolean get() = groqApiKey.isNotBlank()
     val isDriveLinked: Boolean get() = !driveAccountName.isNullOrBlank()

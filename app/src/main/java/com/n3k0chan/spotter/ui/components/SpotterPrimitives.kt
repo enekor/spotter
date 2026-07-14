@@ -45,12 +45,50 @@ fun SpotterCard(
     onClick: (() -> Unit)? = null,
     content: @Composable () -> Unit,
 ) {
-    val shape = RoundedCornerShape(radius)
-    val base = modifier
-        .clip(shape)
-        .background(background)
-        .border(BorderStroke(1.dp, border), shape)
-    val withClick = if (onClick != null) base.clickable(onClick = onClick) else base
+    val style = SpotterTheme.colors.style
+    val isDark = SpotterTheme.colors.isDark
+    
+    val actualRadius = when (style) {
+        com.n3k0chan.spotter.ui.theme.AppThemeStyle.Modern -> radius
+        com.n3k0chan.spotter.ui.theme.AppThemeStyle.Neumorphism -> radius + 4.dp
+        com.n3k0chan.spotter.ui.theme.AppThemeStyle.Brutalism -> 0.dp
+        com.n3k0chan.spotter.ui.theme.AppThemeStyle.Glassmorphism -> radius
+    }
+    val shape = RoundedCornerShape(actualRadius)
+    
+    val base = modifier.clip(shape)
+    
+    val themedModifier = when (style) {
+        com.n3k0chan.spotter.ui.theme.AppThemeStyle.Modern -> {
+            base.background(background).border(BorderStroke(1.dp, border), shape)
+        }
+        com.n3k0chan.spotter.ui.theme.AppThemeStyle.Neumorphism -> {
+            // Simplified Neumorphism simulation using standard compose shadow
+            base.androidx.compose.ui.draw.shadow(
+                elevation = if (isDark) 4.dp else 8.dp,
+                shape = shape,
+                spotColor = if (isDark) Color.Black else Color.Gray.copy(alpha = 0.5f),
+                ambientColor = if (isDark) Color.Black else Color.Gray.copy(alpha = 0.5f)
+            ).background(background)
+        }
+        com.n3k0chan.spotter.ui.theme.AppThemeStyle.Brutalism -> {
+            base.background(background).border(
+                BorderStroke(3.dp, if (isDark) Color.White else Color.Black),
+                shape
+            ).androidx.compose.ui.draw.shadow(
+                elevation = 4.dp,
+                shape = shape,
+                spotColor = if (isDark) Color.White else Color.Black,
+                ambientColor = if (isDark) Color.White else Color.Black
+            )
+        }
+        com.n3k0chan.spotter.ui.theme.AppThemeStyle.Glassmorphism -> {
+            base.background(background.copy(alpha = 0.6f))
+                .border(BorderStroke(1.dp, Color.White.copy(alpha = 0.2f)), shape)
+        }
+    }
+    
+    val withClick = if (onClick != null) themedModifier.clickable(onClick = onClick) else themedModifier
     Box(modifier = withClick.padding(padding)) { content() }
 }
 
@@ -168,17 +206,49 @@ fun SpotterButton(
         SpotterButtonVariant.Surface -> Triple(c.surface, c.text, c.border)
         SpotterButtonVariant.Danger -> Triple(Color.Transparent, c.danger, c.border)
     }
-    val shape = RoundedCornerShape(height / 2)
+    val style = SpotterTheme.colors.style
+    val isDark = SpotterTheme.colors.isDark
+    
+    val heightToUse = if (style == com.n3k0chan.spotter.ui.theme.AppThemeStyle.Brutalism) height + 4.dp else height
+    val actualRadius = when (style) {
+        com.n3k0chan.spotter.ui.theme.AppThemeStyle.Modern -> heightToUse / 2
+        com.n3k0chan.spotter.ui.theme.AppThemeStyle.Neumorphism -> heightToUse / 2
+        com.n3k0chan.spotter.ui.theme.AppThemeStyle.Brutalism -> 0.dp
+        com.n3k0chan.spotter.ui.theme.AppThemeStyle.Glassmorphism -> 12.dp
+    }
+    val shape = RoundedCornerShape(actualRadius)
+    
+    val brutalBorder = if (isDark) Color.White else Color.Black
+    val finalBorderColor = if (style == com.n3k0chan.spotter.ui.theme.AppThemeStyle.Brutalism) brutalBorder else borderColor
+    val finalBorderWidth = if (style == com.n3k0chan.spotter.ui.theme.AppThemeStyle.Brutalism) 3.dp else 1.dp
+    
     val base = modifier
         .let { if (full) it.fillMaxWidth() else it }
-        .height(height)
-        .clip(shape)
-        .background(bg)
-        .border(BorderStroke(1.dp, borderColor), shape)
+        .height(heightToUse)
+        
+    val themedModifier = when (style) {
+        com.n3k0chan.spotter.ui.theme.AppThemeStyle.Neumorphism -> {
+            base.androidx.compose.ui.draw.shadow(
+                elevation = if (variant == SpotterButtonVariant.Filled) 6.dp else 0.dp,
+                shape = shape,
+                spotColor = if (isDark) Color.Black else Color.Gray.copy(alpha = 0.5f),
+                ambientColor = if (isDark) Color.Black else Color.Gray.copy(alpha = 0.5f)
+            ).clip(shape).background(bg)
+        }
+        com.n3k0chan.spotter.ui.theme.AppThemeStyle.Glassmorphism -> {
+            base.clip(shape).background(bg.copy(alpha = if (variant == SpotterButtonVariant.Filled) 0.8f else 0.4f))
+                .border(BorderStroke(finalBorderWidth, if (variant == SpotterButtonVariant.Filled) Color.White.copy(alpha = 0.3f) else finalBorderColor.copy(alpha = 0.2f)), shape)
+        }
+        else -> {
+            base.clip(shape).background(bg).border(BorderStroke(finalBorderWidth, finalBorderColor), shape)
+        }
+    }
+    
+    val withClick = themedModifier
         .clickable(enabled = enabled, onClick = onClick)
         .padding(horizontal = 20.dp)
     Row(
-        modifier = base,
+        modifier = withClick,
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -212,12 +282,25 @@ fun SpotterChip(
         SpotterChipTone.Success -> Triple(Color.Transparent, c.success, c.border)
         SpotterChipTone.Neutral -> Triple(Color.Transparent, c.textMuted, c.border)
     }
-    val shape = RoundedCornerShape(8.dp)
+    val style = SpotterTheme.colors.style
+    val actualRadius = when (style) {
+        com.n3k0chan.spotter.ui.theme.AppThemeStyle.Modern -> 8.dp
+        com.n3k0chan.spotter.ui.theme.AppThemeStyle.Neumorphism -> 8.dp
+        com.n3k0chan.spotter.ui.theme.AppThemeStyle.Brutalism -> 0.dp
+        com.n3k0chan.spotter.ui.theme.AppThemeStyle.Glassmorphism -> 6.dp
+    }
+    val shape = RoundedCornerShape(actualRadius)
+    
+    val finalBorderColor = if (style == com.n3k0chan.spotter.ui.theme.AppThemeStyle.Brutalism) {
+        if (SpotterTheme.colors.isDark) Color.White else Color.Black
+    } else borderColor
+    val finalBorderWidth = if (style == com.n3k0chan.spotter.ui.theme.AppThemeStyle.Brutalism) 2.dp else 1.dp
+
     val base = modifier
         .heightIn(min = 32.dp)
         .clip(shape)
-        .background(bg)
-        .border(BorderStroke(1.dp, borderColor), shape)
+        .background(if (style == com.n3k0chan.spotter.ui.theme.AppThemeStyle.Glassmorphism) bg.copy(alpha = 0.6f) else bg)
+        .border(BorderStroke(finalBorderWidth, finalBorderColor), shape)
         .let { if (onClick != null) it.clickable(onClick = onClick) else it }
         .padding(horizontal = 12.dp, vertical = 4.dp)
     Row(
@@ -243,13 +326,39 @@ fun SpotterDataField(
     onClick: (() -> Unit)? = null,
 ) {
     val c = SpotterTheme.colors
-    val shape = RoundedCornerShape(12.dp)
+    val style = SpotterTheme.colors.style
+    val isDark = SpotterTheme.colors.isDark
+    
+    val actualRadius = when (style) {
+        com.n3k0chan.spotter.ui.theme.AppThemeStyle.Modern -> 12.dp
+        com.n3k0chan.spotter.ui.theme.AppThemeStyle.Neumorphism -> 12.dp
+        com.n3k0chan.spotter.ui.theme.AppThemeStyle.Brutalism -> 0.dp
+        com.n3k0chan.spotter.ui.theme.AppThemeStyle.Glassmorphism -> 12.dp
+    }
+    val shape = RoundedCornerShape(actualRadius)
+    
+    val brutalBorder = if (isDark) Color.White else Color.Black
+    val finalBorderWidth = if (style == com.n3k0chan.spotter.ui.theme.AppThemeStyle.Brutalism) 3.dp else 1.dp
+    val finalBorderColor = if (style == com.n3k0chan.spotter.ui.theme.AppThemeStyle.Brutalism) brutalBorder else c.border
+    
+    val base = modifier
+        .height(56.dp)
+        .clip(shape)
+        
+    val themedModifier = when (style) {
+        com.n3k0chan.spotter.ui.theme.AppThemeStyle.Neumorphism -> {
+            base.background(c.surfaceMuted).border(BorderStroke(finalBorderWidth, finalBorderColor), shape)
+        }
+        com.n3k0chan.spotter.ui.theme.AppThemeStyle.Glassmorphism -> {
+            base.background(c.surfaceMuted.copy(alpha = 0.5f)).border(BorderStroke(finalBorderWidth, finalBorderColor.copy(alpha = 0.3f)), shape)
+        }
+        else -> {
+            base.background(c.surfaceMuted).border(BorderStroke(finalBorderWidth, finalBorderColor), shape)
+        }
+    }
+
     Column(
-        modifier = modifier
-            .height(56.dp)
-            .clip(shape)
-            .background(c.surfaceMuted)
-            .border(BorderStroke(1.dp, c.border), shape)
+        modifier = themedModifier
             .let { if (onClick != null) it.clickable(onClick = onClick) else it }
             .padding(horizontal = 12.dp, vertical = 6.dp),
         verticalArrangement = Arrangement.Center,

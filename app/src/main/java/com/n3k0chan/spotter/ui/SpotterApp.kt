@@ -56,11 +56,15 @@ fun SpotterApp() {
     val currentRoute = backStackEntry?.destination?.route
     val showBottomBar = TopLevelRoute.entries.any { it.route == currentRoute }
 
-    Scaffold(
-        containerColor = SpotterTheme.colors.bg,
-        bottomBar = {
-            if (showBottomBar) {
-                SpotterBottomNav(
+    // Obtenemos el estilo de la app de los settings
+    val settings by com.n3k0chan.spotter.di.ServiceLocator.settings.state.androidx.lifecycle.compose.collectAsStateWithLifecycle()
+
+    com.n3k0chan.spotter.ui.theme.SpotterTheme(appThemeStyle = settings.appThemeStyle) {
+        Scaffold(
+            containerColor = SpotterTheme.colors.bg,
+            bottomBar = {
+                if (showBottomBar) {
+                    SpotterBottomNav(
                     activeRoute = currentRoute,
                     onSelect = { tab ->
                         val isCurrent = backStackEntry?.destination?.hierarchy?.any { it.route == tab.route } == true
@@ -80,6 +84,7 @@ fun SpotterApp() {
             navController = navController,
             modifier = Modifier.padding(padding),
         )
+    }
     }
 }
 

@@ -116,9 +116,17 @@ class SettingsViewModel : ViewModel() {
     fun setVibrate(value: Boolean) = repo.setVibrate(value)
     fun setChatHistoryWindow(value: ChatHistoryWindow) = repo.setChatHistoryWindow(value)
 
+    fun setReminderTime(hour: Int, minute: Int) {
+        repo.setReminderTime(hour, minute)
+    }
+    
     fun updateReminders(days: Set<Int>, hour: Int, minute: Int) {
         repo.setReminderDays(days)
         repo.setReminderTime(hour, minute)
+    }
+
+    fun setAppThemeStyle(style: com.n3k0chan.spotter.ui.theme.AppThemeStyle) {
+        repo.setAppThemeStyle(style)
     }
 
     fun onAccountPicked(name: String?) {
@@ -267,6 +275,27 @@ fun SettingsScreen(
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
+    // ── ESTILO
+            item { SectionHeader("APARIENCIA") }
+            item {
+                SpotterCard {
+                    Column {
+                        Text("Estilo de la App", style = SpotterText.bodyMd, color = c.text)
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            "Cambia la apariencia de Spotter al instante.",
+                            style = SpotterText.small,
+                            color = c.textMuted,
+                        )
+                        Spacer(Modifier.height(12.dp))
+                        AppThemeStyleSelector(
+                            selected = state.appThemeStyle,
+                            onSelect = vm::setAppThemeStyle,
+                        )
+                    }
+                }
+            }
+
             // ── ASISTENTE
             item { SectionHeader("ASISTENTE") }
             item {
@@ -673,6 +702,37 @@ private fun IntFieldRow(label: String, value: Int, unit: String, onChange: (Int)
         )
         Spacer(Modifier.width(4.dp))
         Text(unit, style = SpotterText.small, color = c.textMuted)
+    }
+}
+
+@Composable
+private fun AppThemeStyleSelector(
+    selected: com.n3k0chan.spotter.ui.theme.AppThemeStyle,
+    onSelect: (com.n3k0chan.spotter.ui.theme.AppThemeStyle) -> Unit,
+) {
+    val c = SpotterTheme.colors
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        com.n3k0chan.spotter.ui.theme.AppThemeStyle.entries.forEach { w ->
+            val isSelected = selected == w
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(if (isSelected) c.primary else c.surfaceMuted)
+                    .clickable { onSelect(w) }
+                    .padding(vertical = 12.dp, horizontal = 16.dp),
+                contentAlignment = Alignment.CenterStart,
+            ) {
+                Text(
+                    w.displayName,
+                    style = SpotterText.smallMd,
+                    color = if (isSelected) c.onPrimary else c.text,
+                )
+            }
+        }
     }
 }
 
