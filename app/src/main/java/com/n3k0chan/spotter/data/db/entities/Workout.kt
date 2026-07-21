@@ -22,6 +22,9 @@ data class Workout(
     val heartRateMax: Long? = null,
     val distanceMeters: Double? = null,
     val steps: Long? = null,
+    
+    // AI Summary json guardado
+    val aiSummaryJson: String? = null,
 )
 
 /**

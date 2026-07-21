@@ -247,6 +247,12 @@ class WorkoutViewModel(private val workoutId: Long) : ViewModel() {
                     }.getOrNull()
                     
                     if (parsed != null) {
+                        // Guardar en BD para poder verlo despues
+                        val currentWorkout = workouts.get(workoutId)?.workout
+                        if (currentWorkout != null) {
+                            workouts.update(currentWorkout.copy(aiSummaryJson = res))
+                        }
+                        
                         _state.update { it.copy(finishedSummary = parsed, finishedLoading = false) }
                     } else {
                         _state.update { it.copy(finishedLoading = false) }

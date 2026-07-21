@@ -23,7 +23,7 @@ import com.n3k0chan.spotter.data.db.entities.WorkoutSet
         Workout::class,
         WorkoutSet::class,
     ],
-    version = 4,
+    version = 5,
     exportSchema = false,
 )
 abstract class SpotterDatabase : RoomDatabase() {
@@ -44,6 +44,12 @@ abstract class SpotterDatabase : RoomDatabase() {
                 db.execSQL("ALTER TABLE workouts ADD COLUMN steps INTEGER")
             }
         }
+        
+        private val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE workouts ADD COLUMN aiSummaryJson TEXT")
+            }
+        }
 
         fun get(context: Context): SpotterDatabase = instance ?: synchronized(this) {
             instance ?: Room.databaseBuilder(
@@ -51,7 +57,7 @@ abstract class SpotterDatabase : RoomDatabase() {
                 SpotterDatabase::class.java,
                 "spotter.db",
             )
-                .addMigrations(MIGRATION_3_4)
+                .addMigrations(MIGRATION_3_4, MIGRATION_4_5)
                 .build()
                 .also { instance = it }
         }

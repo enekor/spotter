@@ -33,6 +33,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -57,7 +58,7 @@ fun SpotterApp() {
     val showBottomBar = TopLevelRoute.entries.any { it.route == currentRoute }
 
     // Obtenemos el estilo de la app de los settings
-    val settings by com.n3k0chan.spotter.di.ServiceLocator.settings.state.androidx.lifecycle.compose.collectAsStateWithLifecycle()
+    val settings by com.n3k0chan.spotter.di.ServiceLocator.settings.state.collectAsStateWithLifecycle()
 
     com.n3k0chan.spotter.ui.theme.SpotterTheme(appThemeStyle = settings.appThemeStyle) {
         Scaffold(

@@ -47,6 +47,7 @@ class WorkoutRepository(private val dao: WorkoutDao) {
         heartRateMax: Long? = null,
         distanceMeters: Double? = null,
         steps: Long? = null,
+        aiSummaryJson: String? = null,
     ) {
         val current = dao.getById(workoutId)?.workout ?: return
         dao.updateWorkout(
@@ -61,6 +62,7 @@ class WorkoutRepository(private val dao: WorkoutDao) {
                 heartRateMax = heartRateMax,
                 distanceMeters = distanceMeters,
                 steps = steps,
+                aiSummaryJson = aiSummaryJson ?: current.aiSummaryJson,
             ),
         )
     }

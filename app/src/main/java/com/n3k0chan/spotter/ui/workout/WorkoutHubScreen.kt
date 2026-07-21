@@ -32,6 +32,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.n3k0chan.spotter.data.db.entities.TemplateExerciseWithExercise
 import com.n3k0chan.spotter.data.db.entities.TemplateWithExercises
 import com.n3k0chan.spotter.di.ServiceLocator
 import com.n3k0chan.spotter.ui.components.SpotterButton
@@ -169,7 +170,7 @@ fun WorkoutHubScreen(
 @Composable
 private fun TemplateRowCard(
     name: String,
-    exercises: List<com.n3k0chan.spotter.data.db.entities.TemplateItemWithExercise>,
+    exercises: List<TemplateExerciseWithExercise>,
     onClickStart: () -> Unit
 ) {
     val c = SpotterTheme.colors
@@ -192,7 +193,7 @@ private fun TemplateRowCard(
                 }
                 SpotterButton(
                     text = "Iniciar",
-                    variant = SpotterButtonVariant.Primary,
+                    variant = SpotterButtonVariant.Filled,
                     onClick = onClickStart,
                 )
             }
@@ -201,7 +202,7 @@ private fun TemplateRowCard(
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     exercises.forEach { item ->
                         Text(
-                            text = "• ${item.exercise.name} (${item.item.targetSets} series)",
+                            text = "• ${item.exercise.name} (${item.templateExercise.targetSets} series)",
                             style = SpotterText.body,
                             color = c.textMuted
                         )

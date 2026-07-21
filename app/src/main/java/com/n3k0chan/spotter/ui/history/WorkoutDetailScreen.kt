@@ -17,9 +17,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.DirectionsWalk
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.LocalFireDepartment
@@ -27,7 +30,6 @@ import androidx.compose.material.icons.filled.Notes
 import androidx.compose.material.icons.filled.Route
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -59,11 +61,13 @@ import com.n3k0chan.spotter.ui.components.SpotterIconButton
 import com.n3k0chan.spotter.ui.components.SpotterTopBar
 import com.n3k0chan.spotter.ui.theme.SpotterText
 import com.n3k0chan.spotter.ui.theme.SpotterTheme
+import com.n3k0chan.spotter.ui.workout.AiSummaryResponse
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.Json
 import java.text.DateFormat
 import java.time.Instant
 import java.util.Date
@@ -205,6 +209,80 @@ private fun DetailContent(
                         if (w.workout.rpe != null) SpotterChip("RPE ${w.workout.rpe}", leading = Icons.Filled.Warning)
                         SpotterChip("${exercises.size} ejercicios")
                         SpotterChip("${w.sets.size} series")
+                    }
+                }
+            }
+        }
+        
+        if (w.workout.aiSummaryJson != null) {
+            item {
+                val summary = remember(w.workout.aiSummaryJson) {
+                    runCatching {
+                        Json { ignoreUnknownKeys = true }.decodeFromString<AiSummaryResponse>(w.workout.aiSummaryJson)
+                    }.getOrNull()
+                }
+                
+                if (summary != null) {
+                    SpotterCard(
+                        background = c.primarySoft,
+                        border = c.primarySoft,
+                    ) {
+                        Column {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    Icons.Filled.AutoAwesome,
+                                    contentDescription = null,
+                                    tint = c.primary,
+                                    modifier = Modifier.size(16.dp),
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Text("RESUMEN IA", style = SpotterText.caps, color = c.primarySoftText)
+                            }
+                            Spacer(Modifier.height(8.dp))
+                            Text(summary.summary, style = SpotterText.body, color = c.text)
+                            
+                            if (summary.exercises.isNotEmpty()) {
+                                Spacer(Modifier.height(16.dp))
+                                val pagerState = rememberPagerState(pageCount = { summary.exercises.size })
+                                HorizontalPager(
+                                    state = pagerState,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) { page ->
+                                    val ex = summary.exercises[page]
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(c.surface)
+                                            .padding(12.dp)
+                                    ) {
+                                        Text(ex.name, style = SpotterText.smallMd, color = c.primary)
+                                        Spacer(Modifier.height(4.dp))
+                                        Text(
+                                            ex.markdown,
+                                            style = SpotterText.small,
+                                            color = c.text
+                                        )
+                                    }
+                                }
+                                Spacer(Modifier.height(8.dp))
+                                Row(
+                                    Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.Center
+                                ) {
+                                    repeat(summary.exercises.size) { iteration ->
+                                        val color = if (pagerState.currentPage == iteration) c.primary else c.primarySoftText.copy(alpha = 0.3f)
+                                        Box(
+                                            modifier = Modifier
+                                                .padding(2.dp)
+                                                .clip(androidx.compose.foundation.shape.CircleShape)
+                                                .background(color)
+                                                .size(6.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }

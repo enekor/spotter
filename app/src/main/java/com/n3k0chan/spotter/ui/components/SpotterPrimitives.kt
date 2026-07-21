@@ -25,6 +25,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextOverflow
@@ -64,7 +65,7 @@ fun SpotterCard(
         }
         com.n3k0chan.spotter.ui.theme.AppThemeStyle.Neumorphism -> {
             // Simplified Neumorphism simulation using standard compose shadow
-            base.androidx.compose.ui.draw.shadow(
+            base.shadow(
                 elevation = if (isDark) 4.dp else 8.dp,
                 shape = shape,
                 spotColor = if (isDark) Color.Black else Color.Gray.copy(alpha = 0.5f),
@@ -75,7 +76,7 @@ fun SpotterCard(
             base.background(background).border(
                 BorderStroke(3.dp, if (isDark) Color.White else Color.Black),
                 shape
-            ).androidx.compose.ui.draw.shadow(
+            ).shadow(
                 elevation = 4.dp,
                 shape = shape,
                 spotColor = if (isDark) Color.White else Color.Black,
@@ -228,7 +229,7 @@ fun SpotterButton(
         
     val themedModifier = when (style) {
         com.n3k0chan.spotter.ui.theme.AppThemeStyle.Neumorphism -> {
-            base.androidx.compose.ui.draw.shadow(
+            base.shadow(
                 elevation = if (variant == SpotterButtonVariant.Filled) 6.dp else 0.dp,
                 shape = shape,
                 spotColor = if (isDark) Color.Black else Color.Gray.copy(alpha = 0.5f),
