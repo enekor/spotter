@@ -136,6 +136,29 @@ object Prompts {
             add(GroqMessage("user", userInput))
         }
 
+    fun weightAnalysis(weights: List<com.n3k0chan.spotter.data.db.entities.WeightLog>): List<GroqMessage> {
+        val sb = StringBuilder()
+        sb.append("Historial de peso del usuario:\n")
+        weights.forEach { 
+            val date = java.time.Instant.ofEpochMilli(it.dateMs).atZone(java.time.ZoneId.systemDefault()).toLocalDate()
+            sb.append("- $date: ${it.weightKg} kg")
+            if (!it.notes.isNullOrBlank()) {
+                sb.append(" (Nota: ${it.notes})")
+            }
+            sb.append("\n")
+        }
+        return listOf(
+            GroqMessage("system", systemTrainer),
+            GroqMessage(
+                role = "user",
+                content = sb.toString() + "\nAnaliza brevemente el progreso de peso del usuario. " +
+                    "Si hay una tendencia (subida, bajada, mantenimiento), coméntala. " +
+                    "Si hay notas, tenlas en cuenta. " +
+                    "No des consejos médicos, solo comenta la tendencia. Máximo 3-4 frases."
+            )
+        )
+    }
+
     /**
      * Formato fallback cuando solo tenemos un WorkoutSet pelado (sin acceso al
      * exercise/profile). Mostramos los campos no nulos con un símbolo.

@@ -61,7 +61,7 @@ Consigue una key gratis en https://console.groq.com/keys.
 - Plantillas reutilizables + posibilidad de entrenos libres sin plantilla.
 - Solo `kg`. Si en algún momento quieres `lb`, hay que tocar `Workout.weightKg` y la UI de input.
 - Mensajes motivacionales secos por defecto (sin "tú puedes" ni emojis); con API key, los genera Groq.
-- Modelo Groq por defecto: `llama-3.3-70b-versatile` (configurable en Ajustes).
+- Modelo Groq por defecto: `openai/gpt-oss-20b` (configurable en Ajustes).
 
 ## Estructura
 

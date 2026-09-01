@@ -36,6 +36,50 @@ import com.n3k0chan.spotter.ui.theme.SpotterTheme
 
 /* ─── Tarjeta base ─── */
 
+import androidx.compose.foundation.Canvas
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+
+@Composable
+fun Sparkline(points: List<Float>, modifier: Modifier = Modifier.fillMaxWidth().height(80.dp)) {
+    val c = SpotterTheme.colors
+    Canvas(modifier = modifier) {
+        if (points.size < 2) return@Canvas
+        val pad = 4.dp.toPx()
+        val w = size.width
+        val h = size.height
+        val min = points.min()
+        val max = points.max()
+        val span = (max - min).coerceAtLeast(0.001f)
+        val xs = points.indices.map { i -> pad + i.toFloat() / (points.size - 1) * (w - pad * 2) }
+        val ys = points.map { p -> pad + (1f - (p - min) / span) * (h - pad * 2) }
+
+        val fill = Path().apply {
+            moveTo(xs[0], ys[0])
+            for (i in 1 until points.size) lineTo(xs[i], ys[i])
+            lineTo(xs.last(), h)
+            lineTo(xs.first(), h)
+            close()
+        }
+        drawPath(path = fill, color = c.chartFill)
+
+        val line = Path().apply {
+            moveTo(xs[0], ys[0])
+            for (i in 1 until points.size) lineTo(xs[i], ys[i])
+        }
+        drawPath(
+            path = line,
+            color = c.primary,
+            style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round),
+        )
+        drawCircle(color = c.primary, radius = 3.dp.toPx(), center = Offset(xs.last(), ys.last()))
+    }
+}
+
 @Composable
 fun SpotterCard(
     modifier: Modifier = Modifier,

@@ -17,6 +17,7 @@ import com.n3k0chan.spotter.ui.settings.SettingsScreen
 import com.n3k0chan.spotter.ui.stats.StatsScreen
 import com.n3k0chan.spotter.ui.templates.TemplateEditorScreen
 import com.n3k0chan.spotter.ui.templates.TemplatesScreen
+import com.n3k0chan.spotter.ui.weight.WeightScreen
 import com.n3k0chan.spotter.ui.workout.WorkoutHubScreen
 import com.n3k0chan.spotter.ui.workout.WorkoutScreen
 
@@ -129,6 +130,13 @@ fun SpotterNavGraph(
 
         composable(Routes.Health) {
             HealthScreen(onBack = { navController.popBackStack() })
+        }
+
+        composable(Routes.Weight) {
+            WeightScreen(
+                onOpenSettings = { navController.navigate(Routes.Settings) },
+                onOpenChat = { navController.navigate(Routes.Chat) },
+            )
         }
     }
 }

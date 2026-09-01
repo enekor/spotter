@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.MonitorWeight
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -48,6 +49,7 @@ import com.n3k0chan.spotter.di.ServiceLocator
 import com.n3k0chan.spotter.ui.components.SpotterCard
 import com.n3k0chan.spotter.ui.components.SpotterIconButton
 import com.n3k0chan.spotter.ui.components.SpotterTopBar
+import com.n3k0chan.spotter.ui.components.Sparkline
 import androidx.compose.material3.Icon
 import com.n3k0chan.spotter.ui.theme.SpotterText
 import com.n3k0chan.spotter.ui.theme.SpotterTheme
@@ -440,38 +442,3 @@ private fun ExerciseSparklineCard(data: ExerciseProgressData) {
     }
 }
 
-@Composable
-fun Sparkline(points: List<Float>, modifier: Modifier = Modifier.fillMaxWidth().height(80.dp)) {
-    val c = SpotterTheme.colors
-    Canvas(modifier = modifier) {
-        if (points.size < 2) return@Canvas
-        val pad = 4.dp.toPx()
-        val w = size.width
-        val h = size.height
-        val min = points.min()
-        val max = points.max()
-        val span = (max - min).coerceAtLeast(0.001f)
-        val xs = points.indices.map { i -> pad + i.toFloat() / (points.size - 1) * (w - pad * 2) }
-        val ys = points.map { p -> pad + (1f - (p - min) / span) * (h - pad * 2) }
-
-        val fill = Path().apply {
-            moveTo(xs[0], ys[0])
-            for (i in 1 until points.size) lineTo(xs[i], ys[i])
-            lineTo(xs.last(), h)
-            lineTo(xs.first(), h)
-            close()
-        }
-        drawPath(path = fill, color = c.chartFill)
-
-        val line = Path().apply {
-            moveTo(xs[0], ys[0])
-            for (i in 1 until points.size) lineTo(xs[i], ys[i])
-        }
-        drawPath(
-            path = line,
-            color = c.primary,
-            style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round),
-        )
-        drawCircle(color = c.primary, radius = 3.dp.toPx(), center = Offset(xs.last(), ys.last()))
-    }
-}

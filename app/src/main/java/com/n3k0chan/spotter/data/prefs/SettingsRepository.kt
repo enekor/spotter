@@ -134,11 +134,9 @@ class SettingsRepository(context: Context) {
         private const val KEY_REMINDER_HOUR = "reminder_hour"
         private const val KEY_REMINDER_MINUTE = "reminder_minute"
         private const val KEY_APP_THEME_STYLE = "app_theme_style"
-        const val DEFAULT_MODEL = "llama-3.3-70b-versatile"
+        const val DEFAULT_MODEL = "openai/gpt-oss-20b"
         val MODELS = listOf(
-            "llama-3.3-70b-versatile",
-            "llama-3.1-8b-instant",
-            "mixtral-8x7b-32768",
+            "openai/gpt-oss-20b",
         )
     }
 }

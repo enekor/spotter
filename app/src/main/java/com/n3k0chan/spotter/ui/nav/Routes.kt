@@ -8,6 +8,7 @@ enum class TopLevelRoute(val route: String, @StringRes val labelRes: Int) {
     Workout("workout_root", R.string.nav_workout),
     History("history", R.string.nav_history),
     Stats("stats", R.string.nav_stats),
+    Weight("weight", R.string.nav_weight),
 }
 
 object Routes {
@@ -30,6 +31,7 @@ object Routes {
     const val Stats = "stats"
     const val Settings = "settings"
     const val Health = "health"
+    const val Weight = "weight"
 
     fun workoutDetail(workoutId: Long) = "workout_detail/$workoutId"
     const val WorkoutDetailPattern = "workout_detail/{workoutId}"

@@ -8,6 +8,7 @@ import com.n3k0chan.spotter.data.repository.ExerciseRepository
 import com.n3k0chan.spotter.data.repository.TemplateRepository
 import com.n3k0chan.spotter.data.health.HealthConnectManager
 import com.n3k0chan.spotter.data.repository.WorkoutRepository
+import com.n3k0chan.spotter.data.repository.WeightRepository
 
 /**
  * Service locator simple. Evita Hilt para mantener el proyecto sin annotation processors extra.
@@ -25,6 +26,8 @@ object ServiceLocator {
         private set
     lateinit var workouts: WorkoutRepository
         private set
+    lateinit var weights: WeightRepository
+        private set
     lateinit var driveBackup: DriveBackupManager
         private set
     lateinit var healthConnect: HealthConnectManager
@@ -40,6 +43,7 @@ object ServiceLocator {
             exercises = ExerciseRepository(db.exerciseDao())
             templates = TemplateRepository(db.templateDao())
             workouts = WorkoutRepository(db.workoutDao())
+            weights = WeightRepository(db.weightDao())
             driveBackup = DriveBackupManager(app, settings)
             healthConnect = HealthConnectManager(app)
             initialized = true

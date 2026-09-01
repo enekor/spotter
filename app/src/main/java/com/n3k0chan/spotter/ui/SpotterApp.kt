@@ -26,6 +26,8 @@ import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.FitnessCenter
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.BarChart
+import androidx.compose.material.icons.filled.MonitorWeight
+import androidx.compose.material.icons.outlined.MonitorWeight
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -163,4 +165,5 @@ private fun iconFor(tab: TopLevelRoute, selected: Boolean): ImageVector = when (
     TopLevelRoute.Workout -> if (selected) Icons.Filled.FitnessCenter else Icons.Outlined.FitnessCenter
     TopLevelRoute.History -> if (selected) Icons.Filled.History else Icons.Outlined.History
     TopLevelRoute.Stats -> if (selected) Icons.Filled.BarChart else Icons.Outlined.BarChart
+    TopLevelRoute.Weight -> if (selected) Icons.Filled.MonitorWeight else Icons.Outlined.MonitorWeight
 }
