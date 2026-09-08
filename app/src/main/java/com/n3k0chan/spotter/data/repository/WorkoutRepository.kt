@@ -1,5 +1,6 @@
 package com.n3k0chan.spotter.data.repository
 
+import com.n3k0chan.spotter.data.db.dao.ExerciseSetCount
 import com.n3k0chan.spotter.data.db.dao.WorkoutDao
 import com.n3k0chan.spotter.data.db.entities.Workout
 import com.n3k0chan.spotter.data.db.entities.WorkoutSet
@@ -154,4 +155,7 @@ class WorkoutRepository(private val dao: WorkoutDao) {
     fun observeFinishedCount(): Flow<Int> = dao.observeFinishedCount()
     fun observeFinishedCountSince(sinceEpochMillis: Long): Flow<Int> =
         dao.observeFinishedCountSince(sinceEpochMillis)
+
+    suspend fun exerciseTrainingCounts(): Map<Long, Int> =
+        dao.getExerciseSetCounts().associate { it.exerciseId to it.count }
 }

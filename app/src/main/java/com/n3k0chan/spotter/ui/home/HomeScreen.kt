@@ -17,7 +17,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.PlayArrow
@@ -47,7 +46,6 @@ import com.n3k0chan.spotter.ui.theme.SpotterTheme
 fun HomeScreen(
     onStartFreeWorkout: (Long) -> Unit,
     onPickTemplate: () -> Unit,
-    onOpenChat: () -> Unit,
     onOpenSettings: () -> Unit,
     vm: HomeViewModel = viewModel(factory = HomeViewModel.Factory),
 ) {
@@ -63,18 +61,11 @@ fun HomeScreen(
             com.n3k0chan.spotter.ui.components.SpotterTopBar(
                 title = "Spotter",
                 trailing = {
-                    Row {
-                        SpotterIconButton(
-                            icon = Icons.AutoMirrored.Filled.Chat,
-                            onClick = onOpenChat,
-                            contentDescription = "Chat",
-                        )
-                        SpotterIconButton(
-                            icon = Icons.Filled.Settings,
-                            onClick = onOpenSettings,
-                            contentDescription = "Ajustes",
-                        )
-                    }
+                    SpotterIconButton(
+                        icon = Icons.Filled.Settings,
+                        onClick = onOpenSettings,
+                        contentDescription = "Ajustes",
+                    )
                 },
             )
         },

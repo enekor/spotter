@@ -1,15 +1,15 @@
 # Spotter
 
-App Android privada para entrenar en el gimnasio: tracking de pesos, repeticiones y tiempos, racha de días y un compañero IA opcional vía Groq.
+App Android privada para entrenar en el gimnasio: tracking de pesos, repeticiones y tiempos, racha de días y mensajes motivacionales offline.
 
 ## Stack
 
 - Kotlin + Jetpack Compose (Material 3, paleta fija slate + naranja, sin dynamic color)
 - Tipografía Inter/Geist-style (numéricos en monospace para datos)
 - Room (SQLite) — todo local, sin cuentas
-- EncryptedSharedPreferences para la API key
+- EncryptedSharedPreferences para ajustes cifrados
 - Foreground Service para el temporizador de descanso
-- Retrofit + OkHttp + kotlinx-serialization para Groq
+- kotlinx-serialization (JSON)
 
 ## Cómo abrirlo
 
@@ -19,7 +19,7 @@ App Android privada para entrenar en el gimnasio: tracking de pesos, repeticione
    gradle wrapper --gradle-version 8.10.2
    ```
    (necesitas tener Gradle instalado de sistema, o lanzarlo desde Android Studio: *File → Sync Project with Gradle Files*).
-3. Copia `local.properties.example` a `local.properties` y rellena `sdk.dir`. Si quieres, pega ahí tu `GROQ_API_KEY`.
+3. Copia `local.properties.example` a `local.properties` y rellena `sdk.dir`.
 4. Ejecuta sobre dispositivo o emulador (minSdk 29).
 
 ## Backup en Google Drive
@@ -47,27 +47,17 @@ No hace falta meter ningún Client ID en `local.properties` — la librería usa
 - **Restaurar**: Ajustes → "Restaurar de Drive". Pide confirmación, sobrescribe la BD local con la copia de Drive y reinicia la app.
 - La primera operación pedirá un consentimiento OAuth dentro de la app; después es silenciosa.
 
-## API key de Groq
-
-- Si la pones en `local.properties`, viaja al `BuildConfig` y la app la usa por defecto.
-- Si la pegas dentro de la app (Ajustes → API key), se guarda cifrada y **sobrescribe** la del BuildConfig.
-- Para volver al modo "BuildConfig", borra la clave en Ajustes.
-
-Consigue una key gratis en https://console.groq.com/keys.
-
 ## Decisiones que ya hay tomadas
 
 - Catálogo de ejercicios vacío al inicio: tú lo vas creando.
 - Plantillas reutilizables + posibilidad de entrenos libres sin plantilla.
 - Solo `kg`. Si en algún momento quieres `lb`, hay que tocar `Workout.weightKg` y la UI de input.
-- Mensajes motivacionales secos por defecto (sin "tú puedes" ni emojis); con API key, los genera Groq.
-- Modelo Groq por defecto: `openai/gpt-oss-20b` (configurable en Ajustes).
+- Mensajes motivacionales siempre offline (sin "tú puedes" ni emojis).
 
 ## Estructura
 
 ```
 app/src/main/java/com/erebollo/spotter/
-├── ai/                  # Cliente Groq + prompts
 ├── data/
 │   ├── db/              # Room (entidades, DAOs)
 │   ├── prefs/           # EncryptedSharedPreferences (API key, ajustes)
@@ -81,7 +71,7 @@ app/src/main/java/com/erebollo/spotter/
 
 ## Permisos
 
-- `INTERNET`: llamadas a Groq.
+- `INTERNET`: backup en Google Drive.
 - `POST_NOTIFICATIONS` (Android 13+): mostrar el descanso en la barra de estado.
 - `FOREGROUND_SERVICE` + `FOREGROUND_SERVICE_SPECIAL_USE`: que el descanso siga corriendo aunque cierres la app.
 - `VIBRATE`: aviso al terminar el descanso.

@@ -3,8 +3,6 @@ package com.n3k0chan.spotter.ui.workout
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.n3k0chan.spotter.ai.GroqClient
-import com.n3k0chan.spotter.ai.Prompts
 import com.n3k0chan.spotter.data.db.entities.Exercise
 import com.n3k0chan.spotter.data.db.entities.TemplateExercise
 import com.n3k0chan.spotter.data.db.entities.WorkoutSet
@@ -20,20 +18,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.Instant
 
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-
-@Serializable
-data class AiSummaryResponse(
-    val summary: String,
-    val exercises: List<AiSummaryExercise> = emptyList()
-)
-
-@Serializable
-data class AiSummaryExercise(
-    val name: String,
-    val markdown: String
-)
 
 data class WorkoutUiState(
     val loading: Boolean = true,
@@ -42,17 +27,16 @@ data class WorkoutUiState(
     val templateTargets: Map<Long, TemplateExercise> = emptyMap(),
     val notes: String = "",
     val rpe: Int? = null,
-    val suggestion: String? = null,
-    val suggestionForExerciseId: Long? = null,
-    val suggestionLoading: Boolean = false,
-    val finishedSummary: AiSummaryResponse? = null,
-    val finishedLoading: Boolean = false,
+    val suggestedExerciseId: Long? = null,
+    val suggestionDismissed: Boolean = false,
+    val finishedComparison: WorkoutComparison? = null,
     val showPostFinish: Boolean = false,
 )
 
 class WorkoutViewModel(private val workoutId: Long) : ViewModel() {
 
     private val workouts = ServiceLocator.workouts
+    private var trainingCounts: Map<Long, Int> = emptyMap()
     private val exercises = ServiceLocator.exercises
     private val templates = ServiceLocator.templates
     private val settings = ServiceLocator.settings
@@ -95,6 +79,7 @@ class WorkoutViewModel(private val workoutId: Long) : ViewModel() {
                 rpe = w.workout.rpe,
             )
         }
+        recomputeSuggestion()
     }
 
     fun calculateEstimatedStart(): Long {
@@ -115,6 +100,8 @@ class WorkoutViewModel(private val workoutId: Long) : ViewModel() {
             if (it.orderedExerciseIds.contains(exerciseId)) it
             else it.copy(orderedExerciseIds = it.orderedExerciseIds + exerciseId)
         }
+        _state.update { it.copy(suggestionDismissed = false) }
+        recomputeSuggestion()
     }
 
     fun removeExerciseFromSession(exerciseId: Long) {
@@ -124,6 +111,8 @@ class WorkoutViewModel(private val workoutId: Long) : ViewModel() {
                 .forEach { workouts.deleteSet(it.set.id) }
             reload()
             _state.update { it.copy(orderedExerciseIds = it.orderedExerciseIds - exerciseId) }
+            _state.update { it.copy(suggestionDismissed = false) }
+            recomputeSuggestion()
         }
     }
 
@@ -165,105 +154,57 @@ class WorkoutViewModel(private val workoutId: Long) : ViewModel() {
         _state.update { it.copy(rpe = value) }
     }
 
-    fun fetchSuggestion(exerciseId: Long, exerciseName: String) {
-        val cfg = settings.state.value
-        if (!cfg.hasApiKey) return
-        viewModelScope.launch {
-            _state.update {
-                it.copy(
-                    suggestionLoading = true,
-                    suggestionForExerciseId = exerciseId,
-                    suggestion = null,
-                )
-            }
-            val exercise = ServiceLocator.exercises.get(exerciseId)
-            val profile = exercise?.let {
-                com.n3k0chan.spotter.data.measurement.MeasurementProfile.fromNameOrDefault(it.measurementProfile)
-            } ?: com.n3k0chan.spotter.data.measurement.MeasurementProfile.Default
-            val recent = workouts.recentSetsFor(exerciseId, limit = 10)
-            val current = _state.value.workout?.sets
-                ?.filter { it.set.exerciseId == exerciseId }
-                ?.map { it.set }
-                .orEmpty()
-            runCatching {
-                GroqClient.chat(
-                    apiKey = cfg.groqApiKey,
-                    model = cfg.groqModel,
-                    messages = Prompts.nextSetSuggestion(exerciseName, profile, recent, current),
-                    temperature = 0.4,
-                )
-            }.onSuccess { res ->
-                _state.update { it.copy(suggestion = res.trim(), suggestionLoading = false) }
-            }.onFailure {
-                _state.update {
-                    it.copy(
-                        suggestion = null,
-                        suggestionLoading = false,
-                        suggestionForExerciseId = null,
-                    )
-                }
-            }
-        }
+    fun dismissSuggestion() {
+        _state.update { it.copy(suggestionDismissed = true, suggestedExerciseId = null) }
     }
 
-    fun clearSuggestion() {
-        _state.update {
-            it.copy(suggestion = null, suggestionLoading = false, suggestionForExerciseId = null)
+    private fun recomputeSuggestion() {
+        viewModelScope.launch {
+            if (trainingCounts.isEmpty()) {
+                trainingCounts = runCatching { workouts.exerciseTrainingCounts() }.getOrDefault(emptyMap())
+            }
+            val catalog = exerciseCatalog.value
+            val sessionExercises = _state.value.orderedExerciseIds
+                .mapNotNull { id -> catalog.firstOrNull { it.id == id } }
+            val suggestedId = NextExerciseSuggester.suggest(sessionExercises, catalog, trainingCounts)
+            _state.update { it.copy(suggestedExerciseId = suggestedId) }
         }
     }
 
     fun finish(chosenStartedAt: Long, backupAfterFinish: Boolean, onDone: () -> Unit) {
-        val cfg = settings.state.value
-        val hasAi = cfg.hasApiKey
-
-        if (!hasAi) {
-            viewModelScope.launch {
-                persistWorkout(chosenStartedAt, backupAfterFinish)
-                onDone()
-            }
-            return
-        }
-
         viewModelScope.launch {
             persistWorkout(chosenStartedAt, backupAfterFinish)
-            _state.update { it.copy(showPostFinish = true, finishedLoading = true) }
 
             val full = workouts.get(workoutId)
-            if (full != null) {
-                val previous = full.sets.flatMap { sw ->
-                    workouts.recentSetsFor(sw.exercise.id, 10)
-                }.take(20)
-                runCatching {
-                    GroqClient.chat(
-                        apiKey = cfg.groqApiKey,
-                        model = cfg.groqModel,
-                        messages = Prompts.postSessionSummary(full, previous),
-                        temperature = 0.5,
-                        responseFormat = "json_object"
-                    )
-                }.onSuccess { res ->
-                    val parsed = runCatching {
-                        Json { ignoreUnknownKeys = true }.decodeFromString<AiSummaryResponse>(res)
-                    }.getOrNull()
-                    
-                    if (parsed != null) {
-                        // Guardar en BD para poder verlo despues
-                        val currentWorkout = workouts.get(workoutId)?.workout
-                        if (currentWorkout != null) {
-                            workouts.update(currentWorkout.copy(aiSummaryJson = res))
-                        }
-                        
-                        _state.update { it.copy(finishedSummary = parsed, finishedLoading = false) }
-                    } else {
-                        _state.update { it.copy(finishedLoading = false) }
-                    }
-                }.onFailure {
-                    _state.update { it.copy(finishedLoading = false) }
-                }
-            } else {
-                _state.update { it.copy(finishedLoading = false) }
+            if (full == null) {
+                onDone()
+                return@launch
             }
+
+            val comparison = buildComparison(full)
+            // Persistir para verlo luego en el detalle (columna reutilizada).
+            workouts.get(workoutId)?.workout?.let { w ->
+                runCatching {
+                    val json = Json.encodeToString(WorkoutComparison.serializer(), comparison)
+                    workouts.update(w.copy(aiSummaryJson = json))
+                }
+            }
+            _state.update { it.copy(showPostFinish = true, finishedComparison = comparison) }
         }
+    }
+
+    private suspend fun buildComparison(full: WorkoutWithSets): WorkoutComparison {
+        val byExercise = full.sets.groupBy { it.exercise.id }
+        val inputs = byExercise.map { (exerciseId, setsWithEx) ->
+            val exercise = setsWithEx.first().exercise
+            val profile = com.n3k0chan.spotter.data.measurement.MeasurementProfile
+                .fromNameOrDefault(exercise.measurementProfile)
+            val todaySets = setsWithEx.map { it.set }
+            val history = workouts.recentSetsFor(exerciseId, limit = 30)
+                .filter { it.workoutId != workoutId }
+            ExerciseComparisonInput(exercise.name, profile, todaySets, history)
+        }
+        return WorkoutComparator.compare(inputs)
     }
 
     private suspend fun persistWorkout(chosenStartedAt: Long, backupAfterFinish: Boolean) {

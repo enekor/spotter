@@ -54,11 +54,9 @@ cd /ruta/a/gp
 # Genera el gradle-wrapper.jar (binario que no está en el repo)
 gradle wrapper --gradle-version 8.10.2
 
-# local.properties con sdk.dir y opcional GROQ_API_KEY
+# local.properties con sdk.dir
 cp local.properties.example local.properties
 sed -i "s|^sdk.dir=.*|sdk.dir=$HOME/Android/Sdk|" local.properties
-# Edita y pega tu GROQ_API_KEY si quieres:
-# nano local.properties
 ```
 
 ## 5) Keystore para firmar el release

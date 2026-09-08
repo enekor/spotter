@@ -25,20 +25,12 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.CloudUpload
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
@@ -56,7 +48,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -66,7 +57,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.n3k0chan.spotter.backup.DriveBackupManager
 import com.n3k0chan.spotter.backup.PickGoogleAccountContract
 import com.n3k0chan.spotter.data.prefs.AppSettings
-import com.n3k0chan.spotter.data.prefs.ChatHistoryWindow
 import com.n3k0chan.spotter.data.prefs.SettingsRepository
 import com.n3k0chan.spotter.di.ServiceLocator
 import com.n3k0chan.spotter.reminder.ReminderScheduler
@@ -109,17 +99,14 @@ class SettingsViewModel : ViewModel() {
     private val _restoreDone = MutableStateFlow(false)
     val restoreDone: StateFlow<Boolean> = _restoreDone.asStateFlow()
 
-    fun setApiKey(value: String) = repo.setGroqApiKey(value)
-    fun setModel(value: String) = repo.setModel(value)
     fun setRest(seconds: Int) = repo.setDefaultRest(seconds)
     fun setPreWarning(value: Boolean) = repo.setPreWarning(value)
     fun setVibrate(value: Boolean) = repo.setVibrate(value)
-    fun setChatHistoryWindow(value: ChatHistoryWindow) = repo.setChatHistoryWindow(value)
 
     fun setReminderTime(hour: Int, minute: Int) {
         repo.setReminderTime(hour, minute)
     }
-    
+
     fun updateReminders(days: Set<Int>, hour: Int, minute: Int) {
         repo.setReminderDays(days)
         repo.setReminderTime(hour, minute)
@@ -233,7 +220,6 @@ class SettingsViewModel : ViewModel() {
 @Composable
 fun SettingsScreen(
     onBack: () -> Unit,
-    onOpenHealth: () -> Unit = {},
     vm: SettingsViewModel = viewModel(factory = SettingsViewModel.Factory),
 ) {
     val state by vm.state.collectAsStateWithLifecycle()
@@ -291,36 +277,6 @@ fun SettingsScreen(
                         AppThemeStyleSelector(
                             selected = state.appThemeStyle,
                             onSelect = vm::setAppThemeStyle,
-                        )
-                    }
-                }
-            }
-
-            // ── ASISTENTE
-            item { SectionHeader("ASISTENTE") }
-            item {
-                SpotterCard(padding = 0.dp) {
-                    Column {
-                        ApiKeyRow(state = state, onSave = vm::setApiKey, onClear = { vm.setApiKey("") })
-                        HorizontalDivider(color = c.border, thickness = 1.dp)
-                        ModelRow(selected = state.groqModel, onSelect = vm::setModel)
-                    }
-                }
-            }
-            item {
-                SpotterCard {
-                    Column {
-                        Text("Historial al compartir con el chat", style = SpotterText.bodyMd, color = c.text)
-                        Spacer(Modifier.height(2.dp))
-                        Text(
-                            "Cuánto historial se envía cuando activas \"Compartir historial\" en el chat.",
-                            style = SpotterText.small,
-                            color = c.textMuted,
-                        )
-                        Spacer(Modifier.height(12.dp))
-                        ChatHistoryWindowSelector(
-                            selected = state.chatHistoryWindow,
-                            onSelect = vm::setChatHistoryWindow,
                         )
                     }
                 }
@@ -447,40 +403,6 @@ fun SettingsScreen(
             item {
                 SpotterCard {
                     Column {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(10.dp))
-                                .clickable(onClick = onOpenHealth)
-                                .padding(vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Icon(
-                                Icons.Filled.Favorite,
-                                contentDescription = null,
-                                tint = c.primary,
-                                modifier = Modifier.size(20.dp),
-                            )
-                            Spacer(Modifier.width(12.dp))
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text("Health Connect", style = SpotterText.bodyMd, color = c.text)
-                                Spacer(Modifier.height(2.dp))
-                                Text(
-                                    "Pasos, calorías, sueño y más desde tus dispositivos",
-                                    style = SpotterText.small,
-                                    color = c.textMuted,
-                                )
-                            }
-                            Icon(
-                                Icons.Filled.ChevronRight,
-                                contentDescription = null,
-                                tint = c.textFaint,
-                                modifier = Modifier.size(20.dp),
-                            )
-                        }
-                        Spacer(Modifier.height(12.dp))
-                        HorizontalDivider(color = c.border, thickness = 1.dp)
-                        Spacer(Modifier.height(12.dp))
                         Text(
                             "Sincronizar todos los entrenos con datos de Health Connect. Útil si la sincronización automática falló.",
                             style = SpotterText.small,
@@ -502,7 +424,7 @@ fun SettingsScreen(
             item {
                 Spacer(Modifier.height(12.dp))
                 Text(
-                    "Spotter · privado y local. La API key y la cuenta de Drive se guardan cifradas en este dispositivo.",
+                    "Spotter · privado y local. La cuenta de Drive se guarda cifrada en este dispositivo.",
                     style = SpotterText.small,
                     color = c.textFaint,
                     modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),
@@ -552,128 +474,6 @@ private fun SectionHeader(text: String) {
         color = c.textMuted,
         modifier = Modifier.padding(start = 6.dp, top = 14.dp, bottom = 6.dp),
     )
-}
-
-@Composable
-private fun ApiKeyRow(state: AppSettings, onSave: (String) -> Unit, onClear: () -> Unit) {
-    val c = SpotterTheme.colors
-    var showField by remember { mutableStateOf(false) }
-    var value by remember { mutableStateOf("") }
-
-    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text("API key de Groq", style = SpotterText.bodyMd, color = c.text)
-                if (state.hasApiKey) {
-                    Spacer(Modifier.height(2.dp))
-                    Text(
-                        if (state.isUserOverridingKey) "Configurada (override sobre BuildConfig)"
-                        else "Cargada desde BuildConfig",
-                        style = SpotterText.small, color = c.textMuted,
-                    )
-                }
-            }
-            if (state.hasApiKey) {
-                Text(
-                    "•••••• ${state.groqApiKey.takeLast(4)}",
-                    style = SpotterText.numS,
-                    color = c.textMuted,
-                )
-                Spacer(Modifier.width(8.dp))
-            }
-            Icon(
-                Icons.Filled.Visibility,
-                contentDescription = null,
-                tint = c.textFaint,
-                modifier = Modifier.size(16.dp).clickable { showField = !showField },
-            )
-        }
-        if (showField) {
-            Spacer(Modifier.height(10.dp))
-            OutlinedTextField(
-                value = value,
-                onValueChange = { value = it },
-                placeholder = { Text("gsk_…", color = c.textFaint) },
-                singleLine = true,
-                visualTransformation = PasswordVisualTransformation(),
-                modifier = Modifier.fillMaxWidth(),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = c.surfaceMuted,
-                    unfocusedContainerColor = c.surfaceMuted,
-                    focusedBorderColor = c.borderStrong,
-                    unfocusedBorderColor = c.border,
-                    cursorColor = c.primary,
-                    focusedTextColor = c.text,
-                    unfocusedTextColor = c.text,
-                ),
-                shape = RoundedCornerShape(12.dp),
-                textStyle = SpotterText.body,
-            )
-            Spacer(Modifier.height(8.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                SpotterButton(
-                    text = "Guardar",
-                    height = 40.dp,
-                    onClick = {
-                        if (value.isNotBlank()) {
-                            onSave(value.trim())
-                            value = ""
-                            showField = false
-                        }
-                    },
-                )
-                if (state.isUserOverridingKey) {
-                    SpotterButton(
-                        text = "Borrar",
-                        variant = SpotterButtonVariant.Outlined,
-                        height = 40.dp,
-                        onClick = onClear,
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun ModelRow(selected: String, onSelect: (String) -> Unit) {
-    val c = SpotterTheme.colors
-    var expanded by remember { mutableStateOf(false) }
-    Box {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { expanded = true }
-                .padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text("Modelo", style = SpotterText.bodyMd, color = c.text)
-                Spacer(Modifier.height(2.dp))
-                Text(selected, style = SpotterText.small, color = c.textMuted)
-            }
-            Icon(
-                Icons.Filled.ArrowDropDown,
-                contentDescription = null,
-                tint = c.textFaint,
-                modifier = Modifier.size(20.dp),
-            )
-        }
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-        ) {
-            SettingsRepository.MODELS.forEach { model ->
-                DropdownMenuItem(
-                    text = { Text(model) },
-                    onClick = {
-                        onSelect(model)
-                        expanded = false
-                    },
-                )
-            }
-        }
-    }
 }
 
 @Composable
@@ -730,41 +530,6 @@ private fun AppThemeStyleSelector(
                     w.displayName,
                     style = SpotterText.smallMd,
                     color = if (isSelected) c.onPrimary else c.text,
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun ChatHistoryWindowSelector(
-    selected: ChatHistoryWindow,
-    onSelect: (ChatHistoryWindow) -> Unit,
-) {
-    val c = SpotterTheme.colors
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(c.surfaceMuted)
-            .padding(4.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        ChatHistoryWindow.entries.forEach { w ->
-            val isSelected = selected == w
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(if (isSelected) c.primary else Color.Transparent)
-                    .clickable { onSelect(w) }
-                    .padding(vertical = 8.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    w.display,
-                    style = SpotterText.smallMd,
-                    color = if (isSelected) c.onPrimary else c.textMuted,
                 )
             }
         }

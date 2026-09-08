@@ -1,0 +1,4370 @@
+ app/build.gradle.kts                                                        |   8 -
+ app/src/main/java/com/n3k0chan/spotter/MainActivity.kt                      |   0
+ app/src/main/java/com/n3k0chan/spotter/SpotterApp.kt                        |   0
+ app/src/main/java/com/n3k0chan/spotter/ai/GroqClient.kt                     |  54 ---
+ app/src/main/java/com/n3k0chan/spotter/ai/GroqModels.kt                     |  32 --
+ app/src/main/java/com/n3k0chan/spotter/ai/GroqService.kt                    |  13 -
+ app/src/main/java/com/n3k0chan/spotter/ai/Prompts.kt                        | 178 ----------
+ app/src/main/java/com/n3k0chan/spotter/backup/DriveBackupManager.kt         |   0
+ app/src/main/java/com/n3k0chan/spotter/backup/DriveSignInContract.kt        |   0
+ app/src/main/java/com/n3k0chan/spotter/data/db/SpotterDatabase.kt           |   0
+ app/src/main/java/com/n3k0chan/spotter/data/db/dao/ExerciseDao.kt           |   0
+ app/src/main/java/com/n3k0chan/spotter/data/db/dao/TemplateDao.kt           |   0
+ app/src/main/java/com/n3k0chan/spotter/data/db/dao/WorkoutDao.kt            |   5 +
+ app/src/main/java/com/n3k0chan/spotter/data/db/entities/Exercise.kt         |   0
+ app/src/main/java/com/n3k0chan/spotter/data/db/entities/Relations.kt        |   0
+ app/src/main/java/com/n3k0chan/spotter/data/db/entities/Template.kt         |   0
+ app/src/main/java/com/n3k0chan/spotter/data/db/entities/Workout.kt          |   0
+ .../main/java/com/n3k0chan/spotter/data/measurement/MeasurementProfile.kt   |   0
+ app/src/main/java/com/n3k0chan/spotter/data/prefs/SettingsRepository.kt     |  61 +---
+ .../main/java/com/n3k0chan/spotter/data/repository/ExerciseRepository.kt    |   0
+ .../main/java/com/n3k0chan/spotter/data/repository/TemplateRepository.kt    |   0
+ app/src/main/java/com/n3k0chan/spotter/data/repository/WorkoutRepository.kt |   4 +
+ app/src/main/java/com/n3k0chan/spotter/data/seed/SeedExercises.kt           |   0
+ app/src/main/java/com/n3k0chan/spotter/di/ServiceLocator.kt                 |   0
+ app/src/main/java/com/n3k0chan/spotter/motivation/MotivationalMessages.kt   |   0
+ app/src/main/java/com/n3k0chan/spotter/timer/RestTimerController.kt         |   0
+ app/src/main/java/com/n3k0chan/spotter/timer/RestTimerService.kt            |   0
+ app/src/main/java/com/n3k0chan/spotter/ui/SpotterApp.kt                     |   0
+ app/src/main/java/com/n3k0chan/spotter/ui/chat/ChatScreen.kt                | 481 --------------------------
+ app/src/main/java/com/n3k0chan/spotter/ui/components/ExercisePickerSheet.kt |   0
+ app/src/main/java/com/n3k0chan/spotter/ui/components/MuscleGroupIcon.kt     |   0
+ app/src/main/java/com/n3k0chan/spotter/ui/components/SpotterPrimitives.kt   |   0
+ app/src/main/java/com/n3k0chan/spotter/ui/exercises/ExercisesScreen.kt      |   0
+ app/src/main/java/com/n3k0chan/spotter/ui/health/HealthScreen.kt            | 656 ------------------------------------
+ app/src/main/java/com/n3k0chan/spotter/ui/health/HealthViewModel.kt         | 293 ----------------
+ app/src/main/java/com/n3k0chan/spotter/ui/history/HistoryScreen.kt          |   3 -
+ app/src/main/java/com/n3k0chan/spotter/ui/history/WorkoutDetailScreen.kt    |  12 +-
+ app/src/main/java/com/n3k0chan/spotter/ui/home/HomeScreen.kt                |  19 +-
+ app/src/main/java/com/n3k0chan/spotter/ui/home/HomeViewModel.kt             |  23 +-
+ app/src/main/java/com/n3k0chan/spotter/ui/nav/Routes.kt                     |   3 -
+ app/src/main/java/com/n3k0chan/spotter/ui/nav/SpotterNavGraph.kt            |  18 -
+ app/src/main/java/com/n3k0chan/spotter/ui/settings/SettingsScreen.kt        | 239 +------------
+ app/src/main/java/com/n3k0chan/spotter/ui/stats/StatsScreen.kt              |  49 +--
+ app/src/main/java/com/n3k0chan/spotter/ui/templates/TemplateEditorScreen.kt |   0
+ app/src/main/java/com/n3k0chan/spotter/ui/templates/TemplatesScreen.kt      |   0
+ app/src/main/java/com/n3k0chan/spotter/ui/theme/Color.kt                    |   0
+ app/src/main/java/com/n3k0chan/spotter/ui/theme/SpotterColors.kt            |   0
+ app/src/main/java/com/n3k0chan/spotter/ui/theme/Theme.kt                    |   0
+ app/src/main/java/com/n3k0chan/spotter/ui/theme/Type.kt                     |   0
+ app/src/main/java/com/n3k0chan/spotter/ui/weight/WeightScreen.kt            |  38 +--
+ app/src/main/java/com/n3k0chan/spotter/ui/weight/WeightViewModel.kt         |  40 ---
+ app/src/main/java/com/n3k0chan/spotter/ui/workout/RestTimerBar.kt           |   0
+ app/src/main/java/com/n3k0chan/spotter/ui/workout/WorkoutHubScreen.kt       |   7 +-
+ app/src/main/java/com/n3k0chan/spotter/ui/workout/WorkoutScreen.kt          | 134 +++-----
+ app/src/main/java/com/n3k0chan/spotter/ui/workout/WorkoutViewModel.kt       | 151 +++------
+ app/src/main/java/com/n3k0chan/spotter/util/StreakCalculator.kt             |   0
+ 56 files changed, 127 insertions(+), 2394 deletions(-)
+=====FULL DIFF (code only)=====
+diff --git a/app/build.gradle.kts b/app/build.gradle.kts
+old mode 100755
+new mode 100644
+index 4934f7d..da95ed8
+--- a/app/build.gradle.kts
++++ b/app/build.gradle.kts
+@@ -8,18 +8,16 @@ plugins {
+     alias(libs.plugins.ksp)
+ }
+ 
+ val localProps: Properties = Properties().apply {
+     val f = rootProject.file("local.properties")
+     if (f.exists()) f.inputStream().use { load(it) }
+ }
+ 
+-val groqApiKey: String = localProps.getProperty("GROQ_API_KEY", "") ?: ""
+-
+ val releaseStoreFile: String? = localProps.getProperty("RELEASE_STORE_FILE")?.takeIf { it.isNotBlank() }
+ val releaseStorePassword: String? = localProps.getProperty("RELEASE_STORE_PASSWORD")?.takeIf { it.isNotBlank() }
+ val releaseKeyAlias: String? = localProps.getProperty("RELEASE_KEY_ALIAS")?.takeIf { it.isNotBlank() }
+ val releaseKeyPassword: String? = localProps.getProperty("RELEASE_KEY_PASSWORD")?.takeIf { it.isNotBlank() }
+ val hasReleaseSigning = releaseStoreFile != null && releaseStorePassword != null &&
+     releaseKeyAlias != null && releaseKeyPassword != null
+ 
+ android {
+@@ -35,17 +33,16 @@ android {
+ 
+         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+         vectorDrawables { useSupportLibrary = true }
+ 
+         ndk {
+             abiFilters.addAll(setOf("armeabi-v7a", "arm64-v8a", "x86", "x86_64"))
+         }
+ 
+-        buildConfigField("String", "GROQ_API_KEY", "\"$groqApiKey\"")
+     }
+ 
+     signingConfigs {
+         if (hasReleaseSigning) {
+             create("release") {
+                 storeFile = rootProject.file(releaseStoreFile!!)
+                 storePassword = releaseStorePassword
+                 keyAlias = releaseKeyAlias
+@@ -124,21 +121,16 @@ dependencies {
+ 
+     implementation(libs.androidx.security.crypto)
+     implementation(libs.androidx.datastore.preferences)
+ 
+     implementation(libs.kotlinx.coroutines.core)
+     implementation(libs.kotlinx.coroutines.android)
+     implementation(libs.kotlinx.serialization.json)
+ 
+-    implementation(libs.retrofit)
+-    implementation(libs.retrofit.kotlinx.serialization.converter)
+-    implementation(libs.okhttp)
+-    implementation(libs.okhttp.logging)
+-
+     // Google Sign-In + Drive (appDataFolder)
+     implementation(libs.play.services.auth)
+     implementation(libs.google.api.client.android) {
+         exclude(group = "org.apache.httpcomponents")
+         exclude(group = "com.google.guava", module = "guava-jdk5")
+     }
+     implementation(libs.google.api.services.drive) {
+         exclude(group = "org.apache.httpcomponents")
+diff --git a/app/src/main/java/com/n3k0chan/spotter/MainActivity.kt b/app/src/main/java/com/n3k0chan/spotter/MainActivity.kt
+old mode 100755
+new mode 100644
+diff --git a/app/src/main/java/com/n3k0chan/spotter/SpotterApp.kt b/app/src/main/java/com/n3k0chan/spotter/SpotterApp.kt
+old mode 100755
+new mode 100644
+diff --git a/app/src/main/java/com/n3k0chan/spotter/ai/GroqClient.kt b/app/src/main/java/com/n3k0chan/spotter/ai/GroqClient.kt
+deleted file mode 100755
+index af9fbde..0000000
+--- a/app/src/main/java/com/n3k0chan/spotter/ai/GroqClient.kt
++++ /dev/null
+@@ -1,54 +0,0 @@
+-package com.n3k0chan.spotter.ai
+-
+-import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
+-import kotlinx.serialization.json.Json
+-import okhttp3.MediaType.Companion.toMediaType
+-import okhttp3.OkHttpClient
+-import okhttp3.logging.HttpLoggingInterceptor
+-import retrofit2.Retrofit
+-import java.util.concurrent.TimeUnit
+-
+-object GroqClient {
+-    private const val BASE_URL = "https://api.groq.com/"
+-
+-    private val json = Json {
+-        ignoreUnknownKeys = true
+-        explicitNulls = false
+-    }
+-
+-    private val okHttp = OkHttpClient.Builder()
+-        .connectTimeout(15, TimeUnit.SECONDS)
+-        .readTimeout(45, TimeUnit.SECONDS)
+-        .addInterceptor(HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BASIC })
+-        .build()
+-
+-    val service: GroqService by lazy {
+-        Retrofit.Builder()
+-            .baseUrl(BASE_URL)
+-            .client(okHttp)
+-            .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
+-            .build()
+-            .create(GroqService::class.java)
+-    }
+-
+-    suspend fun chat(
+-        apiKey: String,
+-        model: String,
+-        messages: List<GroqMessage>,
+-        temperature: Double = 0.6,
+-        responseFormat: String? = null
+-    ): String {
+-        require(apiKey.isNotBlank()) { "Groq API key vacía" }
+-        val reqFormat = responseFormat?.let { GroqResponseFormat(type = it) }
+-        val res = service.chatCompletions(
+-            authHeader = "Bearer $apiKey",
+-            request = GroqRequest(
+-                model = model,
+-                messages = messages,
+-                temperature = temperature,
+-                response_format = reqFormat
+-            ),
+-        )
+-        return res.firstContent.orEmpty()
+-    }
+-}
+diff --git a/app/src/main/java/com/n3k0chan/spotter/ai/GroqModels.kt b/app/src/main/java/com/n3k0chan/spotter/ai/GroqModels.kt
+deleted file mode 100755
+index b4f12d7..0000000
+--- a/app/src/main/java/com/n3k0chan/spotter/ai/GroqModels.kt
++++ /dev/null
+@@ -1,32 +0,0 @@
+-package com.n3k0chan.spotter.ai
+-
+-import kotlinx.serialization.Serializable
+-
+-@Serializable
+-data class GroqMessage(
+-    val role: String,
+-    val content: String,
+-)
+-
+-@Serializable
+-data class GroqResponseFormat(
+-    val type: String
+-)
+-
+-@Serializable
+-data class GroqRequest(
+-    val model: String,
+-    val messages: List<GroqMessage>,
+-    val temperature: Double = 0.6,
+-    val max_tokens: Int = 1024,
+-    val stream: Boolean = false,
+-    val response_format: GroqResponseFormat? = null
+-)
+-
+-@Serializable
+-data class GroqChoice(val message: GroqMessage)
+-
+-@Serializable
+-data class GroqResponse(val choices: List<GroqChoice>) {
+-    val firstContent: String? get() = choices.firstOrNull()?.message?.content
+-}
+diff --git a/app/src/main/java/com/n3k0chan/spotter/ai/GroqService.kt b/app/src/main/java/com/n3k0chan/spotter/ai/GroqService.kt
+deleted file mode 100755
+index 790db29..0000000
+--- a/app/src/main/java/com/n3k0chan/spotter/ai/GroqService.kt
++++ /dev/null
+@@ -1,13 +0,0 @@
+-package com.n3k0chan.spotter.ai
+-
+-import retrofit2.http.Body
+-import retrofit2.http.Header
+-import retrofit2.http.POST
+-
+-interface GroqService {
+-    @POST("openai/v1/chat/completions")
+-    suspend fun chatCompletions(
+-        @Header("Authorization") authHeader: String,
+-        @Body request: GroqRequest,
+-    ): GroqResponse
+-}
+diff --git a/app/src/main/java/com/n3k0chan/spotter/ai/Prompts.kt b/app/src/main/java/com/n3k0chan/spotter/ai/Prompts.kt
+deleted file mode 100755
+index 21257ac..0000000
+--- a/app/src/main/java/com/n3k0chan/spotter/ai/Prompts.kt
++++ /dev/null
+@@ -1,178 +0,0 @@
+-package com.n3k0chan.spotter.ai
+-
+-import com.n3k0chan.spotter.data.db.entities.WorkoutSet
+-import com.n3k0chan.spotter.data.db.entities.WorkoutWithSets
+-import com.n3k0chan.spotter.data.db.entities.profile
+-import com.n3k0chan.spotter.data.measurement.MeasurementProfile
+-import com.n3k0chan.spotter.data.measurement.formatShort
+-
+-object Prompts {
+-
+-    /**
+-     * System prompt común. Tono directo, sin cursiladas.
+-     * Spanglish-ready: el usuario habla español pero permitimos términos técnicos en inglés.
+-     */
+-    val systemTrainer = """
+-        Eres Spotter, un asistente de gimnasio práctico. Hablas español, breve y directo.
+-        Reglas:
+-        - Sin frases cursis, sin emojis innecesarios, sin "tú puedes".
+-        - Si no estás seguro, dilo en una línea.
+-        - Cuando sugieras pesos/tiempos, basa tu razonamiento en los datos del historial proporcionados.
+-        - Los ejercicios pueden medirse de varias formas: peso×reps, solo reps, duración, distancia+tiempo, cardio en máquina (tiempo+distancia+resistencia), etc. Adáptate a lo que veas en los datos.
+-        - No reemplazas a un médico. Si el usuario menciona dolor agudo, recomienda parar y consultar.
+-        - Respuestas muy cortas por defecto (1-3 frases) salvo que se pida detalle.
+-    """.trimIndent()
+-
+-    fun welcomeMessage(streakDays: Int, lastWorkoutAgoDays: Int?): List<GroqMessage> {
+-        val context = buildString {
+-            append("Datos del usuario al abrir la app:\n")
+-            append("- Racha actual: $streakDays días\n")
+-            append("- Días desde el último entreno: ${lastWorkoutAgoDays ?: "nunca"}\n")
+-        }
+-        return listOf(
+-            GroqMessage("system", systemTrainer),
+-            GroqMessage(
+-                role = "user",
+-                content = "$context\nDame UNA frase corta (max 12 palabras) para la pantalla de inicio. " +
+-                    "Sin signos de exclamación, sin clichés tipo 'tú puedes'. Tono seco y motivante.",
+-            ),
+-        )
+-    }
+-
+-    fun postSessionSummary(workout: WorkoutWithSets, previousSimilar: List<WorkoutSet>): List<GroqMessage> {
+-        val sb = StringBuilder()
+-        sb.append("Sesión recién terminada (\"${workout.workout.title}\"):\n")
+-        workout.sets.groupBy { it.exercise }.forEach { (exercise, sets) ->
+-            val profile = exercise.profile ?: return@forEach
+-            sb.append("- ${exercise.name} [${profile.display}]: ")
+-            sb.append(sets.joinToString(", ") { it.set.formatShort(profile) })
+-            sb.append("\n")
+-        }
+-        if (previousSimilar.isNotEmpty()) {
+-            sb.append("\nReferencia de series en sesiones anteriores (para comparar PRs, volumen total, etc):\n")
+-            previousSimilar.take(20).forEach {
+-                sb.append("- ").append(formatRawSet(it)).append("\n")
+-            }
+-        }
+-        return listOf(
+-            GroqMessage("system", systemTrainer + "\nDebes responder ÚNICAMENTE con un objeto JSON válido, sin markdown ni explicaciones adicionales fuera del JSON."),
+-            GroqMessage(
+-                role = "user",
+-                content = sb.toString() + "\nCompara el total de cada ejercicio (volumen = peso x reps, o tiempo x distancia, etc) con los datos anteriores. " +
+-                    "Desglosa puntos fuertes y débiles frente a entrenamientos anteriores (sobre todo entre la mejor serie y la más parecida hecha hoy). " +
+-                    "Ten en cuenta el nombre y tipo del ejercicio (ej. si es Just Dance, valora el esfuerzo aeróbico). " +
+-                    "Responde EXACTAMENTE con este JSON:\n" +
+-                    "{\n" +
+-                    "  \"summary\": \"Descripción pequeña general del entrenamiento (2-3 frases)\",\n" +
+-                    "  \"exercises\": [\n" +
+-                    "    {\n" +
+-                    "      \"name\": \"Nombre del ejercicio\",\n" +
+-                    "      \"markdown\": \"Tu veredicto detallado para este ejercicio en formato Markdown\"\n" +
+-                    "    }\n" +
+-                    "  ]\n" +
+-                    "}"
+-            ),
+-        )
+-    }
+-
+-    fun nextSetSuggestion(
+-        exerciseName: String,
+-        profile: MeasurementProfile,
+-        recentHistory: List<WorkoutSet>,
+-        currentSets: List<WorkoutSet>,
+-    ): List<GroqMessage> {
+-        val sb = StringBuilder()
+-        sb.append("Ejercicio: $exerciseName\n")
+-        sb.append("Tipo de medida: ").append(profile.display).append("\n")
+-        sb.append("Series ya hechas hoy: ")
+-        sb.append(
+-            if (currentSets.isEmpty()) "ninguna"
+-            else currentSets.joinToString(", ") { it.formatShort(profile) },
+-        )
+-        sb.append("\nHistorial reciente del ejercicio (más reciente primero):\n")
+-        recentHistory.take(8).forEach { sb.append("- ").append(it.formatShort(profile)).append("\n") }
+-
+-        // Adaptamos el formato esperado a la naturaleza del ejercicio
+-        val expectedFormat = when (profile) {
+-            MeasurementProfile.WeightReps -> "<peso>kg x <reps> · <razón breve>"
+-            MeasurementProfile.Reps -> "<reps> reps · <razón breve>"
+-            MeasurementProfile.Duration -> "<segundos>s · <razón breve>"
+-            MeasurementProfile.DistanceTime -> "<distancia>m en <tiempo> · <razón breve>"
+-            MeasurementProfile.CardioMachine -> "<tiempo> a nivel <n> (~<distancia>m) · <razón breve>"
+-            MeasurementProfile.TreadmillIncline -> "<tiempo> a <inclinación>% (~<distancia>m) · <razón breve>"
+-            MeasurementProfile.WeightDuration -> "<peso>kg durante <tiempo> · <razón breve>"
+-        }
+-        return listOf(
+-            GroqMessage("system", systemTrainer),
+-            GroqMessage(
+-                role = "user",
+-                content = sb.toString() + "\nSugiere los valores para la SIGUIENTE serie. " +
+-                    "Responde EXACTAMENTE en formato: $expectedFormat. Nada más.",
+-            ),
+-        )
+-    }
+-
+-    fun healthConnectImport(sessionsJson: String): List<GroqMessage> = listOf(
+-        GroqMessage(
+-            "system",
+-            """
+-            Eres un asistente que procesa datos de sesiones de ejercicio de Health Connect.
+-            Recibes un JSON con sesiones crudas y debes devolver un JSON con la misma cantidad de elementos.
+-            Para cada sesión:
+-            - "title": un nombre descriptivo en español (ej: "Carrera 5K", "Fuerza tren superior", "Caminata"). Si ya tiene título bueno, mantenlo.
+-            - "label": una etiqueta corta para mostrar como chip (ej: "Cardio", "Fuerza", "HIIT", "Flexibilidad", "Caminar"). Máximo 12 caracteres.
+-            - "skip": true si la sesión NO parece ejercicio real (ej: tipo desconocido sin datos, duraciones de <2min). false si se debe importar.
+-            Responde SOLO con un JSON array, sin markdown, sin explicaciones. Ejemplo:
+-            [{"title":"Carrera matutina","label":"Cardio","skip":false},{"title":"Desconocido","label":"","skip":true}]
+-            """.trimIndent(),
+-        ),
+-        GroqMessage("user", sessionsJson),
+-    )
+-
+-    fun chatTurn(history: List<GroqMessage>, userInput: String): List<GroqMessage> =
+-        buildList {
+-            add(GroqMessage("system", systemTrainer))
+-            addAll(history)
+-            add(GroqMessage("user", userInput))
+-        }
+-
+-    fun weightAnalysis(weights: List<com.n3k0chan.spotter.data.db.entities.WeightLog>): List<GroqMessage> {
+-        val sb = StringBuilder()
+-        sb.append("Historial de peso del usuario:\n")
+-        weights.forEach { 
+-            val date = java.time.Instant.ofEpochMilli(it.dateMs).atZone(java.time.ZoneId.systemDefault()).toLocalDate()
+-            sb.append("- $date: ${it.weightKg} kg")
+-            if (!it.notes.isNullOrBlank()) {
+-                sb.append(" (Nota: ${it.notes})")
+-            }
+-            sb.append("\n")
+-        }
+-        return listOf(
+-            GroqMessage("system", systemTrainer),
+-            GroqMessage(
+-                role = "user",
+-                content = sb.toString() + "\nAnaliza brevemente el progreso de peso del usuario. " +
+-                    "Si hay una tendencia (subida, bajada, mantenimiento), coméntala. " +
+-                    "Si hay notas, tenlas en cuenta. " +
+-                    "No des consejos médicos, solo comenta la tendencia. Máximo 3-4 frases."
+-            )
+-        )
+-    }
+-
+-    /**
+-     * Formato fallback cuando solo tenemos un WorkoutSet pelado (sin acceso al
+-     * exercise/profile). Mostramos los campos no nulos con un símbolo.
+-     */
+-    private fun formatRawSet(s: WorkoutSet): String {
+-        val parts = mutableListOf<String>()
+-        s.weightKg?.let { parts += "${if (it % 1.0 == 0.0) it.toInt() else "%.1f".format(it)}kg" }
+-        s.reps?.let { parts += "${it} reps" }
+-        s.distanceMeters?.let {
+-            parts += if (it >= 1000) "%.2fkm".format(it / 1000) else "${it.toInt()}m"
+-        }
+-        s.durationSeconds?.let { parts += "%d:%02d".format(it / 60, it % 60) }
+-        s.resistanceLevel?.let { parts += "n${it}" }
+-        s.inclinePercent?.let { parts += "${if (it % 1.0 == 0.0) it.toInt() else "%.1f".format(it)}%" }
+-        return parts.joinToString(" · ").ifEmpty { "—" }
+-    }
+-}
+diff --git a/app/src/main/java/com/n3k0chan/spotter/backup/DriveBackupManager.kt b/app/src/main/java/com/n3k0chan/spotter/backup/DriveBackupManager.kt
+old mode 100755
+new mode 100644
+diff --git a/app/src/main/java/com/n3k0chan/spotter/backup/DriveSignInContract.kt b/app/src/main/java/com/n3k0chan/spotter/backup/DriveSignInContract.kt
+old mode 100755
+new mode 100644
+diff --git a/app/src/main/java/com/n3k0chan/spotter/data/db/SpotterDatabase.kt b/app/src/main/java/com/n3k0chan/spotter/data/db/SpotterDatabase.kt
+old mode 100755
+new mode 100644
+diff --git a/app/src/main/java/com/n3k0chan/spotter/data/db/dao/ExerciseDao.kt b/app/src/main/java/com/n3k0chan/spotter/data/db/dao/ExerciseDao.kt
+old mode 100755
+new mode 100644
+diff --git a/app/src/main/java/com/n3k0chan/spotter/data/db/dao/TemplateDao.kt b/app/src/main/java/com/n3k0chan/spotter/data/db/dao/TemplateDao.kt
+old mode 100755
+new mode 100644
+diff --git a/app/src/main/java/com/n3k0chan/spotter/data/db/dao/WorkoutDao.kt b/app/src/main/java/com/n3k0chan/spotter/data/db/dao/WorkoutDao.kt
+old mode 100755
+new mode 100644
+index 8fb546d..7459963
+--- a/app/src/main/java/com/n3k0chan/spotter/data/db/dao/WorkoutDao.kt
++++ b/app/src/main/java/com/n3k0chan/spotter/data/db/dao/WorkoutDao.kt
+@@ -77,9 +77,14 @@ interface WorkoutDao {
+               SELECT exerciseId FROM workout_sets
+               GROUP BY exerciseId
+               ORDER BY COUNT(*) DESC
+               LIMIT :topN
+           )
+         ORDER BY ws.completedAt ASC
+     """)
+     suspend fun getTopExerciseSets(topN: Int = 5): List<WorkoutSet>
++
++    @androidx.room.Query("SELECT exerciseId AS exerciseId, COUNT(*) AS count FROM workout_sets GROUP BY exerciseId")
++    suspend fun getExerciseSetCounts(): List<ExerciseSetCount>
+ }
++
++data class ExerciseSetCount(val exerciseId: Long, val count: Int)
+diff --git a/app/src/main/java/com/n3k0chan/spotter/data/db/entities/Exercise.kt b/app/src/main/java/com/n3k0chan/spotter/data/db/entities/Exercise.kt
+old mode 100755
+new mode 100644
+diff --git a/app/src/main/java/com/n3k0chan/spotter/data/db/entities/Relations.kt b/app/src/main/java/com/n3k0chan/spotter/data/db/entities/Relations.kt
+old mode 100755
+new mode 100644
+diff --git a/app/src/main/java/com/n3k0chan/spotter/data/db/entities/Template.kt b/app/src/main/java/com/n3k0chan/spotter/data/db/entities/Template.kt
+old mode 100755
+new mode 100644
+diff --git a/app/src/main/java/com/n3k0chan/spotter/data/db/entities/Workout.kt b/app/src/main/java/com/n3k0chan/spotter/data/db/entities/Workout.kt
+old mode 100755
+new mode 100644
+diff --git a/app/src/main/java/com/n3k0chan/spotter/data/measurement/MeasurementProfile.kt b/app/src/main/java/com/n3k0chan/spotter/data/measurement/MeasurementProfile.kt
+old mode 100755
+new mode 100644
+diff --git a/app/src/main/java/com/n3k0chan/spotter/data/prefs/SettingsRepository.kt b/app/src/main/java/com/n3k0chan/spotter/data/prefs/SettingsRepository.kt
+index 984bcca..2e8adab 100644
+--- a/app/src/main/java/com/n3k0chan/spotter/data/prefs/SettingsRepository.kt
++++ b/app/src/main/java/com/n3k0chan/spotter/data/prefs/SettingsRepository.kt
+@@ -1,21 +1,19 @@
+ package com.n3k0chan.spotter.data.prefs
+ 
+ import android.content.Context
+ import androidx.security.crypto.EncryptedSharedPreferences
+ import androidx.security.crypto.MasterKey
+-import com.n3k0chan.spotter.BuildConfig
+ import kotlinx.coroutines.flow.MutableStateFlow
+ import kotlinx.coroutines.flow.StateFlow
+ import kotlinx.coroutines.flow.asStateFlow
+ 
+ /**
+- * Lee y escribe ajustes. La API key se guarda cifrada con EncryptedSharedPreferences.
+- * Si el usuario no ha sobrescrito la key, se usa BuildConfig.GROQ_API_KEY (de local.properties).
++ * Lee y escribe ajustes. Los datos se guardan cifrados con EncryptedSharedPreferences.
+  */
+ class SettingsRepository(context: Context) {
+ 
+     private val masterKey = MasterKey.Builder(context.applicationContext)
+         .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+         .build()
+ 
+     private val prefs = EncryptedSharedPreferences.create(
+@@ -25,53 +23,34 @@ class SettingsRepository(context: Context) {
+         EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+         EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
+     )
+ 
+     private val _state = MutableStateFlow(load())
+     val state: StateFlow<AppSettings> = _state.asStateFlow()
+ 
+     private fun load(): AppSettings {
+-        val storedKey = prefs.getString(KEY_GROQ_API, null).orEmpty()
+         return AppSettings(
+-            groqApiKey = storedKey.ifEmpty { BuildConfig.GROQ_API_KEY },
+-            isUserOverridingKey = storedKey.isNotEmpty(),
+-            groqModel = prefs.getString(KEY_MODEL, DEFAULT_MODEL) ?: DEFAULT_MODEL,
+             defaultRestSeconds = prefs.getInt(KEY_REST, 90),
+             preWarning = prefs.getBoolean(KEY_PRE_WARNING, true),
+             vibrate = prefs.getBoolean(KEY_VIBRATE, true),
+             driveAccountName = prefs.getString(KEY_DRIVE_ACCOUNT, null)?.takeIf { it.isNotBlank() },
+             autoBackupAfterWorkout = prefs.getBoolean(KEY_AUTO_BACKUP, true),
+             lastBackupAt = prefs.getLong(KEY_LAST_BACKUP, 0L).takeIf { it > 0 },
+-            chatHistoryWindow = ChatHistoryWindow.fromName(
+-                prefs.getString(KEY_CHAT_HISTORY_WINDOW, ChatHistoryWindow.Month.name),
+-            ),
+             reminderDays = prefs.getStringSet(KEY_REMINDER_DAYS, emptySet())
+                 ?.mapNotNull { it.toIntOrNull() }?.toSet() ?: emptySet(),
+             reminderHour = prefs.getInt(KEY_REMINDER_HOUR, 18),
+             reminderMinute = prefs.getInt(KEY_REMINDER_MINUTE, 0),
+             appThemeStyle = com.n3k0chan.spotter.ui.theme.AppThemeStyle.valueOf(
+                 prefs.getString(KEY_APP_THEME_STYLE, com.n3k0chan.spotter.ui.theme.AppThemeStyle.Modern.name)
+                     ?: com.n3k0chan.spotter.ui.theme.AppThemeStyle.Modern.name
+             ),
+         )
+     }
+ 
+-    fun setGroqApiKey(value: String) {
+-        prefs.edit().also {
+-            if (value.isBlank()) it.remove(KEY_GROQ_API) else it.putString(KEY_GROQ_API, value.trim())
+-        }.apply()
+-        _state.value = load()
+-    }
+-
+-    fun setModel(model: String) {
+-        prefs.edit().putString(KEY_MODEL, model).apply()
+-        _state.value = load()
+-    }
+-
+     fun setDefaultRest(seconds: Int) {
+         prefs.edit().putInt(KEY_REST, seconds.coerceIn(15, 600)).apply()
+         _state.value = load()
+     }
+ 
+     fun setPreWarning(enabled: Boolean) {
+         prefs.edit().putBoolean(KEY_PRE_WARNING, enabled).apply()
+         _state.value = load()
+@@ -94,21 +73,16 @@ class SettingsRepository(context: Context) {
+         _state.value = load()
+     }
+ 
+     fun setLastBackupAt(timestampMillis: Long) {
+         prefs.edit().putLong(KEY_LAST_BACKUP, timestampMillis).apply()
+         _state.value = load()
+     }
+ 
+-    fun setChatHistoryWindow(window: ChatHistoryWindow) {
+-        prefs.edit().putString(KEY_CHAT_HISTORY_WINDOW, window.name).apply()
+-        _state.value = load()
+-    }
+-
+     fun setReminderDays(days: Set<Int>) {
+         prefs.edit().putStringSet(KEY_REMINDER_DAYS, days.map { it.toString() }.toSet()).apply()
+         _state.value = load()
+     }
+ 
+     fun setReminderTime(hour: Int, minute: Int) {
+         prefs.edit().putInt(KEY_REMINDER_HOUR, hour).putInt(KEY_REMINDER_MINUTE, minute).apply()
+         _state.value = load()
+@@ -116,69 +90,36 @@ class SettingsRepository(context: Context) {
+ 
+     fun setAppThemeStyle(style: com.n3k0chan.spotter.ui.theme.AppThemeStyle) {
+         prefs.edit().putString(KEY_APP_THEME_STYLE, style.name).apply()
+         _state.value = load()
+     }
+ 
+     companion object {
+         private const val FILE = "spotter_secure_prefs"
+-        private const val KEY_GROQ_API = "groq_api_key"
+-        private const val KEY_MODEL = "groq_model"
+         private const val KEY_REST = "default_rest"
+         private const val KEY_PRE_WARNING = "pre_warning"
+         private const val KEY_VIBRATE = "vibrate"
+         private const val KEY_DRIVE_ACCOUNT = "drive_account"
+         private const val KEY_AUTO_BACKUP = "auto_backup"
+         private const val KEY_LAST_BACKUP = "last_backup_at"
+-        private const val KEY_CHAT_HISTORY_WINDOW = "chat_history_window"
+         private const val KEY_REMINDER_DAYS = "reminder_days"
+         private const val KEY_REMINDER_HOUR = "reminder_hour"
+         private const val KEY_REMINDER_MINUTE = "reminder_minute"
+         private const val KEY_APP_THEME_STYLE = "app_theme_style"
+-        const val DEFAULT_MODEL = "openai/gpt-oss-20b"
+-        val MODELS = listOf(
+-            "openai/gpt-oss-20b",
+-        )
+     }
+ }
+ 
+ data class AppSettings(
+-    val groqApiKey: String,
+-    val isUserOverridingKey: Boolean,
+-    val groqModel: String,
+     val defaultRestSeconds: Int,
+     val preWarning: Boolean,
+     val vibrate: Boolean,
+     val driveAccountName: String? = null,
+     val autoBackupAfterWorkout: Boolean = true,
+     val lastBackupAt: Long? = null,
+-    val chatHistoryWindow: ChatHistoryWindow = ChatHistoryWindow.Month,
+     val reminderDays: Set<Int> = emptySet(),
+     val reminderHour: Int = 18,
+     val reminderMinute: Int = 0,
+     val appThemeStyle: com.n3k0chan.spotter.ui.theme.AppThemeStyle = com.n3k0chan.spotter.ui.theme.AppThemeStyle.Modern,
+ ) {
+-    val hasApiKey: Boolean get() = groqApiKey.isNotBlank()
+     val isDriveLinked: Boolean get() = !driveAccountName.isNullOrBlank()
+     val hasReminders: Boolean get() = reminderDays.isNotEmpty()
+ }
+-
+-/** Cuánto historial enviar al chat al usar "Compartir historial". */
+-enum class ChatHistoryWindow(val display: String) {
+-    Week("1 semana"),
+-    Month("1 mes"),
+-    Year("1 año"),
+-    All("Todo");
+-
+-    /** Devuelve el timestamp mínimo (ms) para filtrar sesiones. null = sin límite. */
+-    fun cutoffMillis(now: Long = System.currentTimeMillis()): Long? = when (this) {
+-        Week -> now - 7L * 24 * 60 * 60 * 1000
+-        Month -> now - 30L * 24 * 60 * 60 * 1000
+-        Year -> now - 365L * 24 * 60 * 60 * 1000
+-        All -> null
+-    }
+-
+-    companion object {
+-        fun fromName(value: String?): ChatHistoryWindow =
+-            entries.firstOrNull { it.name == value } ?: Month
+-    }
+-}
+diff --git a/app/src/main/java/com/n3k0chan/spotter/data/repository/ExerciseRepository.kt b/app/src/main/java/com/n3k0chan/spotter/data/repository/ExerciseRepository.kt
+old mode 100755
+new mode 100644
+diff --git a/app/src/main/java/com/n3k0chan/spotter/data/repository/TemplateRepository.kt b/app/src/main/java/com/n3k0chan/spotter/data/repository/TemplateRepository.kt
+old mode 100755
+new mode 100644
+diff --git a/app/src/main/java/com/n3k0chan/spotter/data/repository/WorkoutRepository.kt b/app/src/main/java/com/n3k0chan/spotter/data/repository/WorkoutRepository.kt
+old mode 100755
+new mode 100644
+index ae53edf..9447dc5
+--- a/app/src/main/java/com/n3k0chan/spotter/data/repository/WorkoutRepository.kt
++++ b/app/src/main/java/com/n3k0chan/spotter/data/repository/WorkoutRepository.kt
+@@ -1,10 +1,11 @@
+ package com.n3k0chan.spotter.data.repository
+ 
++import com.n3k0chan.spotter.data.db.dao.ExerciseSetCount
+ import com.n3k0chan.spotter.data.db.dao.WorkoutDao
+ import com.n3k0chan.spotter.data.db.entities.Workout
+ import com.n3k0chan.spotter.data.db.entities.WorkoutSet
+ import com.n3k0chan.spotter.data.db.entities.WorkoutWithSets
+ import kotlinx.coroutines.flow.Flow
+ 
+ /**
+  * Datos de entrada para registrar una serie. Solo los campos relevantes
+@@ -149,9 +150,12 @@ class WorkoutRepository(private val dao: WorkoutDao) {
+             notes = notes,
+         ),
+     )
+ 
+     fun observeFinishedStartTimes(): Flow<List<Long>> = dao.observeFinishedStartTimes()
+     fun observeFinishedCount(): Flow<Int> = dao.observeFinishedCount()
+     fun observeFinishedCountSince(sinceEpochMillis: Long): Flow<Int> =
+         dao.observeFinishedCountSince(sinceEpochMillis)
++
++    suspend fun exerciseTrainingCounts(): Map<Long, Int> =
++        dao.getExerciseSetCounts().associate { it.exerciseId to it.count }
+ }
+diff --git a/app/src/main/java/com/n3k0chan/spotter/data/seed/SeedExercises.kt b/app/src/main/java/com/n3k0chan/spotter/data/seed/SeedExercises.kt
+old mode 100755
+new mode 100644
+diff --git a/app/src/main/java/com/n3k0chan/spotter/di/ServiceLocator.kt b/app/src/main/java/com/n3k0chan/spotter/di/ServiceLocator.kt
+old mode 100755
+new mode 100644
+diff --git a/app/src/main/java/com/n3k0chan/spotter/motivation/MotivationalMessages.kt b/app/src/main/java/com/n3k0chan/spotter/motivation/MotivationalMessages.kt
+old mode 100755
+new mode 100644
+diff --git a/app/src/main/java/com/n3k0chan/spotter/timer/RestTimerController.kt b/app/src/main/java/com/n3k0chan/spotter/timer/RestTimerController.kt
+old mode 100755
+new mode 100644
+diff --git a/app/src/main/java/com/n3k0chan/spotter/timer/RestTimerService.kt b/app/src/main/java/com/n3k0chan/spotter/timer/RestTimerService.kt
+old mode 100755
+new mode 100644
+diff --git a/app/src/main/java/com/n3k0chan/spotter/ui/SpotterApp.kt b/app/src/main/java/com/n3k0chan/spotter/ui/SpotterApp.kt
+old mode 100755
+new mode 100644
+diff --git a/app/src/main/java/com/n3k0chan/spotter/ui/chat/ChatScreen.kt b/app/src/main/java/com/n3k0chan/spotter/ui/chat/ChatScreen.kt
+deleted file mode 100755
+index 6f3db37..0000000
+--- a/app/src/main/java/com/n3k0chan/spotter/ui/chat/ChatScreen.kt
++++ /dev/null
+@@ -1,481 +0,0 @@
+-@file:OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+-
+-package com.n3k0chan.spotter.ui.chat
+-
+-import android.annotation.SuppressLint
+-import androidx.compose.foundation.background
+-import androidx.compose.foundation.clickable
+-import androidx.compose.foundation.layout.Arrangement
+-import androidx.compose.foundation.layout.Box
+-import androidx.compose.foundation.layout.Column
+-import androidx.compose.foundation.layout.ExperimentalLayoutApi
+-import androidx.compose.foundation.layout.PaddingValues
+-import androidx.compose.foundation.layout.Row
+-import androidx.compose.foundation.layout.Spacer
+-import androidx.compose.foundation.layout.fillMaxSize
+-import androidx.compose.foundation.layout.fillMaxWidth
+-import androidx.compose.foundation.layout.height
+-import androidx.compose.foundation.layout.padding
+-import androidx.compose.foundation.layout.size
+-import androidx.compose.foundation.layout.width
+-import androidx.compose.foundation.layout.widthIn
+-import androidx.compose.foundation.lazy.LazyColumn
+-import androidx.compose.foundation.lazy.items
+-import androidx.compose.foundation.lazy.rememberLazyListState
+-import androidx.compose.foundation.shape.RoundedCornerShape
+-import androidx.compose.material.icons.Icons
+-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+-import androidx.compose.material.icons.automirrored.filled.Send
+-import androidx.compose.material.icons.filled.MoreVert
+-import androidx.compose.material3.HorizontalDivider
+-import androidx.compose.material3.Icon
+-import androidx.compose.material3.MaterialTheme
+-import androidx.compose.material3.OutlinedTextField
+-import androidx.compose.material3.OutlinedTextFieldDefaults
+-import androidx.compose.material3.Scaffold
+-import androidx.compose.material3.Text
+-import androidx.compose.runtime.Composable
+-import androidx.compose.runtime.LaunchedEffect
+-import androidx.compose.runtime.getValue
+-import androidx.compose.runtime.mutableStateOf
+-import androidx.compose.runtime.remember
+-import androidx.compose.runtime.setValue
+-import androidx.compose.ui.Alignment
+-import androidx.compose.ui.Modifier
+-import androidx.compose.ui.draw.clip
+-import androidx.compose.ui.unit.dp
+-import androidx.lifecycle.ViewModel
+-import androidx.lifecycle.ViewModelProvider
+-import androidx.lifecycle.compose.collectAsStateWithLifecycle
+-import androidx.lifecycle.viewModelScope
+-import androidx.lifecycle.viewmodel.compose.viewModel
+-import com.n3k0chan.spotter.ai.GroqClient
+-import com.n3k0chan.spotter.ai.GroqMessage
+-import com.n3k0chan.spotter.ai.Prompts
+-import com.n3k0chan.spotter.data.db.entities.WorkoutWithSets
+-import com.n3k0chan.spotter.data.db.entities.profile
+-import com.n3k0chan.spotter.data.measurement.formatShort
+-import com.n3k0chan.spotter.di.ServiceLocator
+-import com.n3k0chan.spotter.ui.components.IconButtonTone
+-import kotlinx.coroutines.flow.first
+-import java.text.DateFormat
+-import java.util.Date
+-import com.n3k0chan.spotter.ui.components.SpotterCard
+-import com.n3k0chan.spotter.ui.components.SpotterIconButton
+-import com.n3k0chan.spotter.ui.components.SpotterTopBar
+-import com.n3k0chan.spotter.ui.theme.SpotterText
+-import com.n3k0chan.spotter.ui.theme.SpotterTheme
+-import kotlinx.coroutines.flow.MutableStateFlow
+-import kotlinx.coroutines.flow.StateFlow
+-import kotlinx.coroutines.flow.asStateFlow
+-import kotlinx.coroutines.flow.stateIn
+-import kotlinx.coroutines.launch
+-
+-data class ChatTurn(val role: String, val content: String)
+-
+-class ChatViewModel : ViewModel() {
+-
+-    private val settings = ServiceLocator.settings
+-    private val workouts = ServiceLocator.workouts
+-    private val exercisesRepo = ServiceLocator.exercises
+-
+-    val catalog: StateFlow<List<com.n3k0chan.spotter.data.db.entities.Exercise>> =
+-        exercisesRepo.observeAll().stateIn(
+-            viewModelScope,
+-            kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5_000),
+-            emptyList(),
+-        )
+-
+-    private val _messages = MutableStateFlow<List<ChatTurn>>(emptyList())
+-    val messages: StateFlow<List<ChatTurn>> = _messages.asStateFlow()
+-
+-    private val _sending = MutableStateFlow(false)
+-    val sending: StateFlow<Boolean> = _sending.asStateFlow()
+-
+-    /** Cuando está activo, en el SIGUIENTE envío adjuntamos el historial de entrenos. */
+-    private val _attachHistory = MutableStateFlow(false)
+-    val attachHistory: StateFlow<Boolean> = _attachHistory.asStateFlow()
+-
+-    /**
+-     * Cuando está activo, en el SIGUIENTE envío adjuntamos el catálogo de ejercicios
+-     * (nombre + grupo + tipo de medida, SIN series). Útil para preguntar qué
+-     * ejercicio del catálogo encaja con una máquina del gimnasio.
+-     */
+-    private val _attachCatalog = MutableStateFlow(false)
+-    val attachCatalog: StateFlow<Boolean> = _attachCatalog.asStateFlow()
+-
+-    fun hasKey(): Boolean = settings.state.value.hasApiKey
+-
+-    fun toggleAttachHistory() { _attachHistory.value = !_attachHistory.value }
+-
+-    fun toggleAttachCatalog() { _attachCatalog.value = !_attachCatalog.value }
+-
+-    fun send(input: String) {
+-        val text = input.trim()
+-        if (text.isEmpty() || _sending.value) return
+-        val cfg = settings.state.value
+-        if (!cfg.hasApiKey) return
+-
+-        _messages.value = _messages.value + ChatTurn("user", text)
+-        _sending.value = true
+-        val attachHistoryNow = _attachHistory.value
+-        val attachCatalogNow = _attachCatalog.value
+-        // Toggles one-shot: se desactivan tras el envío
+-        if (attachHistoryNow) _attachHistory.value = false
+-        if (attachCatalogNow) _attachCatalog.value = false
+-
+-        viewModelScope.launch {
+-            val history = _messages.value.dropLast(1).map { GroqMessage(it.role, it.content) }
+-            val parts = mutableListOf(text)
+-            if (attachHistoryNow) {
+-                runCatching { buildHistoryContext() }.getOrNull()?.takeIf { it.isNotBlank() }?.let { parts += it }
+-            }
+-            if (attachCatalogNow) {
+-                runCatching { buildCatalogContext() }.getOrNull()
+-                    ?.takeIf { it.isNotBlank() }?.let { parts += it }
+-            }
+-            val finalUserText = parts.joinToString("\n\n")
+-            runCatching {
+-                GroqClient.chat(
+-                    apiKey = cfg.groqApiKey,
+-                    model = cfg.groqModel,
+-                    messages = Prompts.chatTurn(history, finalUserText),
+-                    temperature = 0.6,
+-                )
+-            }.onSuccess { reply ->
+-                _messages.value = _messages.value + ChatTurn("assistant", reply.trim())
+-            }.onFailure {
+-                _messages.value = _messages.value + ChatTurn(
+-                    "assistant",
+-                    "Error contactando con Groq: ${it.message ?: it::class.simpleName}",
+-                )
+-            }
+-            _sending.value = false
+-        }
+-    }
+-
+-    /**
+-     * Construye un bloque con el catálogo entero de ejercicios disponibles
+-     * (nombre + grupo + tipo de medida). Sirve para preguntar al chat qué
+-     * ejercicio encaja con una máquina o aparato del gimnasio. NO incluye
+-     * historial ni series — solo metadata del catálogo.
+-     */
+-    private suspend fun buildCatalogContext(): String {
+-        val all = catalog.value.takeIf { it.isNotEmpty() }
+-            ?: runCatching { exercisesRepo.observeAll().first() }.getOrNull().orEmpty()
+-        if (all.isEmpty()) return ""
+-        return buildString {
+-            appendLine("[Catálogo de ejercicios disponibles · ${all.size} ejercicios]")
+-            // Agrupar por grupo muscular para que el asistente pueda navegar mejor
+-            all.groupBy { it.muscleGroup ?: "Otro" }
+-                .toSortedMap()
+-                .forEach { (group, list) ->
+-                    appendLine("· $group:")
+-                    list.sortedBy { it.name.lowercase() }.forEach { ex ->
+-                        val profile = com.n3k0chan.spotter.data.measurement.MeasurementProfile
+-                            .fromNameOrDefault(ex.measurementProfile)
+-                        appendLine("  - ${ex.name} (${profile.display})")
+-                    }
+-                }
+-        }.trimEnd()
+-    }
+-
+-    /**
+-     * Construye un resumen de las sesiones terminadas dentro de la ventana
+-     * configurada en Ajustes (semana / mes / año / todo) para inyectar como
+-     * contexto al asistente.
+-     */
+-    private suspend fun buildHistoryContext(): String {
+-        val window = settings.state.value.chatHistoryWindow
+-        val cutoff = window.cutoffMillis()
+-        val sessions = workouts.observeAll().first()
+-            .filter { it.workout.finishedAt != null }
+-            .filter { cutoff == null || it.workout.startedAt >= cutoff }
+-        if (sessions.isEmpty()) return ""
+-        val df = DateFormat.getDateInstance(DateFormat.SHORT)
+-        return buildString {
+-            appendLine("[Historial · ${window.display} · ${sessions.size} sesiones, más reciente primero]")
+-            sessions.forEach { w -> appendSession(w, df) }
+-        }.trimEnd()
+-    }
+-
+-    private fun StringBuilder.appendSession(w: WorkoutWithSets, df: DateFormat) {
+-        val durationMin = w.workout.finishedAt
+-            ?.let { (it - w.workout.startedAt) / 60_000 }
+-            ?.toInt()
+-        append("- ").append(df.format(Date(w.workout.startedAt)))
+-        append(" · ").append(w.workout.title)
+-        if (durationMin != null) append(" (${durationMin} min)")
+-        if (w.workout.rpe != null) append(" · RPE ${w.workout.rpe}")
+-        appendLine()
+-        val byExercise = w.sets.groupBy { it.exercise.name }
+-        byExercise.entries.take(8).forEach { (name, sets) ->
+-            val profile = sets.firstOrNull()?.exercise?.profile ?: return@forEach
+-            append("  ").append(name).append(": ")
+-            append(sets.joinToString(", ") { it.set.formatShort(profile) })
+-            appendLine()
+-        }
+-        if (!w.workout.notes.isNullOrBlank()) {
+-            appendLine("  notas: ${w.workout.notes}")
+-        }
+-    }
+-
+-    companion object {
+-        val Factory = object : ViewModelProvider.Factory {
+-            override fun <T : ViewModel> create(modelClass: Class<T>): T {
+-                @Suppress("UNCHECKED_CAST")
+-                return ChatViewModel() as T
+-            }
+-        }
+-    }
+-}
+-
+-@SuppressLint("StateFlowValueCalledInComposition")
+-@OptIn(ExperimentalLayoutApi::class)
+-@Composable
+-fun ChatScreen(
+-    onBack: () -> Unit,
+-    vm: ChatViewModel = viewModel(factory = ChatViewModel.Factory),
+-) {
+-    val messages by vm.messages.collectAsStateWithLifecycle()
+-    val sending by vm.sending.collectAsStateWithLifecycle()
+-    val attachHistory by vm.attachHistory.collectAsStateWithLifecycle()
+-    val attachCatalog by vm.attachCatalog.collectAsStateWithLifecycle()
+-    val c = SpotterTheme.colors
+-    var input by remember { mutableStateOf("") }
+-    val listState = rememberLazyListState()
+-
+-    LaunchedEffect(messages.size) {
+-        if (messages.isNotEmpty()) listState.animateScrollToItem(messages.size - 1)
+-    }
+-
+-    val groqModel = ServiceLocator.settings.state.value.groqModel
+-
+-    Scaffold(
+-        containerColor = c.bg,
+-        topBar = {
+-            SpotterTopBar(
+-                title = "Asistente",
+-                subtitle = "Groq · $groqModel",
+-                leading = { SpotterIconButton(Icons.AutoMirrored.Filled.ArrowBack, onClick = onBack) },
+-                trailing = { SpotterIconButton(Icons.Filled.MoreVert, tone = IconButtonTone.Muted) },
+-            )
+-        },
+-        bottomBar = {
+-            Column(
+-                modifier = Modifier
+-                    .fillMaxWidth()
+-                    .background(c.surface),
+-            ) {
+-                HorizontalDivider(color = c.border, thickness = 1.dp)
+-                Column(
+-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+-                ) {
+-                    androidx.compose.foundation.layout.FlowRow(
+-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+-                        verticalArrangement = Arrangement.spacedBy(6.dp),
+-                    ) {
+-                        AttachHistoryChip(
+-                            selected = attachHistory,
+-                            onClick = { vm.toggleAttachHistory() },
+-                        )
+-                        AttachCatalogChip(
+-                            selected = attachCatalog,
+-                            onClick = { vm.toggleAttachCatalog() },
+-                        )
+-                    }
+-                    Spacer(Modifier.height(10.dp))
+-                    Row(verticalAlignment = Alignment.CenterVertically) {
+-                        OutlinedTextField(
+-                            value = input,
+-                            onValueChange = { input = it },
+-                            placeholder = { Text("Pregunta lo que quieras…", color = c.textFaint) },
+-                            modifier = Modifier.weight(1f),
+-                            enabled = vm.hasKey() && !sending,
+-                            singleLine = true,
+-                            colors = OutlinedTextFieldDefaults.colors(
+-                                focusedContainerColor = c.surfaceMuted,
+-                                unfocusedContainerColor = c.surfaceMuted,
+-                                disabledContainerColor = c.surfaceMuted,
+-                                focusedBorderColor = c.borderStrong,
+-                                unfocusedBorderColor = c.border,
+-                                disabledBorderColor = c.border,
+-                                cursorColor = c.primary,
+-                                focusedTextColor = c.text,
+-                                unfocusedTextColor = c.text,
+-                            ),
+-                            shape = RoundedCornerShape(24.dp),
+-                            textStyle = SpotterText.body,
+-                        )
+-                        Spacer(Modifier.width(10.dp))
+-                        Box(
+-                            modifier = Modifier
+-                                .size(48.dp)
+-                                .clip(RoundedCornerShape(24.dp))
+-                                .background(if (vm.hasKey() && !sending && input.isNotBlank()) c.primary else c.surfaceVariant)
+-                                .clickable(
+-                                    enabled = vm.hasKey() && !sending && input.isNotBlank(),
+-                                    onClick = { vm.send(input); input = "" },
+-                                ),
+-                            contentAlignment = Alignment.Center,
+-                        ) {
+-                            Icon(
+-                                Icons.AutoMirrored.Filled.Send,
+-                                contentDescription = "Enviar",
+-                                tint = if (vm.hasKey() && !sending && input.isNotBlank()) c.onPrimary else c.textFaint,
+-                                modifier = Modifier.size(20.dp),
+-                            )
+-                        }
+-                    }
+-                }
+-            }
+-        },
+-    ) { padding ->
+-        if (!vm.hasKey()) {
+-            Column(
+-                modifier = Modifier.padding(padding).fillMaxSize().padding(16.dp),
+-            ) {
+-                SpotterCard(
+-                    background = c.surfaceMuted,
+-                    border = c.border,
+-                    padding = 16.dp,
+-                ) {
+-                    Text(
+-                        "Configura tu API key de Groq en Ajustes para usar el asistente.",
+-                        style = SpotterText.body,
+-                        color = c.text,
+-                    )
+-                }
+-            }
+-        } else {
+-            LazyColumn(
+-                state = listState,
+-                modifier = Modifier
+-                    .padding(padding)
+-                    .fillMaxSize(),
+-                verticalArrangement = Arrangement.spacedBy(10.dp),
+-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
+-            ) {
+-                items(messages) { msg -> Bubble(msg) }
+-                if (sending) item { Bubble(ChatTurn("assistant", "…")) }
+-            }
+-        }
+-    }
+-
+-}
+-
+-@Composable
+-private fun Bubble(turn: ChatTurn) {
+-    val c = SpotterTheme.colors
+-    val isUser = turn.role == "user"
+-    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = if (isUser) Alignment.CenterEnd else Alignment.CenterStart) {
+-        Box(
+-            modifier = Modifier
+-                .widthIn(max = 320.dp)
+-                .clip(
+-                    RoundedCornerShape(
+-                        topStart = 16.dp,
+-                        topEnd = 16.dp,
+-                        bottomStart = if (isUser) 16.dp else 4.dp,
+-                        bottomEnd = if (isUser) 4.dp else 16.dp,
+-                    ),
+-                )
+-                .background(if (isUser) c.primary else c.surfaceVariant)
+-                .padding(horizontal = 14.dp, vertical = 10.dp),
+-        ) {
+-            Text(
+-                turn.content,
+-                style = SpotterText.body,
+-                color = if (isUser) c.onPrimary else c.text,
+-            )
+-        }
+-    }
+-}
+-
+-@Composable
+-private fun AttachCatalogChip(selected: Boolean, onClick: () -> Unit) {
+-    val c = SpotterTheme.colors
+-    Row(
+-        modifier = Modifier
+-            .height(32.dp)
+-            .clip(RoundedCornerShape(8.dp))
+-            .background(if (selected) c.primarySoft else c.surfaceMuted)
+-            .clickable(onClick = onClick)
+-            .padding(horizontal = 12.dp, vertical = 4.dp),
+-        verticalAlignment = Alignment.CenterVertically,
+-    ) {
+-        Icon(
+-            painter = androidx.compose.ui.res.painterResource(
+-                id = com.n3k0chan.spotter.R.drawable.ic_muscle_other,
+-            ),
+-            contentDescription = null,
+-            tint = if (selected) c.primarySoftText else c.textMuted,
+-            modifier = Modifier.size(14.dp),
+-        )
+-        Spacer(Modifier.width(6.dp))
+-        Text(
+-            "Mis ejercicios",
+-            style = SpotterText.smallMd,
+-            color = if (selected) c.primarySoftText else c.textMuted,
+-        )
+-        Spacer(Modifier.width(8.dp))
+-        Box(
+-            modifier = Modifier
+-                .size(width = 28.dp, height = 16.dp)
+-                .clip(RoundedCornerShape(8.dp))
+-                .background(if (selected) c.primary else c.borderStrong),
+-        ) {
+-            Box(
+-                modifier = Modifier
+-                    .padding(2.dp)
+-                    .size(12.dp)
+-                    .align(if (selected) Alignment.CenterEnd else Alignment.CenterStart)
+-                    .clip(RoundedCornerShape(6.dp))
+-                    .background(androidx.compose.ui.graphics.Color.White),
+-            )
+-        }
+-    }
+-}
+-
+-@Composable
+-private fun AttachHistoryChip(selected: Boolean, onClick: () -> Unit) {
+-    val c = SpotterTheme.colors
+-    Row(
+-        modifier = Modifier
+-            .height(32.dp)
+-            .clip(RoundedCornerShape(8.dp))
+-            .background(if (selected) c.primarySoft else c.surfaceMuted)
+-            .clickable(onClick = onClick)
+-            .padding(horizontal = 12.dp, vertical = 4.dp),
+-        verticalAlignment = Alignment.CenterVertically,
+-    ) {
+-        Icon(
+-            painter = androidx.compose.ui.res.painterResource(id = com.n3k0chan.spotter.R.drawable.ic_muscle_other),
+-            contentDescription = null,
+-            tint = if (selected) c.primarySoftText else c.textMuted,
+-            modifier = Modifier.size(14.dp),
+-        )
+-        Spacer(Modifier.width(6.dp))
+-        Text(
+-            "Compartir historial de entrenamiento",
+-            style = SpotterText.smallMd,
+-            color = if (selected) c.primarySoftText else c.textMuted,
+-        )
+-        Spacer(Modifier.width(8.dp))
+-        Box(
+-            modifier = Modifier
+-                .size(width = 28.dp, height = 16.dp)
+-                .clip(RoundedCornerShape(8.dp))
+-                .background(if (selected) c.primary else c.borderStrong),
+-        ) {
+-            Box(
+-                modifier = Modifier
+-                    .padding(2.dp)
+-                    .size(12.dp)
+-                    .align(if (selected) Alignment.CenterEnd else Alignment.CenterStart)
+-                    .clip(RoundedCornerShape(6.dp))
+-                    .background(androidx.compose.ui.graphics.Color.White),
+-            )
+-        }
+-    }
+-}
+diff --git a/app/src/main/java/com/n3k0chan/spotter/ui/components/ExercisePickerSheet.kt b/app/src/main/java/com/n3k0chan/spotter/ui/components/ExercisePickerSheet.kt
+old mode 100755
+new mode 100644
+diff --git a/app/src/main/java/com/n3k0chan/spotter/ui/components/MuscleGroupIcon.kt b/app/src/main/java/com/n3k0chan/spotter/ui/components/MuscleGroupIcon.kt
+old mode 100755
+new mode 100644
+diff --git a/app/src/main/java/com/n3k0chan/spotter/ui/components/SpotterPrimitives.kt b/app/src/main/java/com/n3k0chan/spotter/ui/components/SpotterPrimitives.kt
+old mode 100755
+new mode 100644
+diff --git a/app/src/main/java/com/n3k0chan/spotter/ui/exercises/ExercisesScreen.kt b/app/src/main/java/com/n3k0chan/spotter/ui/exercises/ExercisesScreen.kt
+old mode 100755
+new mode 100644
+diff --git a/app/src/main/java/com/n3k0chan/spotter/ui/health/HealthScreen.kt b/app/src/main/java/com/n3k0chan/spotter/ui/health/HealthScreen.kt
+deleted file mode 100644
+index 574b070..0000000
+--- a/app/src/main/java/com/n3k0chan/spotter/ui/health/HealthScreen.kt
++++ /dev/null
+@@ -1,656 +0,0 @@
+-package com.n3k0chan.spotter.ui.health
+-
+-import androidx.activity.compose.rememberLauncherForActivityResult
+-import androidx.compose.foundation.background
+-import androidx.compose.foundation.clickable
+-import androidx.compose.foundation.layout.Arrangement
+-import androidx.compose.foundation.layout.Box
+-import androidx.compose.foundation.layout.Column
+-import androidx.compose.foundation.layout.PaddingValues
+-import androidx.compose.foundation.layout.Row
+-import androidx.compose.foundation.layout.Spacer
+-import androidx.compose.foundation.layout.fillMaxSize
+-import androidx.compose.foundation.layout.fillMaxWidth
+-import androidx.compose.foundation.layout.height
+-import androidx.compose.foundation.layout.padding
+-import androidx.compose.foundation.layout.size
+-import androidx.compose.foundation.layout.width
+-import androidx.compose.foundation.lazy.LazyColumn
+-import androidx.compose.foundation.lazy.items
+-import androidx.compose.foundation.shape.RoundedCornerShape
+-import androidx.compose.material.icons.Icons
+-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+-import androidx.compose.material.icons.filled.Bedtime
+-import androidx.compose.material.icons.filled.ChevronLeft
+-import androidx.compose.material.icons.filled.ChevronRight
+-import androidx.compose.material.icons.filled.DirectionsWalk
+-import androidx.compose.material.icons.filled.Download
+-import androidx.compose.material.icons.filled.Favorite
+-import androidx.compose.material.icons.filled.FitnessCenter
+-import androidx.compose.material.icons.filled.LocalFireDepartment
+-import androidx.compose.material.icons.filled.Route
+-import androidx.compose.material.icons.filled.SyncProblem
+-import androidx.compose.material.icons.filled.CheckBox
+-import androidx.compose.material.icons.filled.CheckBoxOutlineBlank
+-import androidx.compose.material3.AlertDialog
+-import androidx.compose.material3.CircularProgressIndicator
+-import androidx.compose.material3.DatePickerDialog
+-import androidx.compose.material3.DateRangePicker
+-import androidx.compose.material3.ExperimentalMaterial3Api
+-import androidx.compose.material3.Icon
+-import androidx.compose.material3.Scaffold
+-import androidx.compose.material3.SnackbarHost
+-import androidx.compose.material3.SnackbarHostState
+-import androidx.compose.material3.Text
+-import androidx.compose.material3.TextButton
+-import androidx.compose.material3.rememberDateRangePickerState
+-import androidx.compose.runtime.Composable
+-import androidx.compose.runtime.LaunchedEffect
+-import androidx.compose.runtime.getValue
+-import androidx.compose.runtime.mutableStateOf
+-import androidx.compose.runtime.remember
+-import androidx.compose.runtime.setValue
+-import androidx.compose.ui.Alignment
+-import androidx.compose.ui.Modifier
+-import androidx.compose.ui.draw.clip
+-import androidx.compose.ui.graphics.Color
+-import androidx.compose.ui.graphics.vector.ImageVector
+-import androidx.compose.ui.unit.dp
+-import androidx.health.connect.client.PermissionController
+-import androidx.lifecycle.compose.collectAsStateWithLifecycle
+-import androidx.lifecycle.viewmodel.compose.viewModel
+-import com.n3k0chan.spotter.data.health.DaySummary
+-import com.n3k0chan.spotter.data.health.ExerciseSession
+-import com.n3k0chan.spotter.data.health.SleepSession
+-import com.n3k0chan.spotter.di.ServiceLocator
+-import com.n3k0chan.spotter.ui.components.SpotterButton
+-import com.n3k0chan.spotter.ui.components.SpotterCard
+-import com.n3k0chan.spotter.ui.components.SpotterIconButton
+-import com.n3k0chan.spotter.ui.components.SpotterTopBar
+-import com.n3k0chan.spotter.ui.theme.SpotterText
+-import com.n3k0chan.spotter.ui.theme.SpotterTheme
+-import java.text.NumberFormat
+-import java.time.Duration
+-import java.time.Instant
+-import java.time.LocalDate
+-import java.time.ZoneId
+-import java.time.format.DateTimeFormatter
+-import java.time.format.FormatStyle
+-import java.util.Locale
+-
+-@Composable
+-fun HealthScreen(
+-    onBack: () -> Unit,
+-    vm: HealthViewModel = viewModel(factory = HealthViewModel.Factory),
+-) {
+-    val state by vm.state.collectAsStateWithLifecycle()
+-    val c = SpotterTheme.colors
+-    var showImportDialog by remember { mutableStateOf(false) }
+-    val snackbarHostState = remember { SnackbarHostState() }
+-
+-    val permissionLauncher = rememberLauncherForActivityResult(
+-        PermissionController.createRequestPermissionResultContract()
+-    ) { granted ->
+-        vm.onPermissionsResult(granted)
+-    }
+-
+-    LaunchedEffect(state.importResult) {
+-        state.importResult?.let {
+-            snackbarHostState.showSnackbar(it)
+-            vm.consumeImportResult()
+-        }
+-    }
+-
+-    Scaffold(
+-        containerColor = c.bg,
+-        snackbarHost = { SnackbarHost(snackbarHostState) },
+-        topBar = {
+-            SpotterTopBar(
+-                title = "Salud",
+-                leading = {
+-                    SpotterIconButton(
+-                        icon = Icons.AutoMirrored.Filled.ArrowBack,
+-                        onClick = onBack,
+-                    )
+-                },
+-                trailing = {
+-                    if (state.hasPermissions && state.available) {
+-                        SpotterIconButton(
+-                            icon = Icons.Filled.Download,
+-                            onClick = { showImportDialog = true },
+-                        )
+-                    }
+-                },
+-            )
+-        },
+-    ) { padding ->
+-        when {
+-            !state.available -> UnavailableState(Modifier.padding(padding))
+-            !state.hasPermissions -> PermissionsState(
+-                modifier = Modifier.padding(padding),
+-                onRequest = {
+-                    permissionLauncher.launch(ServiceLocator.healthConnect.permissions)
+-                },
+-            )
+-            state.loading || state.importing || state.scanningImport ->
+-                LoadingState(Modifier.padding(padding))
+-            state.error != null -> ErrorState(
+-                modifier = Modifier.padding(padding),
+-                message = state.error!!,
+-                onRetry = { vm.load() },
+-            )
+-            state.summary != null -> DaySummaryContent(
+-                modifier = Modifier.padding(padding),
+-                summary = state.summary!!,
+-                date = state.date,
+-                onPreviousDay = { vm.previousDay() },
+-                onNextDay = { vm.nextDay() },
+-            )
+-        }
+-    }
+-
+-    if (showImportDialog) {
+-        ImportSessionsDialog(
+-            onDismiss = { showImportDialog = false },
+-            onConfirm = { startDate, endDate ->
+-                showImportDialog = false
+-                vm.scanForImport(startDate, endDate)
+-            },
+-        )
+-    }
+-
+-    state.importPreview?.let { preview ->
+-        ImportPreviewDialog(
+-            preview = preview,
+-            onToggleSource = { vm.toggleImportSource(it) },
+-            onConfirm = { vm.confirmImport() },
+-            onDismiss = { vm.dismissImportPreview() },
+-        )
+-    }
+-}
+-
+-@Composable
+-private fun UnavailableState(modifier: Modifier = Modifier) {
+-    val c = SpotterTheme.colors
+-    Column(
+-        modifier = modifier.fillMaxSize().padding(32.dp),
+-        verticalArrangement = Arrangement.Center,
+-        horizontalAlignment = Alignment.CenterHorizontally,
+-    ) {
+-        Icon(
+-            Icons.Filled.SyncProblem,
+-            contentDescription = null,
+-            tint = c.textFaint,
+-            modifier = Modifier.size(48.dp),
+-        )
+-        Spacer(Modifier.height(16.dp))
+-        Text("Health Connect no disponible", style = SpotterText.title3, color = c.text)
+-        Spacer(Modifier.height(8.dp))
+-        Text(
+-            "Tu dispositivo no tiene Health Connect. En Android 14+ viene integrado. En versiones anteriores, instálalo desde Play Store.",
+-            style = SpotterText.body,
+-            color = c.textMuted,
+-        )
+-    }
+-}
+-
+-@Composable
+-private fun PermissionsState(modifier: Modifier = Modifier, onRequest: () -> Unit) {
+-    val c = SpotterTheme.colors
+-    Column(
+-        modifier = modifier.fillMaxSize().padding(32.dp),
+-        verticalArrangement = Arrangement.Center,
+-        horizontalAlignment = Alignment.CenterHorizontally,
+-    ) {
+-        Icon(
+-            Icons.Filled.Favorite,
+-            contentDescription = null,
+-            tint = c.primary,
+-            modifier = Modifier.size(48.dp),
+-        )
+-        Spacer(Modifier.height(16.dp))
+-        Text("Conectar con Health Connect", style = SpotterText.title3, color = c.text)
+-        Spacer(Modifier.height(8.dp))
+-        Text(
+-            "Permite a Spotter leer datos de salud de tus dispositivos: pasos, calorías, frecuencia cardíaca, ejercicio y sueño.",
+-            style = SpotterText.body,
+-            color = c.textMuted,
+-        )
+-        Spacer(Modifier.height(24.dp))
+-        SpotterButton(
+-            text = "Conectar",
+-            leading = Icons.Filled.Favorite,
+-            onClick = onRequest,
+-        )
+-    }
+-}
+-
+-@Composable
+-private fun LoadingState(modifier: Modifier = Modifier) {
+-    val c = SpotterTheme.colors
+-    Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+-        CircularProgressIndicator(color = c.primary)
+-    }
+-}
+-
+-@Composable
+-private fun ErrorState(modifier: Modifier = Modifier, message: String, onRetry: () -> Unit) {
+-    val c = SpotterTheme.colors
+-    Column(
+-        modifier = modifier.fillMaxSize().padding(32.dp),
+-        verticalArrangement = Arrangement.Center,
+-        horizontalAlignment = Alignment.CenterHorizontally,
+-    ) {
+-        Text("Error al leer datos", style = SpotterText.title3, color = c.text)
+-        Spacer(Modifier.height(8.dp))
+-        Text(message, style = SpotterText.body, color = c.textMuted)
+-        Spacer(Modifier.height(24.dp))
+-        SpotterButton(text = "Reintentar", onClick = onRetry)
+-    }
+-}
+-
+-@Composable
+-private fun DaySummaryContent(
+-    modifier: Modifier = Modifier,
+-    summary: DaySummary,
+-    date: LocalDate,
+-    onPreviousDay: () -> Unit,
+-    onNextDay: () -> Unit,
+-) {
+-    val c = SpotterTheme.colors
+-    val isToday = date == LocalDate.now()
+-    val dateLabel = if (isToday) "Hoy" else date.format(
+-        DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(Locale("es"))
+-    )
+-
+-    LazyColumn(
+-        modifier = modifier.fillMaxSize(),
+-        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp),
+-        verticalArrangement = Arrangement.spacedBy(12.dp),
+-    ) {
+-        item {
+-            Row(
+-                modifier = Modifier.fillMaxWidth(),
+-                horizontalArrangement = Arrangement.SpaceBetween,
+-                verticalAlignment = Alignment.CenterVertically,
+-            ) {
+-                SpotterIconButton(icon = Icons.Filled.ChevronLeft, onClick = onPreviousDay)
+-                Text(dateLabel, style = SpotterText.title3, color = c.text)
+-                if (isToday) {
+-                    Box(Modifier.size(40.dp))
+-                } else {
+-                    SpotterIconButton(icon = Icons.Filled.ChevronRight, onClick = onNextDay)
+-                }
+-            }
+-        }
+-
+-        item {
+-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+-                MetricCard(
+-                    icon = Icons.Filled.DirectionsWalk,
+-                    iconTint = c.primary,
+-                    label = "Pasos",
+-                    value = summary.steps?.let { NumberFormat.getIntegerInstance().format(it) } ?: "—",
+-                    modifier = Modifier.weight(1f),
+-                )
+-                MetricCard(
+-                    icon = Icons.Filled.LocalFireDepartment,
+-                    iconTint = Color(0xFFEF4444),
+-                    label = "Calorías",
+-                    value = summary.totalCalories?.let { "%.0f".format(it) } ?: "—",
+-                    unit = "kcal",
+-                    modifier = Modifier.weight(1f),
+-                )
+-            }
+-        }
+-
+-        item {
+-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+-                MetricCard(
+-                    icon = Icons.Filled.Favorite,
+-                    iconTint = Color(0xFFEC4899),
+-                    label = "Frecuencia",
+-                    value = summary.heartRate?.avg?.toString() ?: "—",
+-                    unit = "bpm",
+-                    detail = summary.heartRate?.let { "${it.min}–${it.max} bpm" },
+-                    modifier = Modifier.weight(1f),
+-                )
+-                MetricCard(
+-                    icon = Icons.Filled.Route,
+-                    iconTint = Color(0xFF3B82F6),
+-                    label = "Distancia",
+-                    value = summary.distanceMeters?.let {
+-                        if (it >= 1000) "%.1f".format(it / 1000) else "%.0f".format(it)
+-                    } ?: "—",
+-                    unit = if ((summary.distanceMeters ?: 0.0) >= 1000) "km" else "m",
+-                    modifier = Modifier.weight(1f),
+-                )
+-            }
+-        }
+-
+-        if (summary.exerciseSessions.isNotEmpty()) {
+-            item {
+-                Spacer(Modifier.height(4.dp))
+-                Text("Ejercicio", style = SpotterText.title3, color = c.text)
+-            }
+-            items(summary.exerciseSessions) { session ->
+-                ExerciseSessionCard(session)
+-            }
+-        }
+-
+-        if (summary.sleepSessions.isNotEmpty()) {
+-            item {
+-                Spacer(Modifier.height(4.dp))
+-                Text("Sueño", style = SpotterText.title3, color = c.text)
+-            }
+-            items(summary.sleepSessions) { session ->
+-                SleepSessionCard(session)
+-            }
+-        }
+-
+-        if (summary.exerciseSessions.isEmpty() && summary.sleepSessions.isEmpty()
+-            && summary.steps == null && summary.totalCalories == null
+-        ) {
+-            item {
+-                Spacer(Modifier.height(24.dp))
+-                Text(
+-                    "Sin datos para este día.",
+-                    style = SpotterText.body,
+-                    color = c.textMuted,
+-                    modifier = Modifier.fillMaxWidth(),
+-                )
+-            }
+-        }
+-    }
+-}
+-
+-@Composable
+-private fun MetricCard(
+-    icon: ImageVector,
+-    iconTint: Color,
+-    label: String,
+-    value: String,
+-    unit: String? = null,
+-    detail: String? = null,
+-    modifier: Modifier = Modifier,
+-) {
+-    val c = SpotterTheme.colors
+-    SpotterCard(modifier = modifier) {
+-        Column {
+-            Row(verticalAlignment = Alignment.CenterVertically) {
+-                Box(
+-                    modifier = Modifier
+-                        .size(32.dp)
+-                        .clip(RoundedCornerShape(8.dp))
+-                        .background(iconTint.copy(alpha = 0.12f)),
+-                    contentAlignment = Alignment.Center,
+-                ) {
+-                    Icon(icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(18.dp))
+-                }
+-                Spacer(Modifier.width(10.dp))
+-                Text(label, style = SpotterText.smallMd, color = c.textMuted)
+-            }
+-            Spacer(Modifier.height(10.dp))
+-            Row(verticalAlignment = Alignment.Bottom) {
+-                Text(value, style = SpotterText.numM, color = c.text)
+-                if (unit != null) {
+-                    Spacer(Modifier.width(4.dp))
+-                    Text(unit, style = SpotterText.small, color = c.textMuted, modifier = Modifier.padding(bottom = 2.dp))
+-                }
+-            }
+-            if (detail != null) {
+-                Spacer(Modifier.height(2.dp))
+-                Text(detail, style = SpotterText.small, color = c.textFaint)
+-            }
+-        }
+-    }
+-}
+-
+-@Composable
+-private fun ExerciseSessionCard(session: ExerciseSession) {
+-    val c = SpotterTheme.colors
+-    val duration = Duration.between(session.startTime, session.endTime)
+-    val minutes = duration.toMinutes()
+-    val timeStr = session.startTime.atZone(ZoneId.systemDefault())
+-        .format(DateTimeFormatter.ofPattern("HH:mm"))
+-
+-    SpotterCard {
+-        Row(verticalAlignment = Alignment.CenterVertically) {
+-            Box(
+-                modifier = Modifier
+-                    .size(40.dp)
+-                    .clip(RoundedCornerShape(10.dp))
+-                    .background(c.primarySoft),
+-                contentAlignment = Alignment.Center,
+-            ) {
+-                Icon(
+-                    Icons.Filled.FitnessCenter,
+-                    contentDescription = null,
+-                    tint = c.primarySoftText,
+-                    modifier = Modifier.size(20.dp),
+-                )
+-            }
+-            Spacer(Modifier.width(12.dp))
+-            Column(modifier = Modifier.weight(1f)) {
+-                Text(
+-                    session.title ?: exerciseTypeName(session.type),
+-                    style = SpotterText.bodyMd,
+-                    color = c.text,
+-                )
+-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+-                    Text("$timeStr · ${minutes}min", style = SpotterText.small, color = c.textMuted)
+-                }
+-            }
+-            Column(horizontalAlignment = Alignment.End) {
+-                session.calories?.let {
+-                    Text("%.0f kcal".format(it), style = SpotterText.numS, color = c.text)
+-                }
+-                session.heartRateAvg?.let {
+-                    Text("$it bpm", style = SpotterText.small, color = c.textFaint)
+-                }
+-            }
+-        }
+-    }
+-}
+-
+-@Composable
+-private fun SleepSessionCard(session: SleepSession) {
+-    val c = SpotterTheme.colors
+-    val hours = session.durationMinutes / 60
+-    val mins = session.durationMinutes % 60
+-    val durationStr = if (hours > 0) "${hours}h ${mins}m" else "${mins}m"
+-    val bedtime = session.startTime.atZone(ZoneId.systemDefault())
+-        .format(DateTimeFormatter.ofPattern("HH:mm"))
+-    val wakeup = session.endTime.atZone(ZoneId.systemDefault())
+-        .format(DateTimeFormatter.ofPattern("HH:mm"))
+-
+-    SpotterCard {
+-        Row(verticalAlignment = Alignment.CenterVertically) {
+-            Box(
+-                modifier = Modifier
+-                    .size(40.dp)
+-                    .clip(RoundedCornerShape(10.dp))
+-                    .background(Color(0xFF6366F1).copy(alpha = 0.12f)),
+-                contentAlignment = Alignment.Center,
+-            ) {
+-                Icon(
+-                    Icons.Filled.Bedtime,
+-                    contentDescription = null,
+-                    tint = Color(0xFF6366F1),
+-                    modifier = Modifier.size(20.dp),
+-                )
+-            }
+-            Spacer(Modifier.width(12.dp))
+-            Column(modifier = Modifier.weight(1f)) {
+-                Text(durationStr, style = SpotterText.numM, color = c.text)
+-                Text("$bedtime → $wakeup", style = SpotterText.small, color = c.textMuted)
+-            }
+-        }
+-    }
+-}
+-
+-@Composable
+-private fun ImportPreviewDialog(
+-    preview: ImportPreview,
+-    onToggleSource: (String) -> Unit,
+-    onConfirm: () -> Unit,
+-    onDismiss: () -> Unit,
+-) {
+-    val c = SpotterTheme.colors
+-    val selectedCount = preview.sessions.count {
+-        (it.sourcePackage ?: "desconocido") in preview.selectedSources
+-    }
+-
+-    AlertDialog(
+-        onDismissRequest = onDismiss,
+-        title = { Text("Importar sesiones", style = SpotterText.title2) },
+-        confirmButton = {
+-            TextButton(
+-                onClick = onConfirm,
+-                enabled = selectedCount > 0,
+-            ) { Text("Importar $selectedCount", color = if (selectedCount > 0) c.primary else c.textFaint) }
+-        },
+-        dismissButton = {
+-            TextButton(onClick = onDismiss) { Text("Cancelar", color = c.textMuted) }
+-        },
+-        text = {
+-            Column {
+-                Text(
+-                    "${preview.sessions.size} sesiones encontradas",
+-                    style = SpotterText.body,
+-                    color = c.textMuted,
+-                )
+-                if (preview.sources.size > 1) {
+-                    Spacer(Modifier.height(12.dp))
+-                    Text("Fuentes", style = SpotterText.bodyMd, color = c.text)
+-                    Spacer(Modifier.height(8.dp))
+-                }
+-                preview.sources.forEach { source ->
+-                    val checked = source.packageName in preview.selectedSources
+-                    Row(
+-                        modifier = Modifier
+-                            .fillMaxWidth()
+-                            .clip(RoundedCornerShape(10.dp))
+-                            .clickable { onToggleSource(source.packageName) }
+-                            .padding(vertical = 8.dp, horizontal = 4.dp),
+-                        verticalAlignment = Alignment.CenterVertically,
+-                    ) {
+-                        Icon(
+-                            imageVector = if (checked) Icons.Filled.CheckBox
+-                            else Icons.Filled.CheckBoxOutlineBlank,
+-                            contentDescription = null,
+-                            tint = if (checked) c.primary else c.textFaint,
+-                            modifier = Modifier.size(22.dp),
+-                        )
+-                        Spacer(Modifier.width(10.dp))
+-                        Column(modifier = Modifier.weight(1f)) {
+-                            Text(
+-                                appLabel(source.packageName),
+-                                style = SpotterText.bodyMd,
+-                                color = c.text,
+-                            )
+-                            Text(
+-                                "${source.sessionCount} sesiones",
+-                                style = SpotterText.small,
+-                                color = c.textMuted,
+-                            )
+-                        }
+-                    }
+-                }
+-            }
+-        },
+-    )
+-}
+-
+-@OptIn(ExperimentalMaterial3Api::class)
+-@Composable
+-private fun ImportSessionsDialog(
+-    onDismiss: () -> Unit,
+-    onConfirm: (LocalDate, LocalDate) -> Unit,
+-) {
+-    val c = SpotterTheme.colors
+-    val datePickerState = rememberDateRangePickerState()
+-
+-    DatePickerDialog(
+-        onDismissRequest = onDismiss,
+-        confirmButton = {
+-            TextButton(
+-                onClick = {
+-                    val startMs = datePickerState.selectedStartDateMillis
+-                    val endMs = datePickerState.selectedEndDateMillis
+-                    if (startMs != null && endMs != null) {
+-                        val zone = ZoneId.systemDefault()
+-                        val start = Instant.ofEpochMilli(startMs).atZone(zone).toLocalDate()
+-                        val end = Instant.ofEpochMilli(endMs).atZone(zone).toLocalDate()
+-                        onConfirm(start, end)
+-                    }
+-                },
+-                enabled = datePickerState.selectedStartDateMillis != null
+-                        && datePickerState.selectedEndDateMillis != null,
+-            ) {
+-                Text("Importar", color = c.primary)
+-            }
+-        },
+-        dismissButton = {
+-            TextButton(onClick = onDismiss) {
+-                Text("Cancelar", color = c.textMuted)
+-            }
+-        },
+-    ) {
+-        DateRangePicker(
+-            state = datePickerState,
+-            title = {
+-                Text(
+-                    "Importar sesiones de Health Connect",
+-                    style = SpotterText.title3,
+-                    modifier = Modifier.padding(start = 24.dp, end = 12.dp, top = 16.dp),
+-                )
+-            },
+-            headline = {
+-                Text(
+-                    "Selecciona un rango de fechas",
+-                    style = SpotterText.body,
+-                    modifier = Modifier.padding(start = 24.dp, end = 12.dp, bottom = 12.dp),
+-                )
+-            },
+-            modifier = Modifier.weight(1f),
+-        )
+-    }
+-}
+-
+-internal fun exerciseTypeName(type: Int): String = when (type) {
+-    2 -> "Badminton"
+-    4 -> "Béisbol"
+-    5 -> "Baloncesto"
+-    8 -> "Ciclismo"
+-    10 -> "Escalada"
+-    11 -> "Cricket"
+-    14 -> "Baile"
+-    16 -> "Esgrima"
+-    17 -> "Fútbol americano"
+-    20 -> "Golf"
+-    22 -> "Gimnasia"
+-    24 -> "Balonmano"
+-    26 -> "HIIT"
+-    27 -> "Senderismo"
+-    29 -> "Hockey"
+-    31 -> "Artes marciales"
+-    35 -> "Remo"
+-    37 -> "Correr"
+-    39 -> "Rugby"
+-    44 -> "Fútbol"
+-    46 -> "Softball"
+-    48 -> "Squash"
+-    50 -> "Entrenamiento de fuerza"
+-    52 -> "Natación (piscina)"
+-    53 -> "Natación (abierta)"
+-    54 -> "Tenis de mesa"
+-    55 -> "Tenis"
+-    58 -> "Voleibol"
+-    62 -> "Caminar"
+-    64 -> "Waterpolo"
+-    66 -> "Levantamiento de pesas"
+-    68 -> "Yoga"
+-    0 -> "Ejercicio"
+-    else -> "Ejercicio"
+-}
+diff --git a/app/src/main/java/com/n3k0chan/spotter/ui/health/HealthViewModel.kt b/app/src/main/java/com/n3k0chan/spotter/ui/health/HealthViewModel.kt
+deleted file mode 100644
+index f36fa16..0000000
+--- a/app/src/main/java/com/n3k0chan/spotter/ui/health/HealthViewModel.kt
++++ /dev/null
+@@ -1,293 +0,0 @@
+-package com.n3k0chan.spotter.ui.health
+-
+-import android.util.Log
+-import androidx.lifecycle.ViewModel
+-import androidx.lifecycle.ViewModelProvider
+-import androidx.lifecycle.viewModelScope
+-import com.n3k0chan.spotter.ai.GroqClient
+-import com.n3k0chan.spotter.ai.Prompts
+-import com.n3k0chan.spotter.data.health.DaySummary
+-import com.n3k0chan.spotter.data.health.ExerciseSession
+-import com.n3k0chan.spotter.di.ServiceLocator
+-import kotlinx.coroutines.flow.MutableStateFlow
+-import kotlinx.coroutines.flow.StateFlow
+-import kotlinx.coroutines.flow.asStateFlow
+-import kotlinx.coroutines.flow.update
+-import kotlinx.coroutines.launch
+-import kotlinx.serialization.Serializable
+-import kotlinx.serialization.json.Json
+-import java.time.LocalDate
+-import java.time.ZoneId
+-import java.time.format.DateTimeFormatter
+-
+-data class SourceInfo(
+-    val packageName: String,
+-    val sessionCount: Int,
+-)
+-
+-data class ImportPreview(
+-    val sessions: List<ExerciseSession>,
+-    val sources: List<SourceInfo>,
+-    val selectedSources: Set<String>,
+-)
+-
+-data class HealthUiState(
+-    val available: Boolean = true,
+-    val hasPermissions: Boolean = false,
+-    val loading: Boolean = false,
+-    val date: LocalDate = LocalDate.now(),
+-    val summary: DaySummary? = null,
+-    val error: String? = null,
+-    val importing: Boolean = false,
+-    val importResult: String? = null,
+-    val scanningImport: Boolean = false,
+-    val importPreview: ImportPreview? = null,
+-)
+-
+-class HealthViewModel : ViewModel() {
+-
+-    private val hc = ServiceLocator.healthConnect
+-
+-    private val _state = MutableStateFlow(HealthUiState())
+-    val state: StateFlow<HealthUiState> = _state.asStateFlow()
+-
+-    init {
+-        checkAvailabilityAndPermissions()
+-    }
+-
+-    private fun checkAvailabilityAndPermissions() {
+-        if (!hc.isAvailable()) {
+-            _state.update { it.copy(available = false) }
+-            return
+-        }
+-        viewModelScope.launch {
+-            val has = hc.hasAllPermissions()
+-            _state.update { it.copy(hasPermissions = has) }
+-            if (has) load()
+-        }
+-    }
+-
+-    fun onPermissionsResult(granted: Set<String>) {
+-        val has = hc.permissions.all { it in granted }
+-        _state.update { it.copy(hasPermissions = has) }
+-        if (has) load()
+-    }
+-
+-    fun load() {
+-        viewModelScope.launch {
+-            _state.update { it.copy(loading = true, error = null) }
+-            try {
+-                val summary = hc.readDaySummary(_state.value.date)
+-                _state.update { it.copy(loading = false, summary = summary) }
+-            } catch (e: Exception) {
+-                _state.update { it.copy(loading = false, error = e.localizedMessage ?: "Error desconocido") }
+-            }
+-        }
+-    }
+-
+-    fun previousDay() {
+-        _state.update { it.copy(date = it.date.minusDays(1)) }
+-        load()
+-    }
+-
+-    fun nextDay() {
+-        val next = _state.value.date.plusDays(1)
+-        if (next.isAfter(LocalDate.now())) return
+-        _state.update { it.copy(date = next) }
+-        load()
+-    }
+-
+-    fun scanForImport(startDate: LocalDate, endDate: LocalDate) {
+-        viewModelScope.launch {
+-            _state.update { it.copy(scanningImport = true, importPreview = null) }
+-            try {
+-                val allSessions = hc.readExerciseSessions(startDate, endDate)
+-                    .filter { it.title != null || it.type != 0 }
+-                val sources = allSessions
+-                    .groupBy { it.sourcePackage ?: "desconocido" }
+-                    .map { (pkg, list) -> SourceInfo(pkg, list.size) }
+-                    .sortedByDescending { it.sessionCount }
+-                _state.update {
+-                    it.copy(
+-                        scanningImport = false,
+-                        importPreview = ImportPreview(
+-                            sessions = allSessions,
+-                            sources = sources,
+-                            selectedSources = sources.map { s -> s.packageName }.toSet(),
+-                        ),
+-                    )
+-                }
+-            } catch (e: Exception) {
+-                _state.update {
+-                    it.copy(
+-                        scanningImport = false,
+-                        importResult = "Error al escanear: ${e.localizedMessage}",
+-                    )
+-                }
+-            }
+-        }
+-    }
+-
+-    fun toggleImportSource(packageName: String) {
+-        _state.update { st ->
+-            val preview = st.importPreview ?: return@update st
+-            val newSelected = if (packageName in preview.selectedSources)
+-                preview.selectedSources - packageName
+-            else preview.selectedSources + packageName
+-            st.copy(importPreview = preview.copy(selectedSources = newSelected))
+-        }
+-    }
+-
+-    fun dismissImportPreview() {
+-        _state.update { it.copy(importPreview = null) }
+-    }
+-
+-    fun confirmImport() {
+-        val preview = _state.value.importPreview ?: return
+-        viewModelScope.launch {
+-            _state.update { it.copy(importing = true, importPreview = null) }
+-            try {
+-                val workoutsRepo = ServiceLocator.workouts
+-                val settings = ServiceLocator.settings.state.value
+-                val filtered = preview.sessions.filter {
+-                    (it.sourcePackage ?: "desconocido") in preview.selectedSources
+-                }
+-
+-                val aiResults = processWithAi(filtered, settings.groqApiKey, settings.groqModel)
+-
+-                var imported = 0
+-                for ((i, session) in filtered.withIndex()) {
+-                    val ai = aiResults.getOrNull(i)
+-                    if (ai?.skip == true) continue
+-
+-                    val startMs = session.startTime.toEpochMilli()
+-                    val existing = workoutsRepo.getWorkoutsInRange(
+-                        startMs - 5 * 60_000,
+-                        startMs + 5 * 60_000,
+-                    )
+-                    if (existing.isNotEmpty()) continue
+-
+-                    val title = ai?.title ?: session.title ?: exerciseTypeName(session.type)
+-                    val durationMin = java.time.Duration.between(session.startTime, session.endTime).toMinutes()
+-                    val notesParts = mutableListOf("Importado desde Health Connect")
+-                    ai?.label?.takeIf { it.isNotBlank() }?.let { notesParts += it }
+-                    notesParts += "Duración: ${durationMin}min"
+-                    session.calories?.let { notesParts += "Calorías: %.0f kcal".format(it) }
+-                    session.heartRateAvg?.let { notesParts += "FC media: $it bpm" }
+-                    session.distance?.let { d ->
+-                        notesParts += if (d >= 1000) "Distancia: %.2f km".format(d / 1000)
+-                        else "Distancia: %.0f m".format(d)
+-                    }
+-                    session.sourcePackage?.let { pkg ->
+-                        notesParts += "Fuente: ${appLabel(pkg)}"
+-                    }
+-
+-                    workoutsRepo.importFromHealthConnect(
+-                        title = title,
+-                        startedAt = startMs,
+-                        finishedAt = session.endTime.toEpochMilli(),
+-                        notes = notesParts.joinToString(" · "),
+-                    )
+-                    imported++
+-                }
+-                _state.update {
+-                    it.copy(
+-                        importing = false,
+-                        importResult = if (imported > 0) "$imported sesiones importadas"
+-                        else "No se encontraron sesiones nuevas para importar",
+-                    )
+-                }
+-            } catch (e: Exception) {
+-                _state.update {
+-                    it.copy(importing = false, importResult = "Error: ${e.localizedMessage}")
+-                }
+-            }
+-        }
+-    }
+-
+-    @Serializable
+-    private data class AiSessionResult(
+-        val title: String? = null,
+-        val label: String? = null,
+-        val skip: Boolean = false,
+-    )
+-
+-    private val lenientJson = Json { ignoreUnknownKeys = true; isLenient = true }
+-
+-    private suspend fun processWithAi(
+-        sessions: List<ExerciseSession>,
+-        apiKey: String,
+-        model: String,
+-    ): List<AiSessionResult> {
+-        if (apiKey.isBlank() || sessions.isEmpty()) return emptyList()
+-        return try {
+-            val zone = ZoneId.systemDefault()
+-            val timeFmt = DateTimeFormatter.ofPattern("HH:mm")
+-            val dateFmt = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+-
+-            val sessionsJson = buildString {
+-                append("[")
+-                sessions.forEachIndexed { idx, s ->
+-                    if (idx > 0) append(",")
+-                    val start = s.startTime.atZone(zone)
+-                    val durationMin = java.time.Duration.between(s.startTime, s.endTime).toMinutes()
+-                    append("{")
+-                    append("\"date\":\"${start.format(dateFmt)}\",")
+-                    append("\"time\":\"${start.format(timeFmt)}\",")
+-                    append("\"title\":${s.title?.let { "\"$it\"" } ?: "null"},")
+-                    append("\"type\":\"${exerciseTypeName(s.type)}\",")
+-                    append("\"durationMin\":$durationMin,")
+-                    append("\"calories\":${s.calories?.let { "%.0f".format(it) } ?: "null"},")
+-                    append("\"heartRateAvg\":${s.heartRateAvg ?: "null"},")
+-                    append("\"distanceM\":${s.distance?.let { "%.0f".format(it) } ?: "null"}")
+-                    append("}")
+-                }
+-                append("]")
+-            }
+-
+-            val messages = Prompts.healthConnectImport(sessionsJson)
+-            val response = GroqClient.chat(apiKey, model, messages, temperature = 0.3)
+-
+-            val cleaned = response.trim()
+-                .removePrefix("```json").removePrefix("```")
+-                .removeSuffix("```").trim()
+-            lenientJson.decodeFromString<List<AiSessionResult>>(cleaned)
+-        } catch (e: Exception) {
+-            Log.w("HealthVM", "AI processing failed, importing all: ${e.message}")
+-            sessions.map { AiSessionResult(skip = false) }
+-        }
+-    }
+-
+-    fun consumeImportResult() {
+-        _state.update { it.copy(importResult = null) }
+-    }
+-
+-    companion object {
+-        val Factory = object : ViewModelProvider.Factory {
+-            override fun <T : ViewModel> create(modelClass: Class<T>): T {
+-                @Suppress("UNCHECKED_CAST")
+-                return HealthViewModel() as T
+-            }
+-        }
+-    }
+-}
+-
+-internal fun appLabel(packageName: String): String {
+-    val known = mapOf(
+-        "com.google.android.apps.fitness" to "Google Fit",
+-        "com.samsung.shealth" to "Samsung Health",
+-        "com.samsung.android.wear.shealth" to "Samsung Health (reloj)",
+-        "com.huawei.health" to "Huawei Health",
+-        "com.xiaomi.wearable" to "Mi Fitness",
+-        "com.xiaomi.hm.health" to "Zepp Life",
+-        "com.garmin.android.apps.connectmobile" to "Garmin Connect",
+-        "com.fitbit.FitbitMobile" to "Fitbit",
+-        "com.strava" to "Strava",
+-        "com.polar.beat" to "Polar Beat",
+-        "com.polar.flow" to "Polar Flow",
+-        "com.withings.wiscale2" to "Withings",
+-        "com.sec.android.app.shealth" to "Samsung Health",
+-    )
+-    return known[packageName] ?: packageName.substringAfterLast('.')
+-        .replaceFirstChar { it.uppercase() }
+-}
+diff --git a/app/src/main/java/com/n3k0chan/spotter/ui/history/HistoryScreen.kt b/app/src/main/java/com/n3k0chan/spotter/ui/history/HistoryScreen.kt
+old mode 100755
+new mode 100644
+index 84291fc..9b08fb0
+--- a/app/src/main/java/com/n3k0chan/spotter/ui/history/HistoryScreen.kt
++++ b/app/src/main/java/com/n3k0chan/spotter/ui/history/HistoryScreen.kt
+@@ -7,17 +7,16 @@ import androidx.compose.foundation.background
+ import androidx.compose.foundation.border
+ import androidx.compose.foundation.clickable
+ import androidx.compose.foundation.combinedClickable
+ import androidx.compose.foundation.layout.*
+ import androidx.compose.foundation.lazy.LazyColumn
+ import androidx.compose.foundation.lazy.items
+ import androidx.compose.foundation.shape.RoundedCornerShape
+ import androidx.compose.material.icons.Icons
+-import androidx.compose.material.icons.automirrored.filled.Chat
+ import androidx.compose.material.icons.filled.*
+ import androidx.compose.material3.*
+ import androidx.compose.runtime.*
+ import androidx.compose.ui.Alignment
+ import androidx.compose.ui.Modifier
+ import androidx.compose.ui.draw.clip
+ import androidx.compose.ui.unit.dp
+ import androidx.lifecycle.ViewModel
+@@ -210,17 +209,16 @@ class HistoryViewModel : ViewModel() {
+         }
+     }
+ }
+ 
+ @Composable
+ fun HistoryScreen(
+     onWorkoutClick: (Long) -> Unit = {},
+     onOpenSettings: () -> Unit = {},
+-    onOpenChat: () -> Unit = {},
+     vm: HistoryViewModel = viewModel(factory = HistoryViewModel.Factory),
+ ) {
+     val list by vm.list.collectAsStateWithLifecycle()
+     val selectedIds by vm.selectedIds.collectAsStateWithLifecycle()
+     val toast by vm.toast.collectAsStateWithLifecycle()
+     val syncing by vm.syncing.collectAsStateWithLifecycle()
+     val c = SpotterTheme.colors
+     val df = remember { DateFormat.getDateInstance(DateFormat.MEDIUM) }
+@@ -269,17 +267,16 @@ fun HistoryScreen(
+                                 Spacer(Modifier.width(8.dp))
+                             } else {
+                                 SpotterIconButton(
+                                     Icons.Filled.Sync,
+                                     onClick = { vm.syncRecentWithHC() },
+                                     contentDescription = "Sincronizar HC",
+                                 )
+                             }
+-                            SpotterIconButton(Icons.AutoMirrored.Filled.Chat, onClick = onOpenChat)
+                             SpotterIconButton(Icons.Filled.Settings, onClick = onOpenSettings)
+                         }
+                     },
+                 )
+             }
+         },
+     ) { padding ->
+         if (list.isEmpty()) {
+diff --git a/app/src/main/java/com/n3k0chan/spotter/ui/history/WorkoutDetailScreen.kt b/app/src/main/java/com/n3k0chan/spotter/ui/history/WorkoutDetailScreen.kt
+index 1b1a176..c21e691 100644
+--- a/app/src/main/java/com/n3k0chan/spotter/ui/history/WorkoutDetailScreen.kt
++++ b/app/src/main/java/com/n3k0chan/spotter/ui/history/WorkoutDetailScreen.kt
+@@ -17,17 +17,16 @@ import androidx.compose.foundation.layout.size
+ import androidx.compose.foundation.layout.width
+ import androidx.compose.foundation.lazy.LazyColumn
+ import androidx.compose.foundation.lazy.items
+ import androidx.compose.foundation.pager.HorizontalPager
+ import androidx.compose.foundation.pager.rememberPagerState
+ import androidx.compose.foundation.shape.RoundedCornerShape
+ import androidx.compose.material.icons.Icons
+ import androidx.compose.material.icons.automirrored.filled.ArrowBack
+-import androidx.compose.material.icons.filled.AutoAwesome
+ import androidx.compose.material.icons.filled.DirectionsWalk
+ import androidx.compose.material.icons.filled.Favorite
+ import androidx.compose.material.icons.filled.LocalFireDepartment
+ import androidx.compose.material.icons.filled.Notes
+ import androidx.compose.material.icons.filled.Route
+ import androidx.compose.material.icons.filled.Warning
+ import androidx.compose.material3.CircularProgressIndicator
+ import androidx.compose.material3.Icon
+@@ -56,17 +55,18 @@ import com.n3k0chan.spotter.data.measurement.formatShort
+ import com.n3k0chan.spotter.di.ServiceLocator
+ import com.n3k0chan.spotter.ui.components.MuscleGroupAvatar
+ import com.n3k0chan.spotter.ui.components.SpotterCard
+ import com.n3k0chan.spotter.ui.components.SpotterChip
+ import com.n3k0chan.spotter.ui.components.SpotterIconButton
+ import com.n3k0chan.spotter.ui.components.SpotterTopBar
+ import com.n3k0chan.spotter.ui.theme.SpotterText
+ import com.n3k0chan.spotter.ui.theme.SpotterTheme
+-import com.n3k0chan.spotter.ui.workout.AiSummaryResponse
++import androidx.compose.material.icons.filled.TrendingUp
++import com.n3k0chan.spotter.ui.workout.WorkoutComparison
+ import kotlinx.coroutines.flow.MutableStateFlow
+ import kotlinx.coroutines.flow.StateFlow
+ import kotlinx.coroutines.flow.asStateFlow
+ import kotlinx.coroutines.flow.update
+ import kotlinx.coroutines.launch
+ import kotlinx.serialization.json.Json
+ import java.text.DateFormat
+ import java.time.Instant
+@@ -213,35 +213,35 @@ private fun DetailContent(
+                 }
+             }
+         }
+         
+         if (w.workout.aiSummaryJson != null) {
+             item {
+                 val summary = remember(w.workout.aiSummaryJson) {
+                     runCatching {
+-                        Json { ignoreUnknownKeys = true }.decodeFromString<AiSummaryResponse>(w.workout.aiSummaryJson)
++                        Json { ignoreUnknownKeys = true }.decodeFromString<WorkoutComparison>(w.workout.aiSummaryJson)
+                     }.getOrNull()
+                 }
+-                
++
+                 if (summary != null) {
+                     SpotterCard(
+                         background = c.primarySoft,
+                         border = c.primarySoft,
+                     ) {
+                         Column {
+                             Row(verticalAlignment = Alignment.CenterVertically) {
+                                 Icon(
+-                                    Icons.Filled.AutoAwesome,
++                                    Icons.Filled.TrendingUp,
+                                     contentDescription = null,
+                                     tint = c.primary,
+                                     modifier = Modifier.size(16.dp),
+                                 )
+                                 Spacer(Modifier.width(8.dp))
+-                                Text("RESUMEN IA", style = SpotterText.caps, color = c.primarySoftText)
++                                Text("COMPARACIÓN", style = SpotterText.caps, color = c.primarySoftText)
+                             }
+                             Spacer(Modifier.height(8.dp))
+                             Text(summary.summary, style = SpotterText.body, color = c.text)
+                             
+                             if (summary.exercises.isNotEmpty()) {
+                                 Spacer(Modifier.height(16.dp))
+                                 val pagerState = rememberPagerState(pageCount = { summary.exercises.size })
+                                 HorizontalPager(
+diff --git a/app/src/main/java/com/n3k0chan/spotter/ui/home/HomeScreen.kt b/app/src/main/java/com/n3k0chan/spotter/ui/home/HomeScreen.kt
+old mode 100755
+new mode 100644
+index 2d00f30..d398392
+--- a/app/src/main/java/com/n3k0chan/spotter/ui/home/HomeScreen.kt
++++ b/app/src/main/java/com/n3k0chan/spotter/ui/home/HomeScreen.kt
+@@ -12,17 +12,16 @@ import androidx.compose.foundation.layout.height
+ import androidx.compose.foundation.layout.padding
+ import androidx.compose.foundation.layout.size
+ import androidx.compose.foundation.layout.width
+ import androidx.compose.foundation.rememberScrollState
+ import androidx.compose.foundation.shape.RoundedCornerShape
+ import androidx.compose.foundation.verticalScroll
+ import androidx.compose.material.icons.Icons
+ import androidx.compose.material.icons.automirrored.filled.ArrowForward
+-import androidx.compose.material.icons.automirrored.filled.Chat
+ import androidx.compose.material.icons.filled.FitnessCenter
+ import androidx.compose.material.icons.filled.LocalFireDepartment
+ import androidx.compose.material.icons.filled.PlayArrow
+ import androidx.compose.material.icons.filled.Settings
+ import androidx.compose.material3.HorizontalDivider
+ import androidx.compose.material3.Icon
+ import androidx.compose.material3.Scaffold
+ import androidx.compose.material3.Text
+@@ -42,44 +41,36 @@ import com.n3k0chan.spotter.ui.components.SpotterCard
+ import com.n3k0chan.spotter.ui.components.SpotterIconButton
+ import com.n3k0chan.spotter.ui.theme.SpotterText
+ import com.n3k0chan.spotter.ui.theme.SpotterTheme
+ 
+ @Composable
+ fun HomeScreen(
+     onStartFreeWorkout: (Long) -> Unit,
+     onPickTemplate: () -> Unit,
+-    onOpenChat: () -> Unit,
+     onOpenSettings: () -> Unit,
+     vm: HomeViewModel = viewModel(factory = HomeViewModel.Factory),
+ ) {
+     val weeks by vm.weeksStreak.collectAsStateWithLifecycle()
+     val dailyStreak by vm.currentStreak.collectAsStateWithLifecycle()
+     val greeting by vm.greeting.collectAsStateWithLifecycle()
+     val templates by vm.templatesList.collectAsStateWithLifecycle()
+     val c = SpotterTheme.colors
+ 
+     Scaffold(
+         containerColor = c.bg,
+         topBar = {
+             com.n3k0chan.spotter.ui.components.SpotterTopBar(
+                 title = "Spotter",
+                 trailing = {
+-                    Row {
+-                        SpotterIconButton(
+-                            icon = Icons.AutoMirrored.Filled.Chat,
+-                            onClick = onOpenChat,
+-                            contentDescription = "Chat",
+-                        )
+-                        SpotterIconButton(
+-                            icon = Icons.Filled.Settings,
+-                            onClick = onOpenSettings,
+-                            contentDescription = "Ajustes",
+-                        )
+-                    }
++                    SpotterIconButton(
++                        icon = Icons.Filled.Settings,
++                        onClick = onOpenSettings,
++                        contentDescription = "Ajustes",
++                    )
+                 },
+             )
+         },
+     ) { padding ->
+         Column(
+             modifier = Modifier
+                 .padding(padding)
+                 .fillMaxSize()
+diff --git a/app/src/main/java/com/n3k0chan/spotter/ui/home/HomeViewModel.kt b/app/src/main/java/com/n3k0chan/spotter/ui/home/HomeViewModel.kt
+old mode 100755
+new mode 100644
+index fe5f6f2..88cfafb
+--- a/app/src/main/java/com/n3k0chan/spotter/ui/home/HomeViewModel.kt
++++ b/app/src/main/java/com/n3k0chan/spotter/ui/home/HomeViewModel.kt
+@@ -1,15 +1,13 @@
+ package com.n3k0chan.spotter.ui.home
+ 
+ import androidx.lifecycle.ViewModel
+ import androidx.lifecycle.ViewModelProvider
+ import androidx.lifecycle.viewModelScope
+-import com.n3k0chan.spotter.ai.GroqClient
+-import com.n3k0chan.spotter.ai.Prompts
+ import com.n3k0chan.spotter.data.db.entities.TemplateWithExercises
+ import com.n3k0chan.spotter.di.ServiceLocator
+ import com.n3k0chan.spotter.motivation.MotivationalMessages
+ import com.n3k0chan.spotter.util.StreakCalculator
+ import kotlinx.coroutines.flow.MutableStateFlow
+ import kotlinx.coroutines.flow.SharingStarted
+ import kotlinx.coroutines.flow.StateFlow
+ import kotlinx.coroutines.flow.asStateFlow
+@@ -17,17 +15,16 @@ import kotlinx.coroutines.flow.first
+ import kotlinx.coroutines.flow.map
+ import kotlinx.coroutines.flow.stateIn
+ import kotlinx.coroutines.launch
+ 
+ class HomeViewModel : ViewModel() {
+ 
+     private val workouts = ServiceLocator.workouts
+     private val templates = ServiceLocator.templates
+-    private val settings = ServiceLocator.settings
+ 
+     val templatesList: StateFlow<List<TemplateWithExercises>> = templates.observeAll().stateIn(
+         viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList(),
+     )
+ 
+     val weeksStreak: StateFlow<Int> = workouts.observeFinishedStartTimes()
+         .map { StreakCalculator.currentWeeks(it) }
+         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
+@@ -45,35 +42,17 @@ class HomeViewModel : ViewModel() {
+ 
+     init {
+         viewModelScope.launch { loadGreeting() }
+     }
+ 
+     private suspend fun loadGreeting() {
+         val days = runCatching { workouts.observeFinishedStartTimes().first() }.getOrDefault(emptyList())
+         val streakNow = StreakCalculator.current(days)
+-        val cfg = settings.state.value
+-        if (!cfg.hasApiKey) {
+-            _greeting.value = MotivationalMessages.forHomeScreen(streakNow)
+-            return
+-        }
+-        val daysSince = StreakCalculator.daysSinceLast(days)
+-        runCatching {
+-            GroqClient.chat(
+-                apiKey = cfg.groqApiKey,
+-                model = cfg.groqModel,
+-                messages = Prompts.welcomeMessage(streakNow, daysSince),
+-                temperature = 0.8,
+-            )
+-        }.onSuccess { raw ->
+-            val cleaned = raw.trim().trim('"', '“', '”')
+-            _greeting.value = cleaned.ifBlank { MotivationalMessages.forHomeScreen(streakNow) }
+-        }.onFailure {
+-            _greeting.value = MotivationalMessages.forHomeScreen(streakNow)
+-        }
++        _greeting.value = MotivationalMessages.forHomeScreen(streakNow)
+     }
+ 
+     fun startFreeWorkout(onCreated: (Long) -> Unit) {
+         viewModelScope.launch {
+             val id = workouts.start(title = "Entreno libre", templateId = null)
+             onCreated(id)
+         }
+     }
+diff --git a/app/src/main/java/com/n3k0chan/spotter/ui/nav/Routes.kt b/app/src/main/java/com/n3k0chan/spotter/ui/nav/Routes.kt
+old mode 100755
+new mode 100644
+index 639cc96..ca8bc70
+--- a/app/src/main/java/com/n3k0chan/spotter/ui/nav/Routes.kt
++++ b/app/src/main/java/com/n3k0chan/spotter/ui/nav/Routes.kt
+@@ -20,19 +20,16 @@ object Routes {
+     fun templateEditor(id: Long?) = "template_editor?id=${id ?: -1L}"
+     const val TemplateEditorPattern = "template_editor?id={id}"
+ 
+     const val Exercises = "exercises"
+ 
+     fun workoutSession(workoutId: Long) = "workout/$workoutId"
+     const val WorkoutSessionPattern = "workout/{workoutId}"
+ 
+-    const val Chat = "chat"
+-
+     const val History = "history"
+     const val Stats = "stats"
+     const val Settings = "settings"
+-    const val Health = "health"
+     const val Weight = "weight"
+ 
+     fun workoutDetail(workoutId: Long) = "workout_detail/$workoutId"
+     const val WorkoutDetailPattern = "workout_detail/{workoutId}"
+ }
+diff --git a/app/src/main/java/com/n3k0chan/spotter/ui/nav/SpotterNavGraph.kt b/app/src/main/java/com/n3k0chan/spotter/ui/nav/SpotterNavGraph.kt
+old mode 100755
+new mode 100644
+index 0d8d49b..babd953
+--- a/app/src/main/java/com/n3k0chan/spotter/ui/nav/SpotterNavGraph.kt
++++ b/app/src/main/java/com/n3k0chan/spotter/ui/nav/SpotterNavGraph.kt
+@@ -2,19 +2,17 @@ package com.n3k0chan.spotter.ui.nav
+ 
+ import androidx.compose.runtime.Composable
+ import androidx.compose.ui.Modifier
+ import androidx.navigation.NavHostController
+ import androidx.navigation.NavType
+ import androidx.navigation.compose.NavHost
+ import androidx.navigation.compose.composable
+ import androidx.navigation.navArgument
+-import com.n3k0chan.spotter.ui.chat.ChatScreen
+ import com.n3k0chan.spotter.ui.exercises.ExercisesScreen
+-import com.n3k0chan.spotter.ui.health.HealthScreen
+ import com.n3k0chan.spotter.ui.history.HistoryScreen
+ import com.n3k0chan.spotter.ui.history.WorkoutDetailScreen
+ import com.n3k0chan.spotter.ui.home.HomeScreen
+ import com.n3k0chan.spotter.ui.settings.SettingsScreen
+ import com.n3k0chan.spotter.ui.stats.StatsScreen
+ import com.n3k0chan.spotter.ui.templates.TemplateEditorScreen
+ import com.n3k0chan.spotter.ui.templates.TemplatesScreen
+ import com.n3k0chan.spotter.ui.weight.WeightScreen
+@@ -32,29 +30,27 @@ fun SpotterNavGraph(
+         modifier = modifier,
+     ) {
+         composable(Routes.Home) {
+             HomeScreen(
+                 onStartFreeWorkout = { workoutId ->
+                     navController.navigate(Routes.workoutSession(workoutId))
+                 },
+                 onPickTemplate = { navController.navigate(Routes.WorkoutRoot) },
+-                onOpenChat = { navController.navigate(Routes.Chat) },
+                 onOpenSettings = { navController.navigate(Routes.Settings) },
+             )
+         }
+ 
+         composable(Routes.WorkoutRoot) {
+             WorkoutHubScreen(
+                 onStartFreeWorkout = { id -> navController.navigate(Routes.workoutSession(id)) },
+                 onStartFromTemplate = { id -> navController.navigate(Routes.workoutSession(id)) },
+                 onOpenTemplates = { navController.navigate(Routes.Templates) },
+                 onOpenExercises = { navController.navigate(Routes.Exercises) },
+                 onOpenSettings = { navController.navigate(Routes.Settings) },
+-                onOpenChat = { navController.navigate(Routes.Chat) },
+             )
+         }
+ 
+         composable(Routes.Templates) {
+             TemplatesScreen(
+                 onCreateNew = { navController.navigate(Routes.templateEditor(null)) },
+                 onEdit = { id -> navController.navigate(Routes.templateEditor(id)) },
+                 onBack = { navController.popBackStack() },
+@@ -79,31 +75,25 @@ fun SpotterNavGraph(
+         composable(
+             route = Routes.WorkoutSessionPattern,
+             arguments = listOf(navArgument("workoutId") { type = NavType.LongType }),
+         ) { backStackEntry ->
+             val id = backStackEntry.arguments?.getLong("workoutId") ?: 0L
+             WorkoutScreen(
+                 workoutId = id,
+                 onFinished = { navController.popBackStack(Routes.Home, inclusive = false) },
+-                onOpenChat = { navController.navigate(Routes.Chat) },
+             )
+         }
+ 
+-        composable(Routes.Chat) {
+-            ChatScreen(onBack = { navController.popBackStack() })
+-        }
+-
+         composable(Routes.History) {
+             HistoryScreen(
+                 onWorkoutClick = { workoutId ->
+                     navController.navigate(Routes.workoutDetail(workoutId))
+                 },
+                 onOpenSettings = { navController.navigate(Routes.Settings) },
+-                onOpenChat = { navController.navigate(Routes.Chat) },
+             )
+         }
+ 
+         composable(
+             route = Routes.WorkoutDetailPattern,
+             arguments = listOf(navArgument("workoutId") { type = NavType.LongType }),
+         ) { backStackEntry ->
+             val id = backStackEntry.arguments?.getLong("workoutId") ?: 0L
+@@ -111,32 +101,24 @@ fun SpotterNavGraph(
+                 workoutId = id,
+                 onBack = { navController.popBackStack() },
+             )
+         }
+ 
+         composable(Routes.Stats) {
+             StatsScreen(
+                 onOpenSettings = { navController.navigate(Routes.Settings) },
+-                onOpenChat = { navController.navigate(Routes.Chat) },
+-                onOpenHealth = { navController.navigate(Routes.Health) },
+             )
+         }
+ 
+         composable(Routes.Settings) {
+             SettingsScreen(
+                 onBack = { navController.popBackStack() },
+-                onOpenHealth = { navController.navigate(Routes.Health) },
+             )
+         }
+ 
+-        composable(Routes.Health) {
+-            HealthScreen(onBack = { navController.popBackStack() })
+-        }
+-
+         composable(Routes.Weight) {
+             WeightScreen(
+                 onOpenSettings = { navController.navigate(Routes.Settings) },
+-                onOpenChat = { navController.navigate(Routes.Chat) },
+             )
+         }
+     }
+ }
+diff --git a/app/src/main/java/com/n3k0chan/spotter/ui/settings/SettingsScreen.kt b/app/src/main/java/com/n3k0chan/spotter/ui/settings/SettingsScreen.kt
+old mode 100755
+new mode 100644
+index 562cf3a..27f04df
+--- a/app/src/main/java/com/n3k0chan/spotter/ui/settings/SettingsScreen.kt
++++ b/app/src/main/java/com/n3k0chan/spotter/ui/settings/SettingsScreen.kt
+@@ -20,30 +20,22 @@ import androidx.compose.foundation.layout.padding
+ import androidx.compose.foundation.layout.size
+ import androidx.compose.foundation.layout.width
+ import androidx.compose.foundation.lazy.LazyColumn
+ import androidx.compose.foundation.shape.RoundedCornerShape
+ import androidx.compose.foundation.text.BasicTextField
+ import androidx.compose.foundation.text.KeyboardOptions
+ import androidx.compose.material.icons.Icons
+ import androidx.compose.material.icons.automirrored.filled.ArrowBack
+-import androidx.compose.material.icons.filled.ArrowDropDown
+-import androidx.compose.material.icons.filled.ChevronRight
+ import androidx.compose.material.icons.filled.Cloud
+ import androidx.compose.material.icons.filled.CloudDownload
+ import androidx.compose.material.icons.filled.CloudUpload
+-import androidx.compose.material.icons.filled.Favorite
+-import androidx.compose.material.icons.filled.Visibility
+ import androidx.compose.material3.AlertDialog
+-import androidx.compose.material3.DropdownMenu
+-import androidx.compose.material3.DropdownMenuItem
+ import androidx.compose.material3.HorizontalDivider
+ import androidx.compose.material3.Icon
+-import androidx.compose.material3.OutlinedTextField
+-import androidx.compose.material3.OutlinedTextFieldDefaults
+ import androidx.compose.material3.Scaffold
+ import androidx.compose.material3.Switch
+ import androidx.compose.material3.SwitchDefaults
+ import androidx.compose.material3.Text
+ import androidx.compose.material3.TextButton
+ import androidx.compose.runtime.Composable
+ import androidx.compose.runtime.LaunchedEffect
+ import androidx.compose.runtime.getValue
+@@ -51,27 +43,25 @@ import androidx.compose.runtime.mutableStateOf
+ import androidx.compose.runtime.remember
+ import androidx.compose.runtime.setValue
+ import androidx.compose.ui.Alignment
+ import androidx.compose.ui.Modifier
+ import androidx.compose.ui.draw.clip
+ import androidx.compose.ui.graphics.Color
+ import androidx.compose.ui.platform.LocalContext
+ import androidx.compose.ui.text.input.KeyboardType
+-import androidx.compose.ui.text.input.PasswordVisualTransformation
+ import androidx.compose.ui.unit.dp
+ import androidx.lifecycle.ViewModel
+ import androidx.lifecycle.ViewModelProvider
+ import androidx.lifecycle.compose.collectAsStateWithLifecycle
+ import androidx.lifecycle.viewModelScope
+ import androidx.lifecycle.viewmodel.compose.viewModel
+ import com.n3k0chan.spotter.backup.DriveBackupManager
+ import com.n3k0chan.spotter.backup.PickGoogleAccountContract
+ import com.n3k0chan.spotter.data.prefs.AppSettings
+-import com.n3k0chan.spotter.data.prefs.ChatHistoryWindow
+ import com.n3k0chan.spotter.data.prefs.SettingsRepository
+ import com.n3k0chan.spotter.di.ServiceLocator
+ import com.n3k0chan.spotter.reminder.ReminderScheduler
+ import com.n3k0chan.spotter.ui.components.SpotterButton
+ import com.n3k0chan.spotter.ui.components.SpotterButtonVariant
+ import com.n3k0chan.spotter.ui.components.SpotterCard
+ import com.n3k0chan.spotter.ui.components.SpotterChip
+ import com.n3k0chan.spotter.ui.components.SpotterChipTone
+@@ -104,27 +94,24 @@ class SettingsViewModel : ViewModel() {
+     val toast: StateFlow<String?> = _toast.asStateFlow()
+ 
+     private val _consentRequest = MutableStateFlow<Intent?>(null)
+     val consentRequest: StateFlow<Intent?> = _consentRequest.asStateFlow()
+ 
+     private val _restoreDone = MutableStateFlow(false)
+     val restoreDone: StateFlow<Boolean> = _restoreDone.asStateFlow()
+ 
+-    fun setApiKey(value: String) = repo.setGroqApiKey(value)
+-    fun setModel(value: String) = repo.setModel(value)
+     fun setRest(seconds: Int) = repo.setDefaultRest(seconds)
+     fun setPreWarning(value: Boolean) = repo.setPreWarning(value)
+     fun setVibrate(value: Boolean) = repo.setVibrate(value)
+-    fun setChatHistoryWindow(value: ChatHistoryWindow) = repo.setChatHistoryWindow(value)
+ 
+     fun setReminderTime(hour: Int, minute: Int) {
+         repo.setReminderTime(hour, minute)
+     }
+-    
++
+     fun updateReminders(days: Set<Int>, hour: Int, minute: Int) {
+         repo.setReminderDays(days)
+         repo.setReminderTime(hour, minute)
+     }
+ 
+     fun setAppThemeStyle(style: com.n3k0chan.spotter.ui.theme.AppThemeStyle) {
+         repo.setAppThemeStyle(style)
+     }
+@@ -228,17 +215,16 @@ class SettingsViewModel : ViewModel() {
+             }
+         }
+     }
+ }
+ 
+ @Composable
+ fun SettingsScreen(
+     onBack: () -> Unit,
+-    onOpenHealth: () -> Unit = {},
+     vm: SettingsViewModel = viewModel(factory = SettingsViewModel.Factory),
+ ) {
+     val state by vm.state.collectAsStateWithLifecycle()
+     val busy by vm.busy.collectAsStateWithLifecycle()
+     val syncingHC by vm.syncingHC.collectAsStateWithLifecycle()
+     val toast by vm.toast.collectAsStateWithLifecycle()
+     val consentIntent by vm.consentRequest.collectAsStateWithLifecycle()
+     val restoreDone by vm.restoreDone.collectAsStateWithLifecycle()
+@@ -291,46 +277,16 @@ fun SettingsScreen(
+                         AppThemeStyleSelector(
+                             selected = state.appThemeStyle,
+                             onSelect = vm::setAppThemeStyle,
+                         )
+                     }
+                 }
+             }
+ 
+-            // ── ASISTENTE
+-            item { SectionHeader("ASISTENTE") }
+-            item {
+-                SpotterCard(padding = 0.dp) {
+-                    Column {
+-                        ApiKeyRow(state = state, onSave = vm::setApiKey, onClear = { vm.setApiKey("") })
+-                        HorizontalDivider(color = c.border, thickness = 1.dp)
+-                        ModelRow(selected = state.groqModel, onSelect = vm::setModel)
+-                    }
+-                }
+-            }
+-            item {
+-                SpotterCard {
+-                    Column {
+-                        Text("Historial al compartir con el chat", style = SpotterText.bodyMd, color = c.text)
+-                        Spacer(Modifier.height(2.dp))
+-                        Text(
+-                            "Cuánto historial se envía cuando activas \"Compartir historial\" en el chat.",
+-                            style = SpotterText.small,
+-                            color = c.textMuted,
+-                        )
+-                        Spacer(Modifier.height(12.dp))
+-                        ChatHistoryWindowSelector(
+-                            selected = state.chatHistoryWindow,
+-                            onSelect = vm::setChatHistoryWindow,
+-                        )
+-                    }
+-                }
+-            }
+-
+             // ── ENTRENO
+             item { SectionHeader("ENTRENO") }
+             item {
+                 SpotterCard(padding = 0.dp) {
+                     Column {
+                         IntFieldRow(
+                             label = "Descanso por defecto",
+                             value = state.defaultRestSeconds,
+@@ -442,50 +398,16 @@ fun SettingsScreen(
+             item { SectionHeader("RECORDATORIOS") }
+             item { ReminderSection(state = state, onUpdate = vm::updateReminders) }
+ 
+             // ── SALUD
+             item { SectionHeader("SALUD") }
+             item {
+                 SpotterCard {
+                     Column {
+-                        Row(
+-                            modifier = Modifier
+-                                .fillMaxWidth()
+-                                .clip(RoundedCornerShape(10.dp))
+-                                .clickable(onClick = onOpenHealth)
+-                                .padding(vertical = 4.dp),
+-                            verticalAlignment = Alignment.CenterVertically,
+-                        ) {
+-                            Icon(
+-                                Icons.Filled.Favorite,
+-                                contentDescription = null,
+-                                tint = c.primary,
+-                                modifier = Modifier.size(20.dp),
+-                            )
+-                            Spacer(Modifier.width(12.dp))
+-                            Column(modifier = Modifier.weight(1f)) {
+-                                Text("Health Connect", style = SpotterText.bodyMd, color = c.text)
+-                                Spacer(Modifier.height(2.dp))
+-                                Text(
+-                                    "Pasos, calorías, sueño y más desde tus dispositivos",
+-                                    style = SpotterText.small,
+-                                    color = c.textMuted,
+-                                )
+-                            }
+-                            Icon(
+-                                Icons.Filled.ChevronRight,
+-                                contentDescription = null,
+-                                tint = c.textFaint,
+-                                modifier = Modifier.size(20.dp),
+-                            )
+-                        }
+-                        Spacer(Modifier.height(12.dp))
+-                        HorizontalDivider(color = c.border, thickness = 1.dp)
+-                        Spacer(Modifier.height(12.dp))
+                         Text(
+                             "Sincronizar todos los entrenos con datos de Health Connect. Útil si la sincronización automática falló.",
+                             style = SpotterText.small,
+                             color = c.textMuted,
+                         )
+                         Spacer(Modifier.height(10.dp))
+                         SpotterButton(
+                             text = if (syncingHC) "Sincronizando…" else "Sincronizar todos",
+@@ -497,17 +419,17 @@ fun SettingsScreen(
+                         )
+                     }
+                 }
+             }
+ 
+             item {
+                 Spacer(Modifier.height(12.dp))
+                 Text(
+-                    "Spotter · privado y local. La API key y la cuenta de Drive se guardan cifradas en este dispositivo.",
++                    "Spotter · privado y local. La cuenta de Drive se guarda cifrada en este dispositivo.",
+                     style = SpotterText.small,
+                     color = c.textFaint,
+                     modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),
+                 )
+             }
+         }
+     }
+ 
+@@ -549,138 +471,16 @@ private fun SectionHeader(text: String) {
+     Text(
+         text,
+         style = SpotterText.caps,
+         color = c.textMuted,
+         modifier = Modifier.padding(start = 6.dp, top = 14.dp, bottom = 6.dp),
+     )
+ }
+ 
+-@Composable
+-private fun ApiKeyRow(state: AppSettings, onSave: (String) -> Unit, onClear: () -> Unit) {
+-    val c = SpotterTheme.colors
+-    var showField by remember { mutableStateOf(false) }
+-    var value by remember { mutableStateOf("") }
+-
+-    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
+-        Row(verticalAlignment = Alignment.CenterVertically) {
+-            Column(modifier = Modifier.weight(1f)) {
+-                Text("API key de Groq", style = SpotterText.bodyMd, color = c.text)
+-                if (state.hasApiKey) {
+-                    Spacer(Modifier.height(2.dp))
+-                    Text(
+-                        if (state.isUserOverridingKey) "Configurada (override sobre BuildConfig)"
+-                        else "Cargada desde BuildConfig",
+-                        style = SpotterText.small, color = c.textMuted,
+-                    )
+-                }
+-            }
+-            if (state.hasApiKey) {
+-                Text(
+-                    "•••••• ${state.groqApiKey.takeLast(4)}",
+-                    style = SpotterText.numS,
+-                    color = c.textMuted,
+-                )
+-                Spacer(Modifier.width(8.dp))
+-            }
+-            Icon(
+-                Icons.Filled.Visibility,
+-                contentDescription = null,
+-                tint = c.textFaint,
+-                modifier = Modifier.size(16.dp).clickable { showField = !showField },
+-            )
+-        }
+-        if (showField) {
+-            Spacer(Modifier.height(10.dp))
+-            OutlinedTextField(
+-                value = value,
+-                onValueChange = { value = it },
+-                placeholder = { Text("gsk_…", color = c.textFaint) },
+-                singleLine = true,
+-                visualTransformation = PasswordVisualTransformation(),
+-                modifier = Modifier.fillMaxWidth(),
+-                colors = OutlinedTextFieldDefaults.colors(
+-                    focusedContainerColor = c.surfaceMuted,
+-                    unfocusedContainerColor = c.surfaceMuted,
+-                    focusedBorderColor = c.borderStrong,
+-                    unfocusedBorderColor = c.border,
+-                    cursorColor = c.primary,
+-                    focusedTextColor = c.text,
+-                    unfocusedTextColor = c.text,
+-                ),
+-                shape = RoundedCornerShape(12.dp),
+-                textStyle = SpotterText.body,
+-            )
+-            Spacer(Modifier.height(8.dp))
+-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+-                SpotterButton(
+-                    text = "Guardar",
+-                    height = 40.dp,
+-                    onClick = {
+-                        if (value.isNotBlank()) {
+-                            onSave(value.trim())
+-                            value = ""
+-                            showField = false
+-                        }
+-                    },
+-                )
+-                if (state.isUserOverridingKey) {
+-                    SpotterButton(
+-                        text = "Borrar",
+-                        variant = SpotterButtonVariant.Outlined,
+-                        height = 40.dp,
+-                        onClick = onClear,
+-                    )
+-                }
+-            }
+-        }
+-    }
+-}
+-
+-@Composable
+-private fun ModelRow(selected: String, onSelect: (String) -> Unit) {
+-    val c = SpotterTheme.colors
+-    var expanded by remember { mutableStateOf(false) }
+-    Box {
+-        Row(
+-            modifier = Modifier
+-                .fillMaxWidth()
+-                .clickable { expanded = true }
+-                .padding(horizontal = 16.dp, vertical = 14.dp),
+-            verticalAlignment = Alignment.CenterVertically,
+-        ) {
+-            Column(modifier = Modifier.weight(1f)) {
+-                Text("Modelo", style = SpotterText.bodyMd, color = c.text)
+-                Spacer(Modifier.height(2.dp))
+-                Text(selected, style = SpotterText.small, color = c.textMuted)
+-            }
+-            Icon(
+-                Icons.Filled.ArrowDropDown,
+-                contentDescription = null,
+-                tint = c.textFaint,
+-                modifier = Modifier.size(20.dp),
+-            )
+-        }
+-        DropdownMenu(
+-            expanded = expanded,
+-            onDismissRequest = { expanded = false },
+-        ) {
+-            SettingsRepository.MODELS.forEach { model ->
+-                DropdownMenuItem(
+-                    text = { Text(model) },
+-                    onClick = {
+-                        onSelect(model)
+-                        expanded = false
+-                    },
+-                )
+-            }
+-        }
+-    }
+-}
+-
+ @Composable
+ private fun IntFieldRow(label: String, value: Int, unit: String, onChange: (Int) -> Unit) {
+     val c = SpotterTheme.colors
+     var text by remember(value) { mutableStateOf(value.toString()) }
+     LaunchedEffect(value) { text = value.toString() }
+     Row(
+         modifier = Modifier
+             .fillMaxWidth()
+@@ -731,51 +531,16 @@ private fun AppThemeStyleSelector(
+                     style = SpotterText.smallMd,
+                     color = if (isSelected) c.onPrimary else c.text,
+                 )
+             }
+         }
+     }
+ }
+ 
+-@Composable
+-private fun ChatHistoryWindowSelector(
+-    selected: ChatHistoryWindow,
+-    onSelect: (ChatHistoryWindow) -> Unit,
+-) {
+-    val c = SpotterTheme.colors
+-    Row(
+-        modifier = Modifier
+-            .fillMaxWidth()
+-            .clip(RoundedCornerShape(12.dp))
+-            .background(c.surfaceMuted)
+-            .padding(4.dp),
+-        horizontalArrangement = Arrangement.spacedBy(4.dp),
+-    ) {
+-        ChatHistoryWindow.entries.forEach { w ->
+-            val isSelected = selected == w
+-            Box(
+-                modifier = Modifier
+-                    .weight(1f)
+-                    .clip(RoundedCornerShape(10.dp))
+-                    .background(if (isSelected) c.primary else Color.Transparent)
+-                    .clickable { onSelect(w) }
+-                    .padding(vertical = 8.dp),
+-                contentAlignment = Alignment.Center,
+-            ) {
+-                Text(
+-                    w.display,
+-                    style = SpotterText.smallMd,
+-                    color = if (isSelected) c.onPrimary else c.textMuted,
+-                )
+-            }
+-        }
+-    }
+-}
+-
+ @Composable
+ private fun ToggleSettingRow(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
+     val c = SpotterTheme.colors
+     Row(
+         modifier = Modifier
+             .fillMaxWidth()
+             .padding(horizontal = 16.dp, vertical = 8.dp),
+         verticalAlignment = Alignment.CenterVertically,
+diff --git a/app/src/main/java/com/n3k0chan/spotter/ui/stats/StatsScreen.kt b/app/src/main/java/com/n3k0chan/spotter/ui/stats/StatsScreen.kt
+old mode 100755
+new mode 100644
+index c63b49c..ebd6b16
+--- a/app/src/main/java/com/n3k0chan/spotter/ui/stats/StatsScreen.kt
++++ b/app/src/main/java/com/n3k0chan/spotter/ui/stats/StatsScreen.kt
+@@ -9,26 +9,22 @@ import androidx.compose.foundation.layout.PaddingValues
+ import androidx.compose.foundation.layout.Row
+ import androidx.compose.foundation.layout.Spacer
+ import androidx.compose.foundation.layout.aspectRatio
+ import androidx.compose.foundation.layout.fillMaxSize
+ import androidx.compose.foundation.layout.fillMaxWidth
+ import androidx.compose.foundation.layout.height
+ import androidx.compose.foundation.layout.padding
+ import androidx.compose.foundation.layout.size
+-import androidx.compose.foundation.layout.width
+ import androidx.compose.foundation.lazy.LazyColumn
+ import androidx.compose.foundation.shape.CircleShape
+ import androidx.compose.material.icons.Icons
+-import androidx.compose.material.icons.automirrored.filled.Chat
+ import androidx.compose.material.icons.filled.ChevronLeft
+ import androidx.compose.material.icons.filled.ChevronRight
+-import androidx.compose.material.icons.filled.Favorite
+ import androidx.compose.material.icons.filled.Settings
+-import androidx.compose.material.icons.filled.MonitorWeight
+ import androidx.compose.material3.Scaffold
+ import androidx.compose.material3.Text
+ import androidx.compose.runtime.Composable
+ import androidx.compose.runtime.getValue
+ import androidx.compose.runtime.mutableStateOf
+ import androidx.compose.runtime.remember
+ import androidx.compose.runtime.setValue
+ import androidx.compose.ui.Alignment
+@@ -161,18 +157,16 @@ class StatsViewModel : ViewModel() {
+             }
+         }
+     }
+ }
+ 
+ @Composable
+ fun StatsScreen(
+     onOpenSettings: () -> Unit = {},
+-    onOpenChat: () -> Unit = {},
+-    onOpenHealth: () -> Unit = {},
+     vm: StatsViewModel = viewModel(factory = StatsViewModel.Factory),
+ ) {
+     val total by vm.totalSessions.collectAsStateWithLifecycle()
+     val week by vm.thisWeekSessions.collectAsStateWithLifecycle()
+     val streak by vm.currentStreak.collectAsStateWithLifecycle()
+     val longest by vm.longestStreak.collectAsStateWithLifecycle()
+     val weeksStreak by vm.weeksStreak.collectAsStateWithLifecycle()
+     val workoutDates by vm.workoutDates.collectAsStateWithLifecycle()
+@@ -180,20 +174,17 @@ fun StatsScreen(
+     val c = SpotterTheme.colors
+ 
+     Scaffold(
+         containerColor = c.bg,
+         topBar = {
+             SpotterTopBar(
+                 title = "Stats",
+                 trailing = {
+-                    Row {
+-                        SpotterIconButton(Icons.AutoMirrored.Filled.Chat, onClick = onOpenChat)
+-                        SpotterIconButton(Icons.Filled.Settings, onClick = onOpenSettings)
+-                    }
++                    SpotterIconButton(Icons.Filled.Settings, onClick = onOpenSettings)
+                 },
+             )
+         },
+     ) { padding ->
+         LazyColumn(
+             modifier = Modifier.padding(padding).fillMaxSize(),
+             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp),
+             verticalArrangement = Arrangement.spacedBy(10.dp),
+@@ -220,20 +211,16 @@ fun StatsScreen(
+                     Text("PROGRESO POR EJERCICIO", style = SpotterText.caps, color = c.textMuted,
+                         modifier = Modifier.padding(start = 4.dp))
+                 }
+                 items(exerciseProgress.size) { idx ->
+                     val data = exerciseProgress[idx]
+                     ExerciseSparklineCard(data)
+                 }
+             }
+-            item {
+-                Spacer(Modifier.height(4.dp))
+-                HealthConnectCard(onClick = onOpenHealth)
+-            }
+         }
+     }
+ }
+ 
+ @Composable
+ private fun WorkoutCalendar(workoutDates: Set<LocalDate>) {
+     val c = SpotterTheme.colors
+     var currentMonth by remember { mutableStateOf(YearMonth.now()) }
+@@ -371,50 +358,16 @@ private fun StatTile(label: String, value: String, sub: String?, modifier: Modif
+             if (sub != null) {
+                 Spacer(Modifier.height(4.dp))
+                 Text(sub, style = SpotterText.small, color = c.textFaint)
+             }
+         }
+     }
+ }
+ 
+-@Composable
+-private fun HealthConnectCard(onClick: () -> Unit) {
+-    val c = SpotterTheme.colors
+-    SpotterCard(onClick = onClick) {
+-        Row(
+-            modifier = Modifier.fillMaxWidth(),
+-            verticalAlignment = Alignment.CenterVertically,
+-        ) {
+-            Icon(
+-                Icons.Filled.Favorite,
+-                contentDescription = null,
+-                tint = c.primary,
+-                modifier = Modifier.size(20.dp),
+-            )
+-            Spacer(Modifier.width(12.dp))
+-            Column(modifier = Modifier.weight(1f)) {
+-                Text("Health Connect", style = SpotterText.bodyMd, color = c.text)
+-                Spacer(Modifier.height(2.dp))
+-                Text(
+-                    "Pasos, calorías, sueño y más desde tus dispositivos",
+-                    style = SpotterText.small,
+-                    color = c.textMuted,
+-                )
+-            }
+-            Icon(
+-                Icons.Filled.ChevronRight,
+-                contentDescription = null,
+-                tint = c.textFaint,
+-                modifier = Modifier.size(20.dp),
+-            )
+-        }
+-    }
+-}
+-
+ @Composable
+ private fun ExerciseSparklineCard(data: ExerciseProgressData) {
+     val c = SpotterTheme.colors
+     SpotterCard(padding = 16.dp) {
+         Column {
+             Row(
+                 modifier = Modifier.fillMaxWidth(),
+                 horizontalArrangement = Arrangement.SpaceBetween,
+diff --git a/app/src/main/java/com/n3k0chan/spotter/ui/templates/TemplateEditorScreen.kt b/app/src/main/java/com/n3k0chan/spotter/ui/templates/TemplateEditorScreen.kt
+old mode 100755
+new mode 100644
+diff --git a/app/src/main/java/com/n3k0chan/spotter/ui/templates/TemplatesScreen.kt b/app/src/main/java/com/n3k0chan/spotter/ui/templates/TemplatesScreen.kt
+old mode 100755
+new mode 100644
+diff --git a/app/src/main/java/com/n3k0chan/spotter/ui/theme/Color.kt b/app/src/main/java/com/n3k0chan/spotter/ui/theme/Color.kt
+old mode 100755
+new mode 100644
+diff --git a/app/src/main/java/com/n3k0chan/spotter/ui/theme/SpotterColors.kt b/app/src/main/java/com/n3k0chan/spotter/ui/theme/SpotterColors.kt
+old mode 100755
+new mode 100644
+diff --git a/app/src/main/java/com/n3k0chan/spotter/ui/theme/Theme.kt b/app/src/main/java/com/n3k0chan/spotter/ui/theme/Theme.kt
+old mode 100755
+new mode 100644
+diff --git a/app/src/main/java/com/n3k0chan/spotter/ui/theme/Type.kt b/app/src/main/java/com/n3k0chan/spotter/ui/theme/Type.kt
+old mode 100755
+new mode 100644
+diff --git a/app/src/main/java/com/n3k0chan/spotter/ui/weight/WeightScreen.kt b/app/src/main/java/com/n3k0chan/spotter/ui/weight/WeightScreen.kt
+index 21027f1..8926679 100644
+--- a/app/src/main/java/com/n3k0chan/spotter/ui/weight/WeightScreen.kt
++++ b/app/src/main/java/com/n3k0chan/spotter/ui/weight/WeightScreen.kt
+@@ -11,22 +11,19 @@ import androidx.compose.foundation.layout.Spacer
+ import androidx.compose.foundation.layout.fillMaxSize
+ import androidx.compose.foundation.layout.fillMaxWidth
+ import androidx.compose.foundation.layout.height
+ import androidx.compose.foundation.layout.padding
+ import androidx.compose.foundation.layout.size
+ import androidx.compose.foundation.layout.width
+ import androidx.compose.foundation.lazy.LazyColumn
+ import androidx.compose.material.icons.Icons
+-import androidx.compose.material.icons.automirrored.filled.Chat
+ import androidx.compose.material.icons.filled.Add
+-import androidx.compose.material.icons.filled.AutoAwesome
+ import androidx.compose.material.icons.filled.Delete
+ import androidx.compose.material.icons.filled.Settings
+-import androidx.compose.material3.CircularProgressIndicator
+ import androidx.compose.material3.ExperimentalMaterial3Api
+ import androidx.compose.material3.FloatingActionButton
+ import androidx.compose.material3.Icon
+ import androidx.compose.material3.ModalBottomSheet
+ import androidx.compose.material3.OutlinedTextField
+ import androidx.compose.material3.OutlinedTextFieldDefaults
+ import androidx.compose.material3.Scaffold
+ import androidx.compose.material3.Text
+@@ -61,38 +58,32 @@ import java.time.Instant
+ import java.time.LocalDate
+ import java.time.ZoneId
+ import java.time.format.DateTimeFormatter
+ 
+ @OptIn(ExperimentalMaterial3Api::class)
+ @Composable
+ fun WeightScreen(
+     onOpenSettings: () -> Unit = {},
+-    onOpenChat: () -> Unit = {},
+     vm: WeightViewModel = viewModel(factory = WeightViewModel.Factory),
+ ) {
+     val logs by vm.logs.collectAsStateWithLifecycle()
+     val logsAsc by vm.logsAsc.collectAsStateWithLifecycle()
+-    val aiSummary by vm.aiSummary.collectAsStateWithLifecycle()
+-    val isLoadingAi by vm.isLoadingAi.collectAsStateWithLifecycle()
+     val c = SpotterTheme.colors
+ 
+     var showAddSheet by remember { mutableStateOf(false) }
+     var logToEdit by remember { mutableStateOf<WeightLog?>(null) }
+ 
+     Scaffold(
+         containerColor = c.bg,
+         topBar = {
+             SpotterTopBar(
+                 title = "Peso",
+                 trailing = {
+-                    Row {
+-                        SpotterIconButton(Icons.AutoMirrored.Filled.Chat, onClick = onOpenChat)
+-                        SpotterIconButton(Icons.Filled.Settings, onClick = onOpenSettings)
+-                    }
++                    SpotterIconButton(Icons.Filled.Settings, onClick = onOpenSettings)
+                 },
+             )
+         },
+         floatingActionButton = {
+             FloatingActionButton(
+                 onClick = { 
+                     logToEdit = null
+                     showAddSheet = true 
+@@ -123,43 +114,16 @@ fun WeightScreen(
+                                     .fillMaxWidth()
+                                     .height(140.dp)
+                             )
+                         }
+                     }
+                 }
+             }
+ 
+-            item {
+-                SpotterCard(padding = 16.dp) {
+-                    Column(modifier = Modifier.fillMaxWidth()) {
+-                        Row(verticalAlignment = Alignment.CenterVertically) {
+-                            Icon(Icons.Filled.AutoAwesome, contentDescription = null, tint = c.primary, modifier = Modifier.size(20.dp))
+-                            Spacer(Modifier.width(8.dp))
+-                            Text("Análisis de IA", style = SpotterText.title3, color = c.text)
+-                        }
+-                        Spacer(Modifier.height(8.dp))
+-                        if (isLoadingAi) {
+-                            CircularProgressIndicator(color = c.primary, modifier = Modifier.size(24.dp))
+-                        } else if (aiSummary != null) {
+-                            Text(aiSummary!!, style = SpotterText.bodyMd, color = c.text)
+-                        } else {
+-                            Text("Pide a la IA que analice tu progreso de peso.", style = SpotterText.bodyMd, color = c.textMuted)
+-                        }
+-                        Spacer(Modifier.height(12.dp))
+-                        SpotterButton(
+-                            text = "Analizar",
+-                            onClick = { vm.analyzeProgress() },
+-                            modifier = Modifier.fillMaxWidth(),
+-                            enabled = !isLoadingAi && logs.isNotEmpty()
+-                        )
+-                    }
+-                }
+-            }
+-
+             item {
+                 Text("HISTORIAL", style = SpotterText.caps, color = c.textMuted, modifier = Modifier.padding(start = 4.dp, top = 8.dp))
+             }
+ 
+             if (logs.isEmpty()) {
+                 item {
+                     Text(
+                         "Aún no has registrado tu peso.",
+diff --git a/app/src/main/java/com/n3k0chan/spotter/ui/weight/WeightViewModel.kt b/app/src/main/java/com/n3k0chan/spotter/ui/weight/WeightViewModel.kt
+index 43a86fb..65b8baa 100644
+--- a/app/src/main/java/com/n3k0chan/spotter/ui/weight/WeightViewModel.kt
++++ b/app/src/main/java/com/n3k0chan/spotter/ui/weight/WeightViewModel.kt
+@@ -1,42 +1,30 @@
+ package com.n3k0chan.spotter.ui.weight
+ 
+ import androidx.lifecycle.ViewModel
+ import androidx.lifecycle.ViewModelProvider
+ import androidx.lifecycle.viewModelScope
+-import com.n3k0chan.spotter.ai.GroqClient
+-import com.n3k0chan.spotter.ai.Prompts
+ import com.n3k0chan.spotter.data.db.entities.WeightLog
+ import com.n3k0chan.spotter.di.ServiceLocator
+-import kotlinx.coroutines.flow.MutableStateFlow
+ import kotlinx.coroutines.flow.SharingStarted
+ import kotlinx.coroutines.flow.StateFlow
+-import kotlinx.coroutines.flow.asStateFlow
+-import kotlinx.coroutines.flow.first
+ import kotlinx.coroutines.flow.stateIn
+ import kotlinx.coroutines.launch
+ import java.time.Instant
+ 
+ class WeightViewModel : ViewModel() {
+     private val repo = ServiceLocator.weights
+-    private val settings = ServiceLocator.settings
+ 
+     val logs: StateFlow<List<WeightLog>> = repo.getAllLogs()
+         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+ 
+     val logsAsc: StateFlow<List<WeightLog>> = repo.getAllLogsAsc()
+         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+ 
+-    private val _aiSummary = MutableStateFlow<String?>(null)
+-    val aiSummary: StateFlow<String?> = _aiSummary.asStateFlow()
+-
+-    private val _isLoadingAi = MutableStateFlow(false)
+-    val isLoadingAi: StateFlow<Boolean> = _isLoadingAi.asStateFlow()
+-
+     fun addLog(weightKg: Float, dateMs: Long, notes: String?) {
+         viewModelScope.launch {
+             repo.insert(WeightLog(weightKg = weightKg, dateMs = dateMs, notes = notes))
+         }
+     }
+ 
+     fun updateLog(log: WeightLog, weightKg: Float, dateMs: Long, notes: String?) {
+         viewModelScope.launch {
+@@ -45,44 +33,16 @@ class WeightViewModel : ViewModel() {
+     }
+ 
+     fun deleteLog(log: WeightLog) {
+         viewModelScope.launch {
+             repo.delete(log)
+         }
+     }
+ 
+-    fun analyzeProgress() {
+-        viewModelScope.launch {
+-            val currentLogs = logsAsc.value
+-            if (currentLogs.isEmpty()) return@launch
+-
+-            _isLoadingAi.value = true
+-            try {
+-                val apiKey = settings.state.first().groqApiKey
+-                val model = settings.state.first().groqModel
+-                if (apiKey.isBlank()) {
+-                    _aiSummary.value = "Configura tu API Key de Groq en los ajustes para usar la IA."
+-                    return@launch
+-                }
+-                val messages = Prompts.weightAnalysis(currentLogs)
+-                val response = GroqClient.chat(
+-                    apiKey = apiKey,
+-                    model = model,
+-                    messages = messages,
+-                )
+-                _aiSummary.value = response
+-            } catch (e: Exception) {
+-                _aiSummary.value = "Error al analizar: ${e.message}"
+-            } finally {
+-                _isLoadingAi.value = false
+-            }
+-        }
+-    }
+-
+     companion object {
+         val Factory = object : ViewModelProvider.Factory {
+             override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                 @Suppress("UNCHECKED_CAST")
+                 return WeightViewModel() as T
+             }
+         }
+     }
+diff --git a/app/src/main/java/com/n3k0chan/spotter/ui/workout/RestTimerBar.kt b/app/src/main/java/com/n3k0chan/spotter/ui/workout/RestTimerBar.kt
+old mode 100755
+new mode 100644
+diff --git a/app/src/main/java/com/n3k0chan/spotter/ui/workout/WorkoutHubScreen.kt b/app/src/main/java/com/n3k0chan/spotter/ui/workout/WorkoutHubScreen.kt
+old mode 100755
+new mode 100644
+index 3191690..50095b9
+--- a/app/src/main/java/com/n3k0chan/spotter/ui/workout/WorkoutHubScreen.kt
++++ b/app/src/main/java/com/n3k0chan/spotter/ui/workout/WorkoutHubScreen.kt
+@@ -9,17 +9,16 @@ import androidx.compose.foundation.layout.fillMaxSize
+ import androidx.compose.foundation.layout.fillMaxWidth
+ import androidx.compose.foundation.layout.height
+ import androidx.compose.foundation.layout.padding
+ import androidx.compose.foundation.layout.size
+ import androidx.compose.foundation.lazy.LazyColumn
+ import androidx.compose.foundation.lazy.items
+ import androidx.compose.material.icons.Icons
+ import androidx.compose.material.icons.automirrored.filled.ArrowForward
+-import androidx.compose.material.icons.automirrored.filled.Chat
+ import androidx.compose.material.icons.filled.FitnessCenter
+ import androidx.compose.material.icons.filled.PlayArrow
+ import androidx.compose.material.icons.filled.Settings
+ import androidx.compose.material3.Icon
+ import androidx.compose.material3.Scaffold
+ import androidx.compose.material3.Text
+ import androidx.compose.runtime.Composable
+ import androidx.compose.runtime.getValue
+@@ -82,32 +81,28 @@ class WorkoutHubViewModel : ViewModel() {
+ 
+ @Composable
+ fun WorkoutHubScreen(
+     onStartFreeWorkout: (Long) -> Unit,
+     onStartFromTemplate: (Long) -> Unit,
+     onOpenTemplates: () -> Unit,
+     onOpenExercises: () -> Unit,
+     onOpenSettings: () -> Unit = {},
+-    onOpenChat: () -> Unit = {},
+     vm: WorkoutHubViewModel = viewModel(factory = WorkoutHubViewModel.Factory),
+ ) {
+     val templates by vm.templatesList.collectAsStateWithLifecycle()
+     val c = SpotterTheme.colors
+ 
+     Scaffold(
+         containerColor = c.bg,
+         topBar = {
+             SpotterTopBar(
+                 title = "Entrenar",
+                 trailing = {
+-                    Row {
+-                        SpotterIconButton(Icons.AutoMirrored.Filled.Chat, onClick = onOpenChat)
+-                        SpotterIconButton(Icons.Filled.Settings, onClick = onOpenSettings)
+-                    }
++                    SpotterIconButton(Icons.Filled.Settings, onClick = onOpenSettings)
+                 },
+             )
+         },
+     ) { padding ->
+         LazyColumn(
+             modifier = Modifier.padding(padding).fillMaxSize(),
+             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp),
+             verticalArrangement = Arrangement.spacedBy(10.dp),
+diff --git a/app/src/main/java/com/n3k0chan/spotter/ui/workout/WorkoutScreen.kt b/app/src/main/java/com/n3k0chan/spotter/ui/workout/WorkoutScreen.kt
+old mode 100755
+new mode 100644
+index 68c2bf6..e831a29
+--- a/app/src/main/java/com/n3k0chan/spotter/ui/workout/WorkoutScreen.kt
++++ b/app/src/main/java/com/n3k0chan/spotter/ui/workout/WorkoutScreen.kt
+@@ -9,16 +9,17 @@ import androidx.compose.foundation.shape.RoundedCornerShape
+ import androidx.compose.foundation.text.KeyboardOptions
+ import androidx.compose.material.icons.Icons
+ import androidx.compose.material.icons.automirrored.filled.ArrowBack
+ import androidx.compose.material.icons.filled.*
+ import androidx.compose.material3.*
+ import androidx.compose.runtime.*
+ import androidx.compose.ui.Alignment
+ import androidx.compose.ui.Modifier
++import androidx.compose.ui.draw.alpha
+ import androidx.compose.ui.draw.clip
+ import androidx.compose.ui.geometry.Offset
+ import androidx.compose.ui.graphics.Color
+ import androidx.compose.ui.graphics.StrokeCap
+ import androidx.compose.ui.graphics.drawscope.Stroke
+ import androidx.compose.ui.platform.LocalContext
+ import androidx.compose.ui.text.input.KeyboardType
+ import androidx.compose.ui.unit.dp
+@@ -33,27 +34,25 @@ import com.n3k0chan.spotter.data.measurement.MeasurementProfile
+ import com.n3k0chan.spotter.data.measurement.formatForProfile
+ import com.n3k0chan.spotter.data.repository.SetInput
+ import com.n3k0chan.spotter.di.ServiceLocator
+ import com.n3k0chan.spotter.timer.RestTimerController
+ import com.n3k0chan.spotter.timer.RestTimerService
+ import com.n3k0chan.spotter.ui.components.*
+ import androidx.compose.foundation.pager.HorizontalPager
+ import androidx.compose.foundation.pager.rememberPagerState
+-import com.n3k0chan.spotter.ui.workout.AiSummaryResponse
+ import com.n3k0chan.spotter.ui.theme.SpotterText
+ import com.n3k0chan.spotter.ui.theme.SpotterTheme
+ import java.text.DateFormat
+ import java.util.*
+ 
+ @Composable
+ fun WorkoutScreen(
+     workoutId: Long,
+     onFinished: () -> Unit,
+-    onOpenChat: () -> Unit,
+     vm: WorkoutViewModel = viewModel(factory = WorkoutViewModel.factory(workoutId)),
+ ) {
+     val state by vm.state.collectAsStateWithLifecycle()
+     val catalog by vm.exerciseCatalog.collectAsStateWithLifecycle()
+     // Usamos el estado recolectado de settings en lugar de .value directo
+     val settings by ServiceLocator.settings.state.collectAsStateWithLifecycle()
+     val c = SpotterTheme.colors
+     var showPicker by remember { mutableStateOf(false) }
+@@ -68,22 +67,16 @@ fun WorkoutScreen(
+                     subtitle = "sesión activa",
+                     leading = {
+                         SpotterIconButton(
+                             icon = Icons.AutoMirrored.Filled.ArrowBack,
+                             onClick = onFinished,
+                         )
+                     },
+                     trailing = {
+-                        SpotterIconButton(
+-                            icon = Icons.Filled.AutoAwesome,
+-                            onClick = onOpenChat,
+-                            tone = IconButtonTone.Primary,
+-                            contentDescription = "Asistente",
+-                        )
+                         SpotterIconButton(
+                             icon = Icons.Filled.MoreVert,
+                             tone = IconButtonTone.Muted,
+                         )
+                     },
+                 )
+                 RestTimerBar()
+             }
+@@ -147,29 +140,36 @@ fun WorkoutScreen(
+                         exercise = exercise,
+                         sets = sets,
+                         active = isLast,
+                         defaultRest = target?.defaultRestSeconds ?: settings.defaultRestSeconds,
+                         preWarning = settings.preWarning,
+                         vibrate = settings.vibrate,
+                         targetSets = target?.targetSets,
+                         targetReps = target?.targetReps,
+-                        suggestion = state.suggestion?.takeIf {
+-                            state.suggestionForExerciseId == exerciseId && !state.suggestionLoading
+-                        },
+-                        suggestionLoading = state.suggestionLoading && state.suggestionForExerciseId == exerciseId,
+                         onAddSet = { input -> vm.addSet(exerciseId, input) },
+                         onDeleteSet = { vm.deleteSet(it) },
+                         onUpdateSet = { vm.updateSet(it) },
+-                        onRequestSuggestion = { vm.fetchSuggestion(exerciseId, exercise.name) },
+-                        onClearSuggestion = { vm.clearSuggestion() },
+                         onRemove = { vm.removeExerciseFromSession(exerciseId) },
+                     )
+                 }
+             }
++            val suggestedId = state.suggestedExerciseId
++            if (suggestedId != null && !state.suggestionDismissed) {
++                val suggested = catalog.firstOrNull { it.id == suggestedId }
++                if (suggested != null) {
++                    item(key = "ghost-suggestion") {
++                        GhostSuggestionCard(
++                            exercise = suggested,
++                            onAccept = { vm.addExerciseToSession(suggested.id) },
++                            onCancel = { vm.dismissSuggestion() },
++                        )
++                    }
++                }
++            }
+         }
+     }
+ 
+     if (showPicker) {
+         ExercisePickerSheet(
+             catalog = catalog,
+             alreadyAdded = state.orderedExerciseIds.toSet(),
+             onPick = {
+@@ -195,40 +195,35 @@ fun WorkoutScreen(
+                 vm.finish(startAt, backupAfterFinish = backup, onDone = onFinished)
+                 showFinishDialog = false
+             },
+             onCancel = { showFinishDialog = false },
+         )
+     }
+     if (state.showPostFinish) {
+         PostFinishSummaryDialog(
+-            loading = state.finishedLoading,
+-            summary = state.finishedSummary,
++            summary = state.finishedComparison,
+             onDismiss = onFinished,
+         )
+     }
+ }
+ 
+ @Composable
+ private fun ExerciseCard(
+     exercise: Exercise,
+     sets: List<WorkoutSet>,
+     active: Boolean,
+     defaultRest: Int,
+     preWarning: Boolean,
+     vibrate: Boolean,
+     targetSets: Int? = null,
+     targetReps: Int? = null,
+-    suggestion: String?,
+-    suggestionLoading: Boolean,
+     onAddSet: (SetInput) -> Unit,
+     onDeleteSet: (Long) -> Unit,
+     onUpdateSet: (WorkoutSet) -> Unit,
+-    onRequestSuggestion: () -> Unit,
+-    onClearSuggestion: () -> Unit,
+     onRemove: () -> Unit,
+ ) {
+     val c = SpotterTheme.colors
+     val ctx = LocalContext.current
+     val profile = exercise.profile
+     val fields = profile.fields
+ 
+     var formOpen by remember { mutableStateOf(false) }
+@@ -331,42 +326,27 @@ private fun ExerciseCard(
+                 Box {
+                     IconButton(onClick = { menuOpen = true }) {
+                         Icon(Icons.Filled.MoreVert, contentDescription = "Opciones", tint = c.textFaint)
+                     }
+                     DropdownMenu(
+                         expanded = menuOpen,
+                         onDismissRequest = { menuOpen = false },
+                     ) {
+-                        DropdownMenuItem(
+-                            text = { Text("Sugerencia IA") },
+-                            onClick = {
+-                                menuOpen = false
+-                                onRequestSuggestion()
+-                            },
+-                        )
+                         DropdownMenuItem(
+                             text = { Text("Quitar del entreno", color = c.danger) },
+                             onClick = {
+                                 menuOpen = false
+                                 confirmRemove = true
+                             },
+                         )
+                     }
+                 }
+             }
+ 
+-            if (suggestionLoading) {
+-                Spacer(Modifier.height(8.dp))
+-                SuggestionCard(text = "Pensando…", onDismiss = null)
+-            } else if (!suggestion.isNullOrBlank()) {
+-                Spacer(Modifier.height(8.dp))
+-                SuggestionCard(text = suggestion, onDismiss = onClearSuggestion)
+-            }
+-
+             if (sets.isNotEmpty()) {
+                 Spacer(Modifier.height(12.dp))
+                 sets.forEachIndexed { i, s ->
+                     if (editingSetId == s.id) {
+                         InlineSetEditor(
+                             set = s,
+                             setIndex = i,
+                             profile = profile,
+@@ -573,44 +553,51 @@ private fun InlineSetEditor(
+                 variant = SpotterButtonVariant.Outlined,
+                 onClick = onCancel,
+             )
+         }
+     }
+ }
+ 
+ @Composable
+-private fun SuggestionCard(text: String, onDismiss: (() -> Unit)?) {
++private fun GhostSuggestionCard(
++    exercise: Exercise,
++    onAccept: () -> Unit,
++    onCancel: () -> Unit,
++) {
+     val c = SpotterTheme.colors
+-    SpotterCard(
+-        radius = 12.dp,
+-        padding = 12.dp,
+-        background = c.primarySoft,
+-        border = c.primarySoft,
+-    ) {
+-        Row(verticalAlignment = Alignment.Top) {
+-            Icon(
+-                Icons.Filled.AutoAwesome,
+-                contentDescription = null,
+-                tint = c.primary,
+-                modifier = Modifier.size(16.dp),
+-            )
+-            Spacer(Modifier.width(8.dp))
+-            Column(modifier = Modifier.weight(1f)) {
+-                Text("SUGERENCIA", style = SpotterText.caps, color = c.primarySoftText)
+-                Spacer(Modifier.height(4.dp))
+-                Text(
+-                    text,
+-                    style = SpotterText.small,
+-                    color = c.primarySoftText.copy(alpha = 0.85f),
+-                )
+-            }
+-            if (onDismiss != null) {
+-                TextButton(onClick = onDismiss) {
+-                    Text("OK", color = c.primarySoftText, style = SpotterText.smallMd)
++    Box(modifier = Modifier.alpha(0.45f)) {
++        SpotterCard(radius = 16.dp, padding = 16.dp, border = c.border) {
++            Column {
++                Row(verticalAlignment = Alignment.CenterVertically) {
++                    MuscleGroupAvatar(
++                        group = MuscleGroup.from(exercise.muscleGroup),
++                        size = 36.dp,
++                        iconSize = 18.dp,
++                    )
++                    Spacer(Modifier.width(10.dp))
++                    Column(modifier = Modifier.weight(1f)) {
++                        Text("SUGERIDO", style = SpotterText.caps, color = c.textMuted)
++                        Text(exercise.name, style = SpotterText.title3, color = c.text)
++                    }
++                }
++                Spacer(Modifier.height(12.dp))
++                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
++                    SpotterButton(
++                        text = "Aceptar",
++                        leading = Icons.Filled.Add,
++                        variant = SpotterButtonVariant.Tonal,
++                        modifier = Modifier.weight(1f),
++                        onClick = onAccept,
++                    )
++                    SpotterButton(
++                        text = "Cancelar",
++                        variant = SpotterButtonVariant.Outlined,
++                        onClick = onCancel,
++                    )
+                 }
+             }
+         }
+     }
+ }
+ 
+ @Composable
+ private fun RestRing(progress: Float, remainingSeconds: Int) {
+@@ -768,70 +755,57 @@ private fun FinishWorkoutDialog(
+                 }
+             }
+         },
+     )
+ }
+ 
+ @Composable
+ private fun PostFinishSummaryDialog(
+-    loading: Boolean,
+-    summary: AiSummaryResponse?,
++    summary: WorkoutComparison?,
+     onDismiss: () -> Unit,
+ ) {
+     val c = SpotterTheme.colors
+     AlertDialog(
+-        onDismissRequest = { if (!loading) onDismiss() },
++        onDismissRequest = { onDismiss() },
+         title = {
+             Row(verticalAlignment = Alignment.CenterVertically) {
+                 Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = c.success, modifier = Modifier.size(24.dp))
+                 Spacer(Modifier.width(10.dp))
+                 Text("Entreno guardado", style = SpotterText.title2)
+             }
+         },
+         confirmButton = {
+             TextButton(onClick = onDismiss) {
+                 Text("Cerrar", color = c.primary)
+             }
+         },
+         text = {
+             Column {
+-                if (loading) {
+-                    Row(
+-                        verticalAlignment = Alignment.CenterVertically,
+-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+-                    ) {
+-                        CircularProgressIndicator(
+-                            color = c.primary,
+-                            strokeWidth = 2.dp,
+-                            modifier = Modifier.size(20.dp),
+-                        )
+-                        Text("Generando resumen…", style = SpotterText.body, color = c.textMuted)
+-                    }
+-                } else if (summary != null) {
++                if (summary != null) {
+                     Text(summary.summary, style = SpotterText.body, color = c.text)
+                     Spacer(Modifier.height(16.dp))
+-                    
++
+                     if (summary.exercises.isNotEmpty()) {
+                         val pagerState = rememberPagerState(pageCount = { summary.exercises.size })
+                         HorizontalPager(
+                             state = pagerState,
+                             modifier = Modifier.fillMaxWidth()
+                         ) { page ->
+                             val ex = summary.exercises[page]
+                             SpotterCard(
+                                 radius = 12.dp,
+                                 padding = 12.dp,
+                                 background = c.primarySoft,
+                                 border = c.primarySoft,
+                             ) {
+                                 Column {
+                                     Row(verticalAlignment = Alignment.CenterVertically) {
+                                         Icon(
+-                                            Icons.Filled.AutoAwesome,
++                                            Icons.Filled.TrendingUp,
+                                             contentDescription = null,
+                                             tint = c.primary,
+                                             modifier = Modifier.size(16.dp),
+                                         )
+                                         Spacer(Modifier.width(8.dp))
+                                         Text(ex.name, style = SpotterText.caps, color = c.primarySoftText)
+                                     }
+                                     Spacer(Modifier.height(8.dp))
+diff --git a/app/src/main/java/com/n3k0chan/spotter/ui/workout/WorkoutViewModel.kt b/app/src/main/java/com/n3k0chan/spotter/ui/workout/WorkoutViewModel.kt
+old mode 100755
+new mode 100644
+index e23ba74..51b8766
+--- a/app/src/main/java/com/n3k0chan/spotter/ui/workout/WorkoutViewModel.kt
++++ b/app/src/main/java/com/n3k0chan/spotter/ui/workout/WorkoutViewModel.kt
+@@ -1,63 +1,47 @@
+ package com.n3k0chan.spotter.ui.workout
+ 
+ import androidx.lifecycle.ViewModel
+ import androidx.lifecycle.ViewModelProvider
+ import androidx.lifecycle.viewModelScope
+-import com.n3k0chan.spotter.ai.GroqClient
+-import com.n3k0chan.spotter.ai.Prompts
+ import com.n3k0chan.spotter.data.db.entities.Exercise
+ import com.n3k0chan.spotter.data.db.entities.TemplateExercise
+ import com.n3k0chan.spotter.data.db.entities.WorkoutSet
+ import com.n3k0chan.spotter.data.db.entities.WorkoutWithSets
+ import com.n3k0chan.spotter.data.health.WorkoutHealthMetrics
+ import com.n3k0chan.spotter.data.repository.SetInput
+ import com.n3k0chan.spotter.di.ServiceLocator
+ import kotlinx.coroutines.flow.MutableStateFlow
+ import kotlinx.coroutines.flow.SharingStarted
+ import kotlinx.coroutines.flow.StateFlow
+ import kotlinx.coroutines.flow.asStateFlow
+ import kotlinx.coroutines.flow.stateIn
+ import kotlinx.coroutines.launch
+ import java.time.Instant
+ 
+-import kotlinx.serialization.Serializable
+ import kotlinx.serialization.json.Json
+ 
+-@Serializable
+-data class AiSummaryResponse(
+-    val summary: String,
+-    val exercises: List<AiSummaryExercise> = emptyList()
+-)
+-
+-@Serializable
+-data class AiSummaryExercise(
+-    val name: String,
+-    val markdown: String
+-)
+-
+ data class WorkoutUiState(
+     val loading: Boolean = true,
+     val workout: WorkoutWithSets? = null,
+     val orderedExerciseIds: List<Long> = emptyList(),
+     val templateTargets: Map<Long, TemplateExercise> = emptyMap(),
+     val notes: String = "",
+     val rpe: Int? = null,
+-    val suggestion: String? = null,
+-    val suggestionForExerciseId: Long? = null,
+-    val suggestionLoading: Boolean = false,
+-    val finishedSummary: AiSummaryResponse? = null,
+-    val finishedLoading: Boolean = false,
++    val suggestedExerciseId: Long? = null,
++    val suggestionDismissed: Boolean = false,
++    val finishedComparison: WorkoutComparison? = null,
+     val showPostFinish: Boolean = false,
+ )
+ 
+ class WorkoutViewModel(private val workoutId: Long) : ViewModel() {
+ 
+     private val workouts = ServiceLocator.workouts
++    private var trainingCounts: Map<Long, Int> = emptyMap()
+     private val exercises = ServiceLocator.exercises
+     private val templates = ServiceLocator.templates
+     private val settings = ServiceLocator.settings
+     private val healthConnect = ServiceLocator.healthConnect
+ 
+     val exerciseCatalog: StateFlow<List<Exercise>> = exercises.observeAll().stateIn(
+         viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList(),
+     )
+@@ -90,16 +74,17 @@ class WorkoutViewModel(private val workoutId: Long) : ViewModel() {
+                 loading = false,
+                 workout = w,
+                 orderedExerciseIds = combined,
+                 templateTargets = targets,
+                 notes = w.workout.notes.orEmpty(),
+                 rpe = w.workout.rpe,
+             )
+         }
++        recomputeSuggestion()
+     }
+ 
+     fun calculateEstimatedStart(): Long {
+         val w = _state.value.workout ?: return System.currentTimeMillis()
+         if (w.sets.isEmpty()) return w.workout.startedAt
+         
+         // Sumamos duraciones de series y descansos
+         val totalActiveSeconds = w.sets.sumOf { (it.set.durationSeconds ?: 0).toLong() }
+@@ -110,25 +95,29 @@ class WorkoutViewModel(private val workoutId: Long) : ViewModel() {
+         return System.currentTimeMillis() - totalMs
+     }
+ 
+     fun addExerciseToSession(exerciseId: Long) {
+         _state.update {
+             if (it.orderedExerciseIds.contains(exerciseId)) it
+             else it.copy(orderedExerciseIds = it.orderedExerciseIds + exerciseId)
+         }
++        _state.update { it.copy(suggestionDismissed = false) }
++        recomputeSuggestion()
+     }
+ 
+     fun removeExerciseFromSession(exerciseId: Long) {
+         viewModelScope.launch {
+             val current = _state.value.workout ?: return@launch
+             current.sets.filter { it.set.exerciseId == exerciseId }
+                 .forEach { workouts.deleteSet(it.set.id) }
+             reload()
+             _state.update { it.copy(orderedExerciseIds = it.orderedExerciseIds - exerciseId) }
++            _state.update { it.copy(suggestionDismissed = false) }
++            recomputeSuggestion()
+         }
+     }
+ 
+     fun addSet(exerciseId: Long, input: SetInput) {
+         viewModelScope.launch {
+             val current = _state.value.workout ?: return@launch
+             val nextSetNumber = current.sets.count { it.set.exerciseId == exerciseId } + 1
+             val orderIndex = _state.value.orderedExerciseIds.indexOf(exerciseId).coerceAtLeast(0)
+@@ -160,115 +149,67 @@ class WorkoutViewModel(private val workoutId: Long) : ViewModel() {
+     fun setNotes(value: String) {
+         _state.update { it.copy(notes = value) }
+     }
+ 
+     fun setRpe(value: Int?) {
+         _state.update { it.copy(rpe = value) }
+     }
+ 
+-    fun fetchSuggestion(exerciseId: Long, exerciseName: String) {
+-        val cfg = settings.state.value
+-        if (!cfg.hasApiKey) return
+-        viewModelScope.launch {
+-            _state.update {
+-                it.copy(
+-                    suggestionLoading = true,
+-                    suggestionForExerciseId = exerciseId,
+-                    suggestion = null,
+-                )
+-            }
+-            val exercise = ServiceLocator.exercises.get(exerciseId)
+-            val profile = exercise?.let {
+-                com.n3k0chan.spotter.data.measurement.MeasurementProfile.fromNameOrDefault(it.measurementProfile)
+-            } ?: com.n3k0chan.spotter.data.measurement.MeasurementProfile.Default
+-            val recent = workouts.recentSetsFor(exerciseId, limit = 10)
+-            val current = _state.value.workout?.sets
+-                ?.filter { it.set.exerciseId == exerciseId }
+-                ?.map { it.set }
+-                .orEmpty()
+-            runCatching {
+-                GroqClient.chat(
+-                    apiKey = cfg.groqApiKey,
+-                    model = cfg.groqModel,
+-                    messages = Prompts.nextSetSuggestion(exerciseName, profile, recent, current),
+-                    temperature = 0.4,
+-                )
+-            }.onSuccess { res ->
+-                _state.update { it.copy(suggestion = res.trim(), suggestionLoading = false) }
+-            }.onFailure {
+-                _state.update {
+-                    it.copy(
+-                        suggestion = null,
+-                        suggestionLoading = false,
+-                        suggestionForExerciseId = null,
+-                    )
+-                }
+-            }
+-        }
++    fun dismissSuggestion() {
++        _state.update { it.copy(suggestionDismissed = true, suggestedExerciseId = null) }
+     }
+ 
+-    fun clearSuggestion() {
+-        _state.update {
+-            it.copy(suggestion = null, suggestionLoading = false, suggestionForExerciseId = null)
++    private fun recomputeSuggestion() {
++        viewModelScope.launch {
++            if (trainingCounts.isEmpty()) {
++                trainingCounts = runCatching { workouts.exerciseTrainingCounts() }.getOrDefault(emptyMap())
++            }
++            val catalog = exerciseCatalog.value
++            val sessionExercises = _state.value.orderedExerciseIds
++                .mapNotNull { id -> catalog.firstOrNull { it.id == id } }
++            val suggestedId = NextExerciseSuggester.suggest(sessionExercises, catalog, trainingCounts)
++            _state.update { it.copy(suggestedExerciseId = suggestedId) }
+         }
+     }
+ 
+     fun finish(chosenStartedAt: Long, backupAfterFinish: Boolean, onDone: () -> Unit) {
+-        val cfg = settings.state.value
+-        val hasAi = cfg.hasApiKey
+-
+-        if (!hasAi) {
+-            viewModelScope.launch {
+-                persistWorkout(chosenStartedAt, backupAfterFinish)
+-                onDone()
+-            }
+-            return
+-        }
+-
+         viewModelScope.launch {
+             persistWorkout(chosenStartedAt, backupAfterFinish)
+-            _state.update { it.copy(showPostFinish = true, finishedLoading = true) }
+ 
+             val full = workouts.get(workoutId)
+-            if (full != null) {
+-                val previous = full.sets.flatMap { sw ->
+-                    workouts.recentSetsFor(sw.exercise.id, 10)
+-                }.take(20)
++            if (full == null) {
++                onDone()
++                return@launch
++            }
++
++            val comparison = buildComparison(full)
++            // Persistir para verlo luego en el detalle (columna reutilizada).
++            workouts.get(workoutId)?.workout?.let { w ->
+                 runCatching {
+-                    GroqClient.chat(
+-                        apiKey = cfg.groqApiKey,
+-                        model = cfg.groqModel,
+-                        messages = Prompts.postSessionSummary(full, previous),
+-                        temperature = 0.5,
+-                        responseFormat = "json_object"
+-                    )
+-                }.onSuccess { res ->
+-                    val parsed = runCatching {
+-                        Json { ignoreUnknownKeys = true }.decodeFromString<AiSummaryResponse>(res)
+-                    }.getOrNull()
+-                    
+-                    if (parsed != null) {
+-                        // Guardar en BD para poder verlo despues
+-                        val currentWorkout = workouts.get(workoutId)?.workout
+-                        if (currentWorkout != null) {
+-                            workouts.update(currentWorkout.copy(aiSummaryJson = res))
+-                        }
+-                        
+-                        _state.update { it.copy(finishedSummary = parsed, finishedLoading = false) }
+-                    } else {
+-                        _state.update { it.copy(finishedLoading = false) }
+-                    }
+-                }.onFailure {
+-                    _state.update { it.copy(finishedLoading = false) }
++                    val json = Json.encodeToString(WorkoutComparison.serializer(), comparison)
++                    workouts.update(w.copy(aiSummaryJson = json))
+                 }
+-            } else {
+-                _state.update { it.copy(finishedLoading = false) }
+             }
++            _state.update { it.copy(showPostFinish = true, finishedComparison = comparison) }
++        }
++    }
++
++    private suspend fun buildComparison(full: WorkoutWithSets): WorkoutComparison {
++        val byExercise = full.sets.groupBy { it.exercise.id }
++        val inputs = byExercise.map { (exerciseId, setsWithEx) ->
++            val exercise = setsWithEx.first().exercise
++            val profile = com.n3k0chan.spotter.data.measurement.MeasurementProfile
++                .fromNameOrDefault(exercise.measurementProfile)
++            val todaySets = setsWithEx.map { it.set }
++            val history = workouts.recentSetsFor(exerciseId, limit = 30)
++                .filter { it.workoutId != workoutId }
++            ExerciseComparisonInput(exercise.name, profile, todaySets, history)
+         }
++        return WorkoutComparator.compare(inputs)
+     }
+ 
+     private suspend fun persistWorkout(chosenStartedAt: Long, backupAfterFinish: Boolean) {
+         val s = _state.value
+         val now = System.currentTimeMillis()
+ 
+         var metrics: WorkoutHealthMetrics? = null
+         if (healthConnect.isAvailable()) {
+diff --git a/app/src/main/java/com/n3k0chan/spotter/util/StreakCalculator.kt b/app/src/main/java/com/n3k0chan/spotter/util/StreakCalculator.kt
+old mode 100755
+new mode 100644
+=====NEW FILES=====
+--- app/src/main/java/com/n3k0chan/spotter/ui/workout/WorkoutComparison.kt ---
+package com.n3k0chan.spotter.ui.workout
+
+import kotlinx.serialization.Serializable
+
+/**
+ * Resultado de la comparación programática de un entreno. Se persiste como JSON
+ * en Workout.aiSummaryJson (columna reutilizada, sin migración) y se muestra en
+ * el diálogo post-entreno y en el detalle del historial. Las claves JSON
+ * (summary/exercises/name/markdown) se mantienen para leer resúmenes antiguos.
+ */
+@Serializable
+data class WorkoutComparison(
+    val summary: String,
+    val exercises: List<ComparisonExercise> = emptyList(),
+)
+
+@Serializable
+data class ComparisonExercise(
+    val name: String,
+    /** Texto plano (líneas separadas por \n); el diálogo lo pinta como Text. */
+    val markdown: String,
+)
+--- app/src/main/java/com/n3k0chan/spotter/ui/workout/WorkoutComparator.kt ---
+package com.n3k0chan.spotter.ui.workout
+
+import com.n3k0chan.spotter.data.db.entities.WorkoutSet
+import com.n3k0chan.spotter.data.measurement.MeasurementProfile
+import com.n3k0chan.spotter.data.measurement.formatShort
+
+/** Entrada por ejercicio para el comparador. */
+data class ExerciseComparisonInput(
+    val name: String,
+    val profile: MeasurementProfile,
+    /** Series registradas hoy para este ejercicio. */
+    val todaySets: List<WorkoutSet>,
+    /** Series de entrenos anteriores (excluye hoy), más reciente primero. */
+    val historySets: List<WorkoutSet>,
+)
+
+/** Comparación 100% local del entreno frente al histórico. Sin red, sin LLM. */
+object WorkoutComparator {
+
+    fun compare(inputs: List<ExerciseComparisonInput>): WorkoutComparison {
+        val exercises = inputs.mapNotNull { input ->
+            if (input.todaySets.isEmpty()) null
+            else ComparisonExercise(input.name, verdictFor(input))
+        }
+        val totalSets = inputs.sumOf { it.todaySets.size }
+        val prCount = inputs.count { isPr(it) }
+        val summary = buildString {
+            append("${exercises.size} ejercicios · $totalSets series")
+            if (prCount > 0) append(" · $prCount PR${if (prCount > 1) "s" else ""}")
+        }
+        return WorkoutComparison(summary = summary, exercises = exercises)
+    }
+
+    private fun verdictFor(input: ExerciseComparisonInput): String {
+        val profile = input.profile
+        val todayVol = volumeOf(input.todaySets, profile)
+        val lines = mutableListOf<String>()
+        lines += "Hoy: ${input.todaySets.size} series · ${formatVolume(todayVol, profile)}"
+
+        val histBest = bestSet(input.historySets, profile)
+        val todayBest = bestSet(input.todaySets, profile)
+        if (histBest == null || todayBest == null) {
+            lines += "Sin datos previos para comparar"
+            return lines.joinToString("\n")
+        }
+
+        lines += if (isPr(input)) {
+            "Nuevo PR: ${todayBest.formatShort(profile)} (antes ${histBest.formatShort(profile)})"
+        } else {
+            "Mejor hoy: ${todayBest.formatShort(profile)} · PR: ${histBest.formatShort(profile)}"
+        }
+
+        val lastVol = volumeOf(lastSession(input.historySets), profile)
+        if (lastVol > 0) {
+            val pct = ((todayVol - lastVol) / lastVol * 100).toInt()
+            val sign = if (pct >= 0) "+" else ""
+            lines += "Volumen $sign$pct% vs última sesión"
+        }
+        return lines.joinToString("\n")
+    }
+
+    fun isPr(input: ExerciseComparisonInput): Boolean {
+        val profile = input.profile
+        val histBest = bestSet(input.historySets, profile) ?: return false
+        val todayBest = bestSet(input.todaySets, profile) ?: return false
+        return metric(todayBest, profile) > metric(histBest, profile)
+    }
+
+    fun bestSet(sets: List<WorkoutSet>, profile: MeasurementProfile): WorkoutSet? =
+        sets.maxByOrNull { metric(it, profile) }
+
+    fun volumeOf(sets: List<WorkoutSet>, profile: MeasurementProfile): Double = when (profile) {
+        MeasurementProfile.WeightReps -> sets.sumOf { (it.weightKg ?: 0.0) * (it.reps ?: 0) }
+        MeasurementProfile.Reps -> sets.sumOf { (it.reps ?: 0).toDouble() }
+        MeasurementProfile.Duration, MeasurementProfile.WeightDuration ->
+            sets.sumOf { (it.durationSeconds ?: 0).toDouble() }
+        MeasurementProfile.DistanceTime,
+        MeasurementProfile.CardioMachine,
+        MeasurementProfile.TreadmillIncline -> sets.sumOf { it.distanceMeters ?: 0.0 }
+    }
+
+    /** Métrica principal comparable de una serie según el perfil. */
+    private fun metric(s: WorkoutSet, profile: MeasurementProfile): Double = when (profile) {
+        // Prioriza peso; a igualdad, más reps.
+        MeasurementProfile.WeightReps -> (s.weightKg ?: 0.0) * 1000 + (s.reps ?: 0)
+        MeasurementProfile.Reps -> (s.reps ?: 0).toDouble()
+        MeasurementProfile.Duration, MeasurementProfile.WeightDuration ->
+            (s.durationSeconds ?: 0).toDouble()
+        MeasurementProfile.DistanceTime,
+        MeasurementProfile.CardioMachine,
+        MeasurementProfile.TreadmillIncline -> s.distanceMeters ?: 0.0
+    }
+
+    /** Series de la sesión histórica más reciente (primer workoutId de la lista). */
+    private fun lastSession(historySets: List<WorkoutSet>): List<WorkoutSet> {
+        val firstWorkoutId = historySets.firstOrNull()?.workoutId ?: return emptyList()
+        return historySets.filter { it.workoutId == firstWorkoutId }
+    }
+
+    private fun formatVolume(volume: Double, profile: MeasurementProfile): String = when (profile) {
+        MeasurementProfile.WeightReps -> "${volume.toInt()} kg·rep"
+        MeasurementProfile.Reps -> "${volume.toInt()} reps"
+        MeasurementProfile.Duration, MeasurementProfile.WeightDuration -> {
+            val s = volume.toInt(); "%d:%02d min".format(s / 60, s % 60)
+        }
+        MeasurementProfile.DistanceTime,
+        MeasurementProfile.CardioMachine,
+        MeasurementProfile.TreadmillIncline ->
+            if (volume >= 1000) "%.2f km".format(volume / 1000) else "${volume.toInt()} m"
+    }
+}
+--- app/src/main/java/com/n3k0chan/spotter/ui/workout/NextExerciseSuggester.kt ---
+package com.n3k0chan.spotter.ui.workout
+
+import com.n3k0chan.spotter.data.db.entities.Exercise
+import com.n3k0chan.spotter.ui.components.MuscleGroup
+
+/**
+ * Elige el siguiente ejercicio a sugerir en una sesión activa:
+ * - Solo con ≥2 ejercicios en la sesión.
+ * - Grupo objetivo = grupo muscular predominante de la sesión (empate → grupo
+ *   del último ejercicio añadido).
+ * - Candidato = el más entrenado (trainingCounts) de ese grupo que no esté ya
+ *   en la sesión. Sin candidatos → null.
+ */
+object NextExerciseSuggester {
+
+    fun suggest(
+        sessionExercises: List<Exercise>,
+        catalog: List<Exercise>,
+        trainingCounts: Map<Long, Int>,
+    ): Long? {
+        if (sessionExercises.size < 2) return null
+        val target = predominantGroup(sessionExercises) ?: return null
+        val sessionIds = sessionExercises.map { it.id }.toSet()
+        val candidates = catalog.filter {
+            it.id !in sessionIds && MuscleGroup.from(it.muscleGroup) == target
+        }
+        if (candidates.isEmpty()) return null
+        return candidates.maxByOrNull { trainingCounts[it.id] ?: 0 }?.id
+    }
+
+    private fun predominantGroup(sessionExercises: List<Exercise>): MuscleGroup? {
+        if (sessionExercises.isEmpty()) return null
+        val groups = sessionExercises.map { MuscleGroup.from(it.muscleGroup) }
+        val counts = groups.groupingBy { it }.eachCount()
+        val max = counts.values.max()
+        val top = counts.filterValues { it == max }.keys
+        return if (top.size == 1) top.first() else groups.last()
+    }
+}
+--- app/src/test/java/com/n3k0chan/spotter/workout/WorkoutComparatorTest.kt ---
+package com.n3k0chan.spotter.ui.workout
+
+import com.n3k0chan.spotter.data.db.entities.WorkoutSet
+import com.n3k0chan.spotter.data.measurement.MeasurementProfile
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+class WorkoutComparatorTest {
+
+    private fun wr(workoutId: Long, weight: Double, reps: Int) = WorkoutSet(
+        workoutId = workoutId, exerciseId = 1, orderIndex = 0, setNumber = 1,
+        weightKg = weight, reps = reps,
+    )
+
+    @Test
+    fun `volume for weightReps is sum of weight times reps`() {
+        val sets = listOf(wr(1, 100.0, 5), wr(1, 100.0, 5))
+        assertEquals(1000.0, WorkoutComparator.volumeOf(sets, MeasurementProfile.WeightReps), 0.0)
+    }
+
+    @Test
+    fun `detects PR when today beats history`() {
+        val input = ExerciseComparisonInput(
+            name = "Press", profile = MeasurementProfile.WeightReps,
+            todaySets = listOf(wr(2, 105.0, 5)),
+            historySets = listOf(wr(1, 100.0, 5)),
+        )
+        assertTrue(WorkoutComparator.isPr(input))
+    }
+
+    @Test
+    fun `no PR when today equals history`() {
+        val input = ExerciseComparisonInput(
+            name = "Press", profile = MeasurementProfile.WeightReps,
+            todaySets = listOf(wr(2, 100.0, 5)),
+            historySets = listOf(wr(1, 100.0, 5)),
+        )
+        assertFalse(WorkoutComparator.isPr(input))
+    }
+
+    @Test
+    fun `no previous data yields explanatory verdict`() {
+        val comparison = WorkoutComparator.compare(
+            listOf(
+                ExerciseComparisonInput(
+                    "Press", MeasurementProfile.WeightReps,
+                    todaySets = listOf(wr(2, 100.0, 5)), historySets = emptyList(),
+                ),
+            ),
+        )
+        assertEquals(1, comparison.exercises.size)
+        assertTrue(comparison.exercises[0].markdown.contains("Sin datos previos"))
+    }
+}
+--- app/src/test/java/com/n3k0chan/spotter/workout/NextExerciseSuggesterTest.kt ---
+package com.n3k0chan.spotter.ui.workout
+
+import com.n3k0chan.spotter.data.db.entities.Exercise
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
+import org.junit.Test
+
+class NextExerciseSuggesterTest {
+
+    private fun ex(id: Long, group: String?) = Exercise(id = id, name = "e$id", muscleGroup = group)
+
+    @Test
+    fun `returns null with fewer than two session exercises`() {
+        val result = NextExerciseSuggester.suggest(
+            sessionExercises = listOf(ex(1, "Pecho")),
+            catalog = listOf(ex(1, "Pecho"), ex(2, "Pecho")),
+            trainingCounts = emptyMap(),
+        )
+        assertNull(result)
+    }
+
+    @Test
+    fun `suggests most trained from predominant group not already in session`() {
+        val session = listOf(ex(1, "Pecho"), ex(2, "Pecho"))
+        val catalog = session + listOf(ex(3, "Pecho"), ex(4, "Pecho"), ex(5, "Pierna"))
+        val counts = mapOf(3L to 2, 4L to 9)
+        assertEquals(4L, NextExerciseSuggester.suggest(session, catalog, counts))
+    }
+
+    @Test
+    fun `returns null when no candidate remains in group`() {
+        val session = listOf(ex(1, "Pecho"), ex(2, "Pecho"))
+        val catalog = session + listOf(ex(5, "Pierna"))
+        assertNull(NextExerciseSuggester.suggest(session, catalog, emptyMap()))
+    }
+
+    @Test
+    fun `breaks group tie using last added exercise`() {
+        val session = listOf(ex(1, "Pecho"), ex(2, "Pierna"))
+        val catalog = session + listOf(ex(3, "Pecho"), ex(4, "Pierna"))
+        assertEquals(4L, NextExerciseSuggester.suggest(session, catalog, emptyMap()))
+    }
+}

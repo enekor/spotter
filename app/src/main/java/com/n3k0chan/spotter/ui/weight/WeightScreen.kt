@@ -16,12 +16,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -66,13 +63,10 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun WeightScreen(
     onOpenSettings: () -> Unit = {},
-    onOpenChat: () -> Unit = {},
     vm: WeightViewModel = viewModel(factory = WeightViewModel.Factory),
 ) {
     val logs by vm.logs.collectAsStateWithLifecycle()
     val logsAsc by vm.logsAsc.collectAsStateWithLifecycle()
-    val aiSummary by vm.aiSummary.collectAsStateWithLifecycle()
-    val isLoadingAi by vm.isLoadingAi.collectAsStateWithLifecycle()
     val c = SpotterTheme.colors
 
     var showAddSheet by remember { mutableStateOf(false) }
@@ -84,10 +78,7 @@ fun WeightScreen(
             SpotterTopBar(
                 title = "Peso",
                 trailing = {
-                    Row {
-                        SpotterIconButton(Icons.AutoMirrored.Filled.Chat, onClick = onOpenChat)
-                        SpotterIconButton(Icons.Filled.Settings, onClick = onOpenSettings)
-                    }
+                    SpotterIconButton(Icons.Filled.Settings, onClick = onOpenSettings)
                 },
             )
         },
@@ -124,33 +115,6 @@ fun WeightScreen(
                                     .height(140.dp)
                             )
                         }
-                    }
-                }
-            }
-
-            item {
-                SpotterCard(padding = 16.dp) {
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Filled.AutoAwesome, contentDescription = null, tint = c.primary, modifier = Modifier.size(20.dp))
-                            Spacer(Modifier.width(8.dp))
-                            Text("Análisis de IA", style = SpotterText.title3, color = c.text)
-                        }
-                        Spacer(Modifier.height(8.dp))
-                        if (isLoadingAi) {
-                            CircularProgressIndicator(color = c.primary, modifier = Modifier.size(24.dp))
-                        } else if (aiSummary != null) {
-                            Text(aiSummary!!, style = SpotterText.bodyMd, color = c.text)
-                        } else {
-                            Text("Pide a la IA que analice tu progreso de peso.", style = SpotterText.bodyMd, color = c.textMuted)
-                        }
-                        Spacer(Modifier.height(12.dp))
-                        SpotterButton(
-                            text = "Analizar",
-                            onClick = { vm.analyzeProgress() },
-                            modifier = Modifier.fillMaxWidth(),
-                            enabled = !isLoadingAi && logs.isNotEmpty()
-                        )
                     }
                 }
             }

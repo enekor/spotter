@@ -3,14 +3,12 @@ package com.n3k0chan.spotter.data.prefs
 import android.content.Context
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
-import com.n3k0chan.spotter.BuildConfig
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 /**
- * Lee y escribe ajustes. La API key se guarda cifrada con EncryptedSharedPreferences.
- * Si el usuario no ha sobrescrito la key, se usa BuildConfig.GROQ_API_KEY (de local.properties).
+ * Lee y escribe ajustes. Los datos se guardan cifrados con EncryptedSharedPreferences.
  */
 class SettingsRepository(context: Context) {
 
@@ -30,20 +28,13 @@ class SettingsRepository(context: Context) {
     val state: StateFlow<AppSettings> = _state.asStateFlow()
 
     private fun load(): AppSettings {
-        val storedKey = prefs.getString(KEY_GROQ_API, null).orEmpty()
         return AppSettings(
-            groqApiKey = storedKey.ifEmpty { BuildConfig.GROQ_API_KEY },
-            isUserOverridingKey = storedKey.isNotEmpty(),
-            groqModel = prefs.getString(KEY_MODEL, DEFAULT_MODEL) ?: DEFAULT_MODEL,
             defaultRestSeconds = prefs.getInt(KEY_REST, 90),
             preWarning = prefs.getBoolean(KEY_PRE_WARNING, true),
             vibrate = prefs.getBoolean(KEY_VIBRATE, true),
             driveAccountName = prefs.getString(KEY_DRIVE_ACCOUNT, null)?.takeIf { it.isNotBlank() },
             autoBackupAfterWorkout = prefs.getBoolean(KEY_AUTO_BACKUP, true),
             lastBackupAt = prefs.getLong(KEY_LAST_BACKUP, 0L).takeIf { it > 0 },
-            chatHistoryWindow = ChatHistoryWindow.fromName(
-                prefs.getString(KEY_CHAT_HISTORY_WINDOW, ChatHistoryWindow.Month.name),
-            ),
             reminderDays = prefs.getStringSet(KEY_REMINDER_DAYS, emptySet())
                 ?.mapNotNull { it.toIntOrNull() }?.toSet() ?: emptySet(),
             reminderHour = prefs.getInt(KEY_REMINDER_HOUR, 18),
@@ -53,18 +44,6 @@ class SettingsRepository(context: Context) {
                     ?: com.n3k0chan.spotter.ui.theme.AppThemeStyle.Modern.name
             ),
         )
-    }
-
-    fun setGroqApiKey(value: String) {
-        prefs.edit().also {
-            if (value.isBlank()) it.remove(KEY_GROQ_API) else it.putString(KEY_GROQ_API, value.trim())
-        }.apply()
-        _state.value = load()
-    }
-
-    fun setModel(model: String) {
-        prefs.edit().putString(KEY_MODEL, model).apply()
-        _state.value = load()
     }
 
     fun setDefaultRest(seconds: Int) {
@@ -99,11 +78,6 @@ class SettingsRepository(context: Context) {
         _state.value = load()
     }
 
-    fun setChatHistoryWindow(window: ChatHistoryWindow) {
-        prefs.edit().putString(KEY_CHAT_HISTORY_WINDOW, window.name).apply()
-        _state.value = load()
-    }
-
     fun setReminderDays(days: Set<Int>) {
         prefs.edit().putStringSet(KEY_REMINDER_DAYS, days.map { it.toString() }.toSet()).apply()
         _state.value = load()
@@ -121,64 +95,31 @@ class SettingsRepository(context: Context) {
 
     companion object {
         private const val FILE = "spotter_secure_prefs"
-        private const val KEY_GROQ_API = "groq_api_key"
-        private const val KEY_MODEL = "groq_model"
         private const val KEY_REST = "default_rest"
         private const val KEY_PRE_WARNING = "pre_warning"
         private const val KEY_VIBRATE = "vibrate"
         private const val KEY_DRIVE_ACCOUNT = "drive_account"
         private const val KEY_AUTO_BACKUP = "auto_backup"
         private const val KEY_LAST_BACKUP = "last_backup_at"
-        private const val KEY_CHAT_HISTORY_WINDOW = "chat_history_window"
         private const val KEY_REMINDER_DAYS = "reminder_days"
         private const val KEY_REMINDER_HOUR = "reminder_hour"
         private const val KEY_REMINDER_MINUTE = "reminder_minute"
         private const val KEY_APP_THEME_STYLE = "app_theme_style"
-        const val DEFAULT_MODEL = "openai/gpt-oss-20b"
-        val MODELS = listOf(
-            "openai/gpt-oss-20b",
-        )
     }
 }
 
 data class AppSettings(
-    val groqApiKey: String,
-    val isUserOverridingKey: Boolean,
-    val groqModel: String,
     val defaultRestSeconds: Int,
     val preWarning: Boolean,
     val vibrate: Boolean,
     val driveAccountName: String? = null,
     val autoBackupAfterWorkout: Boolean = true,
     val lastBackupAt: Long? = null,
-    val chatHistoryWindow: ChatHistoryWindow = ChatHistoryWindow.Month,
     val reminderDays: Set<Int> = emptySet(),
     val reminderHour: Int = 18,
     val reminderMinute: Int = 0,
     val appThemeStyle: com.n3k0chan.spotter.ui.theme.AppThemeStyle = com.n3k0chan.spotter.ui.theme.AppThemeStyle.Modern,
 ) {
-    val hasApiKey: Boolean get() = groqApiKey.isNotBlank()
     val isDriveLinked: Boolean get() = !driveAccountName.isNullOrBlank()
     val hasReminders: Boolean get() = reminderDays.isNotEmpty()
-}
-
-/** Cuánto historial enviar al chat al usar "Compartir historial". */
-enum class ChatHistoryWindow(val display: String) {
-    Week("1 semana"),
-    Month("1 mes"),
-    Year("1 año"),
-    All("Todo");
-
-    /** Devuelve el timestamp mínimo (ms) para filtrar sesiones. null = sin límite. */
-    fun cutoffMillis(now: Long = System.currentTimeMillis()): Long? = when (this) {
-        Week -> now - 7L * 24 * 60 * 60 * 1000
-        Month -> now - 30L * 24 * 60 * 60 * 1000
-        Year -> now - 365L * 24 * 60 * 60 * 1000
-        All -> null
-    }
-
-    companion object {
-        fun fromName(value: String?): ChatHistoryWindow =
-            entries.firstOrNull { it.name == value } ?: Month
-    }
 }

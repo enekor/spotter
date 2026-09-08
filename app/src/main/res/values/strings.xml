@@ -47,19 +47,8 @@
     <string name="workout_notes">Notas</string>
     <string name="workout_done">Hecho</string>
 
-    <!-- Chat -->
-    <string name="chat_title">Asistente</string>
-    <string name="chat_hint">Pregunta lo que necesites…</string>
-    <string name="chat_send">Enviar</string>
-    <string name="chat_no_key">Configura tu API key de Groq en Ajustes para usar el asistente.</string>
-
     <!-- Settings -->
     <string name="settings_title">Ajustes</string>
-    <string name="settings_groq_key">API Key de Groq</string>
-    <string name="settings_groq_key_hint">gsk_…</string>
-    <string name="settings_groq_key_saved">Guardada (override sobre BuildConfig)</string>
-    <string name="settings_groq_model">Modelo</string>
-    <string name="settings_clear_key">Borrar API key</string>
     <string name="settings_default_rest">Descanso por defecto (s)</string>
     <string name="settings_pre_warning">Aviso a 10s del final</string>
     <string name="settings_vibrate">Vibrar al terminar</string>

@@ -7,9 +7,7 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
-import com.n3k0chan.spotter.ui.chat.ChatScreen
 import com.n3k0chan.spotter.ui.exercises.ExercisesScreen
-import com.n3k0chan.spotter.ui.health.HealthScreen
 import com.n3k0chan.spotter.ui.history.HistoryScreen
 import com.n3k0chan.spotter.ui.history.WorkoutDetailScreen
 import com.n3k0chan.spotter.ui.home.HomeScreen
@@ -37,7 +35,6 @@ fun SpotterNavGraph(
                     navController.navigate(Routes.workoutSession(workoutId))
                 },
                 onPickTemplate = { navController.navigate(Routes.WorkoutRoot) },
-                onOpenChat = { navController.navigate(Routes.Chat) },
                 onOpenSettings = { navController.navigate(Routes.Settings) },
             )
         }
@@ -49,7 +46,6 @@ fun SpotterNavGraph(
                 onOpenTemplates = { navController.navigate(Routes.Templates) },
                 onOpenExercises = { navController.navigate(Routes.Exercises) },
                 onOpenSettings = { navController.navigate(Routes.Settings) },
-                onOpenChat = { navController.navigate(Routes.Chat) },
             )
         }
 
@@ -84,12 +80,7 @@ fun SpotterNavGraph(
             WorkoutScreen(
                 workoutId = id,
                 onFinished = { navController.popBackStack(Routes.Home, inclusive = false) },
-                onOpenChat = { navController.navigate(Routes.Chat) },
             )
-        }
-
-        composable(Routes.Chat) {
-            ChatScreen(onBack = { navController.popBackStack() })
         }
 
         composable(Routes.History) {
@@ -98,7 +89,6 @@ fun SpotterNavGraph(
                     navController.navigate(Routes.workoutDetail(workoutId))
                 },
                 onOpenSettings = { navController.navigate(Routes.Settings) },
-                onOpenChat = { navController.navigate(Routes.Chat) },
             )
         }
 
@@ -116,26 +106,18 @@ fun SpotterNavGraph(
         composable(Routes.Stats) {
             StatsScreen(
                 onOpenSettings = { navController.navigate(Routes.Settings) },
-                onOpenChat = { navController.navigate(Routes.Chat) },
-                onOpenHealth = { navController.navigate(Routes.Health) },
             )
         }
 
         composable(Routes.Settings) {
             SettingsScreen(
                 onBack = { navController.popBackStack() },
-                onOpenHealth = { navController.navigate(Routes.Health) },
             )
-        }
-
-        composable(Routes.Health) {
-            HealthScreen(onBack = { navController.popBackStack() })
         }
 
         composable(Routes.Weight) {
             WeightScreen(
                 onOpenSettings = { navController.navigate(Routes.Settings) },
-                onOpenChat = { navController.navigate(Routes.Chat) },
             )
         }
     }

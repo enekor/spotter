@@ -22,7 +22,6 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.DirectionsWalk
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.LocalFireDepartment
@@ -61,7 +60,8 @@ import com.n3k0chan.spotter.ui.components.SpotterIconButton
 import com.n3k0chan.spotter.ui.components.SpotterTopBar
 import com.n3k0chan.spotter.ui.theme.SpotterText
 import com.n3k0chan.spotter.ui.theme.SpotterTheme
-import com.n3k0chan.spotter.ui.workout.AiSummaryResponse
+import androidx.compose.material.icons.filled.TrendingUp
+import com.n3k0chan.spotter.ui.workout.WorkoutComparison
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -218,10 +218,10 @@ private fun DetailContent(
             item {
                 val summary = remember(w.workout.aiSummaryJson) {
                     runCatching {
-                        Json { ignoreUnknownKeys = true }.decodeFromString<AiSummaryResponse>(w.workout.aiSummaryJson)
+                        Json { ignoreUnknownKeys = true }.decodeFromString<WorkoutComparison>(w.workout.aiSummaryJson)
                     }.getOrNull()
                 }
-                
+
                 if (summary != null) {
                     SpotterCard(
                         background = c.primarySoft,
@@ -230,13 +230,13 @@ private fun DetailContent(
                         Column {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
-                                    Icons.Filled.AutoAwesome,
+                                    Icons.Filled.TrendingUp,
                                     contentDescription = null,
                                     tint = c.primary,
                                     modifier = Modifier.size(16.dp),
                                 )
                                 Spacer(Modifier.width(8.dp))
-                                Text("RESUMEN IA", style = SpotterText.caps, color = c.primarySoftText)
+                                Text("COMPARACIÓN", style = SpotterText.caps, color = c.primarySoftText)
                             }
                             Spacer(Modifier.height(8.dp))
                             Text(summary.summary, style = SpotterText.body, color = c.text)

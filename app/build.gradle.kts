@@ -13,8 +13,6 @@ val localProps: Properties = Properties().apply {
     if (f.exists()) f.inputStream().use { load(it) }
 }
 
-val groqApiKey: String = localProps.getProperty("GROQ_API_KEY", "") ?: ""
-
 val releaseStoreFile: String? = localProps.getProperty("RELEASE_STORE_FILE")?.takeIf { it.isNotBlank() }
 val releaseStorePassword: String? = localProps.getProperty("RELEASE_STORE_PASSWORD")?.takeIf { it.isNotBlank() }
 val releaseKeyAlias: String? = localProps.getProperty("RELEASE_KEY_ALIAS")?.takeIf { it.isNotBlank() }
@@ -40,7 +38,6 @@ android {
             abiFilters.addAll(setOf("armeabi-v7a", "arm64-v8a", "x86", "x86_64"))
         }
 
-        buildConfigField("String", "GROQ_API_KEY", "\"$groqApiKey\"")
     }
 
     signingConfigs {
@@ -128,11 +125,6 @@ dependencies {
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.serialization.json)
-
-    implementation(libs.retrofit)
-    implementation(libs.retrofit.kotlinx.serialization.converter)
-    implementation(libs.okhttp)
-    implementation(libs.okhttp.logging)
 
     // Google Sign-In + Drive (appDataFolder)
     implementation(libs.play.services.auth)

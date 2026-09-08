@@ -82,4 +82,9 @@ interface WorkoutDao {
         ORDER BY ws.completedAt ASC
     """)
     suspend fun getTopExerciseSets(topN: Int = 5): List<WorkoutSet>
+
+    @androidx.room.Query("SELECT exerciseId AS exerciseId, COUNT(*) AS count FROM workout_sets GROUP BY exerciseId")
+    suspend fun getExerciseSetCounts(): List<ExerciseSetCount>
 }
+
+data class ExerciseSetCount(val exerciseId: Long, val count: Int)

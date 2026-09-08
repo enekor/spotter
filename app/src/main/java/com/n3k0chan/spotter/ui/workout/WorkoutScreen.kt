@@ -14,6 +14,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -38,7 +39,6 @@ import com.n3k0chan.spotter.timer.RestTimerService
 import com.n3k0chan.spotter.ui.components.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import com.n3k0chan.spotter.ui.workout.AiSummaryResponse
 import com.n3k0chan.spotter.ui.theme.SpotterText
 import com.n3k0chan.spotter.ui.theme.SpotterTheme
 import java.text.DateFormat
@@ -48,7 +48,6 @@ import java.util.*
 fun WorkoutScreen(
     workoutId: Long,
     onFinished: () -> Unit,
-    onOpenChat: () -> Unit,
     vm: WorkoutViewModel = viewModel(factory = WorkoutViewModel.factory(workoutId)),
 ) {
     val state by vm.state.collectAsStateWithLifecycle()
@@ -73,12 +72,6 @@ fun WorkoutScreen(
                         )
                     },
                     trailing = {
-                        SpotterIconButton(
-                            icon = Icons.Filled.AutoAwesome,
-                            onClick = onOpenChat,
-                            tone = IconButtonTone.Primary,
-                            contentDescription = "Asistente",
-                        )
                         SpotterIconButton(
                             icon = Icons.Filled.MoreVert,
                             tone = IconButtonTone.Muted,
@@ -152,17 +145,24 @@ fun WorkoutScreen(
                         vibrate = settings.vibrate,
                         targetSets = target?.targetSets,
                         targetReps = target?.targetReps,
-                        suggestion = state.suggestion?.takeIf {
-                            state.suggestionForExerciseId == exerciseId && !state.suggestionLoading
-                        },
-                        suggestionLoading = state.suggestionLoading && state.suggestionForExerciseId == exerciseId,
                         onAddSet = { input -> vm.addSet(exerciseId, input) },
                         onDeleteSet = { vm.deleteSet(it) },
                         onUpdateSet = { vm.updateSet(it) },
-                        onRequestSuggestion = { vm.fetchSuggestion(exerciseId, exercise.name) },
-                        onClearSuggestion = { vm.clearSuggestion() },
                         onRemove = { vm.removeExerciseFromSession(exerciseId) },
                     )
+                }
+            }
+            val suggestedId = state.suggestedExerciseId
+            if (suggestedId != null && !state.suggestionDismissed) {
+                val suggested = catalog.firstOrNull { it.id == suggestedId }
+                if (suggested != null) {
+                    item(key = "ghost-suggestion") {
+                        GhostSuggestionCard(
+                            exercise = suggested,
+                            onAccept = { vm.addExerciseToSession(suggested.id) },
+                            onCancel = { vm.dismissSuggestion() },
+                        )
+                    }
                 }
             }
         }
@@ -200,8 +200,7 @@ fun WorkoutScreen(
     }
     if (state.showPostFinish) {
         PostFinishSummaryDialog(
-            loading = state.finishedLoading,
-            summary = state.finishedSummary,
+            summary = state.finishedComparison,
             onDismiss = onFinished,
         )
     }
@@ -217,13 +216,9 @@ private fun ExerciseCard(
     vibrate: Boolean,
     targetSets: Int? = null,
     targetReps: Int? = null,
-    suggestion: String?,
-    suggestionLoading: Boolean,
     onAddSet: (SetInput) -> Unit,
     onDeleteSet: (Long) -> Unit,
     onUpdateSet: (WorkoutSet) -> Unit,
-    onRequestSuggestion: () -> Unit,
-    onClearSuggestion: () -> Unit,
     onRemove: () -> Unit,
 ) {
     val c = SpotterTheme.colors
@@ -337,13 +332,6 @@ private fun ExerciseCard(
                         onDismissRequest = { menuOpen = false },
                     ) {
                         DropdownMenuItem(
-                            text = { Text("Sugerencia IA") },
-                            onClick = {
-                                menuOpen = false
-                                onRequestSuggestion()
-                            },
-                        )
-                        DropdownMenuItem(
                             text = { Text("Quitar del entreno", color = c.danger) },
                             onClick = {
                                 menuOpen = false
@@ -352,14 +340,6 @@ private fun ExerciseCard(
                         )
                     }
                 }
-            }
-
-            if (suggestionLoading) {
-                Spacer(Modifier.height(8.dp))
-                SuggestionCard(text = "Pensando…", onDismiss = null)
-            } else if (!suggestion.isNullOrBlank()) {
-                Spacer(Modifier.height(8.dp))
-                SuggestionCard(text = suggestion, onDismiss = onClearSuggestion)
             }
 
             if (sets.isNotEmpty()) {
@@ -578,34 +558,41 @@ private fun InlineSetEditor(
 }
 
 @Composable
-private fun SuggestionCard(text: String, onDismiss: (() -> Unit)?) {
+private fun GhostSuggestionCard(
+    exercise: Exercise,
+    onAccept: () -> Unit,
+    onCancel: () -> Unit,
+) {
     val c = SpotterTheme.colors
-    SpotterCard(
-        radius = 12.dp,
-        padding = 12.dp,
-        background = c.primarySoft,
-        border = c.primarySoft,
-    ) {
-        Row(verticalAlignment = Alignment.Top) {
-            Icon(
-                Icons.Filled.AutoAwesome,
-                contentDescription = null,
-                tint = c.primary,
-                modifier = Modifier.size(16.dp),
-            )
-            Spacer(Modifier.width(8.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text("SUGERENCIA", style = SpotterText.caps, color = c.primarySoftText)
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    text,
-                    style = SpotterText.small,
-                    color = c.primarySoftText.copy(alpha = 0.85f),
-                )
-            }
-            if (onDismiss != null) {
-                TextButton(onClick = onDismiss) {
-                    Text("OK", color = c.primarySoftText, style = SpotterText.smallMd)
+    Box(modifier = Modifier.alpha(0.45f)) {
+        SpotterCard(radius = 16.dp, padding = 16.dp, border = c.border) {
+            Column {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    MuscleGroupAvatar(
+                        group = MuscleGroup.from(exercise.muscleGroup),
+                        size = 36.dp,
+                        iconSize = 18.dp,
+                    )
+                    Spacer(Modifier.width(10.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("SUGERIDO", style = SpotterText.caps, color = c.textMuted)
+                        Text(exercise.name, style = SpotterText.title3, color = c.text)
+                    }
+                }
+                Spacer(Modifier.height(12.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    SpotterButton(
+                        text = "Aceptar",
+                        leading = Icons.Filled.Add,
+                        variant = SpotterButtonVariant.Tonal,
+                        modifier = Modifier.weight(1f),
+                        onClick = onAccept,
+                    )
+                    SpotterButton(
+                        text = "Cancelar",
+                        variant = SpotterButtonVariant.Outlined,
+                        onClick = onCancel,
+                    )
                 }
             }
         }
@@ -773,13 +760,12 @@ private fun FinishWorkoutDialog(
 
 @Composable
 private fun PostFinishSummaryDialog(
-    loading: Boolean,
-    summary: AiSummaryResponse?,
+    summary: WorkoutComparison?,
     onDismiss: () -> Unit,
 ) {
     val c = SpotterTheme.colors
     AlertDialog(
-        onDismissRequest = { if (!loading) onDismiss() },
+        onDismissRequest = { onDismiss() },
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = c.success, modifier = Modifier.size(24.dp))
@@ -794,22 +780,10 @@ private fun PostFinishSummaryDialog(
         },
         text = {
             Column {
-                if (loading) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        CircularProgressIndicator(
-                            color = c.primary,
-                            strokeWidth = 2.dp,
-                            modifier = Modifier.size(20.dp),
-                        )
-                        Text("Generando resumen…", style = SpotterText.body, color = c.textMuted)
-                    }
-                } else if (summary != null) {
+                if (summary != null) {
                     Text(summary.summary, style = SpotterText.body, color = c.text)
                     Spacer(Modifier.height(16.dp))
-                    
+
                     if (summary.exercises.isNotEmpty()) {
                         val pagerState = rememberPagerState(pageCount = { summary.exercises.size })
                         HorizontalPager(
@@ -826,7 +800,7 @@ private fun PostFinishSummaryDialog(
                                 Column {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Icon(
-                                            Icons.Filled.AutoAwesome,
+                                            Icons.Filled.TrendingUp,
                                             contentDescription = null,
                                             tint = c.primary,
                                             modifier = Modifier.size(16.dp),

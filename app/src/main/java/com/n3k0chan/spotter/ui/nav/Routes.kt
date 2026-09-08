@@ -25,12 +25,9 @@ object Routes {
     fun workoutSession(workoutId: Long) = "workout/$workoutId"
     const val WorkoutSessionPattern = "workout/{workoutId}"
 
-    const val Chat = "chat"
-
     const val History = "history"
     const val Stats = "stats"
     const val Settings = "settings"
-    const val Health = "health"
     const val Weight = "weight"
 
     fun workoutDetail(workoutId: Long) = "workout_detail/$workoutId"

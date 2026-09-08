@@ -14,16 +14,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.MonitorWeight
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -166,8 +162,6 @@ class StatsViewModel : ViewModel() {
 @Composable
 fun StatsScreen(
     onOpenSettings: () -> Unit = {},
-    onOpenChat: () -> Unit = {},
-    onOpenHealth: () -> Unit = {},
     vm: StatsViewModel = viewModel(factory = StatsViewModel.Factory),
 ) {
     val total by vm.totalSessions.collectAsStateWithLifecycle()
@@ -185,10 +179,7 @@ fun StatsScreen(
             SpotterTopBar(
                 title = "Stats",
                 trailing = {
-                    Row {
-                        SpotterIconButton(Icons.AutoMirrored.Filled.Chat, onClick = onOpenChat)
-                        SpotterIconButton(Icons.Filled.Settings, onClick = onOpenSettings)
-                    }
+                    SpotterIconButton(Icons.Filled.Settings, onClick = onOpenSettings)
                 },
             )
         },
@@ -224,10 +215,6 @@ fun StatsScreen(
                     val data = exerciseProgress[idx]
                     ExerciseSparklineCard(data)
                 }
-            }
-            item {
-                Spacer(Modifier.height(4.dp))
-                HealthConnectCard(onClick = onOpenHealth)
             }
         }
     }
@@ -372,40 +359,6 @@ private fun StatTile(label: String, value: String, sub: String?, modifier: Modif
                 Spacer(Modifier.height(4.dp))
                 Text(sub, style = SpotterText.small, color = c.textFaint)
             }
-        }
-    }
-}
-
-@Composable
-private fun HealthConnectCard(onClick: () -> Unit) {
-    val c = SpotterTheme.colors
-    SpotterCard(onClick = onClick) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                Icons.Filled.Favorite,
-                contentDescription = null,
-                tint = c.primary,
-                modifier = Modifier.size(20.dp),
-            )
-            Spacer(Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text("Health Connect", style = SpotterText.bodyMd, color = c.text)
-                Spacer(Modifier.height(2.dp))
-                Text(
-                    "Pasos, calorías, sueño y más desde tus dispositivos",
-                    style = SpotterText.small,
-                    color = c.textMuted,
-                )
-            }
-            Icon(
-                Icons.Filled.ChevronRight,
-                contentDescription = null,
-                tint = c.textFaint,
-                modifier = Modifier.size(20.dp),
-            )
         }
     }
 }

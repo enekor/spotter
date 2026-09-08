@@ -14,7 +14,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
@@ -87,7 +86,6 @@ fun WorkoutHubScreen(
     onOpenTemplates: () -> Unit,
     onOpenExercises: () -> Unit,
     onOpenSettings: () -> Unit = {},
-    onOpenChat: () -> Unit = {},
     vm: WorkoutHubViewModel = viewModel(factory = WorkoutHubViewModel.Factory),
 ) {
     val templates by vm.templatesList.collectAsStateWithLifecycle()
@@ -99,10 +97,7 @@ fun WorkoutHubScreen(
             SpotterTopBar(
                 title = "Entrenar",
                 trailing = {
-                    Row {
-                        SpotterIconButton(Icons.AutoMirrored.Filled.Chat, onClick = onOpenChat)
-                        SpotterIconButton(Icons.Filled.Settings, onClick = onOpenSettings)
-                    }
+                    SpotterIconButton(Icons.Filled.Settings, onClick = onOpenSettings)
                 },
             )
         },

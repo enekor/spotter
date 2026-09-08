@@ -12,7 +12,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -215,7 +214,6 @@ class HistoryViewModel : ViewModel() {
 fun HistoryScreen(
     onWorkoutClick: (Long) -> Unit = {},
     onOpenSettings: () -> Unit = {},
-    onOpenChat: () -> Unit = {},
     vm: HistoryViewModel = viewModel(factory = HistoryViewModel.Factory),
 ) {
     val list by vm.list.collectAsStateWithLifecycle()
@@ -274,7 +272,6 @@ fun HistoryScreen(
                                     contentDescription = "Sincronizar HC",
                                 )
                             }
-                            SpotterIconButton(Icons.AutoMirrored.Filled.Chat, onClick = onOpenChat)
                             SpotterIconButton(Icons.Filled.Settings, onClick = onOpenSettings)
                         }
                     },
