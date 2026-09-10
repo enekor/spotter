@@ -12,3 +12,7 @@ local.properties
 **/build/
 *.keystore
 .kotlin/
+.claude
+gradle/*
+gradlew
+docs/
